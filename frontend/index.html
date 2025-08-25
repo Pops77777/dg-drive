@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Telegram Drive</title>
+  <title>Telegram Drive Upload</title>
 </head>
 <body>
-  <h2>Upload File to Telegram</h2>
+  <h2>📂 Upload File to Telegram</h2>
   <form id="uploadForm">
-    <input type="file" name="file" required />
+    <input type="file" id="fileInput" required />
     <button type="submit">Upload</button>
   </form>
 
@@ -17,17 +17,26 @@
   <script>
     document.getElementById("uploadForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-      const formData = new FormData(e.target);
 
-      const res = await fetch("http://localhost:3000/upload", {
-        method: "POST",
-        body: formData
-      });
+      const file = document.getElementById("fileInput").files[0];
+      if (!file) return alert("Please select a file!");
 
-      const result = await res.json();
-      document.getElementById("status").innerText = result.ok
-        ? "✅ Upload Successful!"
-        : "❌ Upload Failed!";
+      const formData = new FormData();
+      formData.append("file", file);
+
+      document.getElementById("status").innerText = "⏳ Uploading...";
+
+      try {
+        const res = await fetch("http://localhost:3000/upload", {
+          method: "POST",
+          body: formData
+        });
+        const data = await res.json();
+        document.getElementById("status").innerText = "✅ Uploaded to Telegram!";
+        console.log(data);
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ Upload failed!";
+      }
     });
   </script>
 </body>
