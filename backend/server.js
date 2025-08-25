@@ -7,11 +7,11 @@ import FormData from "form-data";
 const app = express();
 app.use(cors());
 
-// 🟢 Yaha apna BOT TOKEN & CHAT ID daalo
-const BOT_TOKEN = "PASTE_YOUR_BOT_TOKEN";
-const CHAT_ID = "PASTE_YOUR_CHAT_ID";
+// 🟢 Telegram Bot Details
+const BOT_TOKEN = "8201382659:AAHz2ahAYhIlLn34n-MPlAKqC8EJ3jq92mM";
+const CHAT_ID = "7937344818";
 
-// File upload setup
+// File upload setup (memory storage use ho raha hai)
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -32,10 +32,13 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const result = await response.json();
     res.json(result);
   } catch (err) {
+    console.error(err);
     res.status(500).send("Upload failed");
   }
 });
 
-app.listen(3000, () => {
-  console.log("Server running on port 3000");
+// Render ke liye PORT env variable use karna hoga
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
