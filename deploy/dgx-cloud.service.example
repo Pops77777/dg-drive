@@ -1,0 +1,30 @@
+[Unit]
+Description=DGx Cloud Telegram storage app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dgxcloud
+Group=dgxcloud
+WorkingDirectory=/opt/dgx-cloud
+EnvironmentFile=/etc/dgx-cloud/dgx-cloud.env
+Environment=NODE_ENV=production
+Environment=LISTEN_HOST=127.0.0.1
+Environment=DATA_DIR=/var/lib/dgx-cloud
+ExecStart=/usr/bin/node /opt/dgx-cloud/server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/dgx-cloud
+
+[Install]
+WantedBy=multi-user.target

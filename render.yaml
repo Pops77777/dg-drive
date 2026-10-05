@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: dgx-cloud
+    runtime: node
+    plan: starter
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /
+    disk:
+      name: dgx-cloud-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: LISTEN_HOST
+        value: 0.0.0.0
+      - key: DATA_DIR
+        value: /var/data
+      - key: TRUST_PROXY_HTTPS
+        value: "true"
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      - key: SESSION_ENCRYPTION_KEY
+        generateValue: true
+      - key: ADMIN_TELEGRAM_USERNAME
+        value: Kingsmaster27

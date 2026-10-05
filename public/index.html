@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f8ff">
+    <meta name="description" content="DGx Cloud — a premium personal file library, securely organised with Telegram Saved Messages.">
+    <title>∞ DGx Cloud — Your personal cloud</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/" id="brand-home-link" aria-label="DGx Cloud home">
+        <span class="brand-mark" aria-hidden="true"><svg class="infinity-mark" viewBox="0 0 24 24" focusable="false"><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg></span>
+        <span>DGx <span class="brand-accent">Cloud</span></span>
+      </a>
+      <nav class="topnav" aria-label="Main navigation">
+        <a href="#welcome-view" id="home-nav-link">Home</a>
+        <a href="#dashboard-view" id="library-nav-link">Library</a>
+        <a href="#upload-files-button" id="upload-nav-link">Upload</a>
+      </nav>
+      <div class="header-actions">
+        <button class="account-badge hidden" id="account-badge" type="button"><span class="account-avatar"><span class="account-avatar-fallback" aria-hidden="true">☁</span><img id="account-avatar-image" alt="Telegram profile photo"></span><strong id="account-email"></strong><span class="vip-badge hidden" id="vip-badge">VIP</span><span class="admin-badge hidden" id="admin-badge">ADMIN</span></button>
+        <span class="privacy-label"><span class="privacy-dot"></span> Your Telegram, your files</span>
+        <button class="button button-quiet hidden" id="theme-toggle" type="button" aria-label="Switch to dark mode">☾</button>
+        <button class="button button-quiet hidden" id="logout-button" type="button">Sign out</button>
+      </div>
+    </header>
+
+    <main class="page-shell">
+      <section class="hero" id="welcome-view">
+        <div class="hero-copy">
+          <div class="eyebrow"><span class="eyebrow-line"></span> YOUR PERSONAL CLOUD, REIMAGINED</div>
+          <h1><svg class="infinity-mark title-infinity" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg> DGx Cloud<br><span class="text-gradient unlimited-title">Unlimited Storage*</span></h1>
+          <p class="hero-description">Bring your photos, videos and important files together in one refined library. Upload directly to your own Telegram Saved Messages, organise with folders, and preview your media whenever you need it.</p>
+          <div class="hero-points">
+            <span><span class="check">✓</span> Your Telegram account stores your files</span>
+            <span><span class="check">✓</span> Preview, search and organise with ease</span>
+          </div>
+          <p class="storage-disclaimer">*Storage is backed by Telegram; file-size and account limits apply.</p>
+          <button class="button button-primary hero-cta" id="start-login-button" type="button">Login with Telegram <span aria-hidden="true">→</span></button>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit orbit-one"></div>
+          <div class="orbit orbit-two"></div>
+          <div class="cloud-illustration">
+            <span class="cloud-back"></span>
+            <span class="cloud-front">☁</span>
+            <span class="file-float file-one">▤</span>
+            <span class="file-float file-two">▶</span>
+            <span class="file-float file-three">▧</span>
+          </div>
+          <div class="art-caption"><span class="art-caption-dot"></span> Everything in its place</div>
+        </div>
+      </section>
+
+      <section class="auth-layout hidden" id="auth-view">
+        <div class="auth-intro">
+          <span class="section-kicker">A BETTER WAY TO KEEP YOUR FILES</span>
+          <h2>Simple to use.<br>Yours to manage.</h2>
+          <p>Connect your Telegram account and make a private, searchable library from your Saved Messages.</p>
+          <div class="auth-note"><span class="note-icon">🔒</span><span>Files are stored in your Telegram Saved Messages. This is not end-to-end encrypted: the trusted server operator and authorized site admin can access connected accounts and files indexed here. Connect only to a server you control or trust.</span></div>
+        </div>
+        <div class="auth-card">
+          <div class="auth-method-tabs" role="tablist" aria-label="Sign-in method">
+            <button class="auth-method-tab is-active" id="qr-method-button" type="button" role="tab" aria-selected="true">Telegram QR</button>
+            <button class="auth-method-tab" id="password-method-button" type="button" role="tab" aria-selected="false">Login ID</button>
+          </div>
+          <form id="auth-form">
+            <div class="qr-login-panel" id="qr-login-panel">
+              <span class="section-kicker">SECURE TELEGRAM SIGN-IN</span>
+              <img class="login-qr-image hidden" id="login-qr-image" alt="Telegram login QR code">
+              <ol class="qr-instructions">
+                <li>Open Telegram on your phone and go to <strong>Settings → Devices</strong>.</li>
+                <li>Tap <strong>Link Desktop Device</strong> and scan the QR code shown here.</li>
+                <li>Approve the sign-in in Telegram to open your DGx Cloud library.</li>
+              </ol>
+              <button class="button button-outline qr-refresh-button" id="refresh-qr-login" type="button">Refresh QR code</button>
+              <button class="button button-quiet qr-back-button" id="auth-back-button" type="button">Back to home</button>
+            </div>
+            <div class="telegram-password hidden" id="password-step">
+              <label class="field-label" for="telegram-password">Telegram two-step verification password</label>
+              <div class="password-input-wrap">
+                <input class="field-input" id="telegram-password" name="telegram-password" type="password" autocomplete="current-password" placeholder="Your Telegram 2-step password" maxlength="256">
+                <button class="password-toggle" type="button" data-password-toggle="telegram-password" aria-label="Show Telegram password" aria-pressed="false">Show</button>
+              </div>
+            </div>
+            <button class="button button-primary auth-submit hidden" id="auth-submit" type="submit">Verify Telegram password <span aria-hidden="true">→</span></button>
+            <p class="form-message" id="auth-message" role="status" aria-live="polite"></p>
+          </form>
+          <form class="credential-login hidden" id="credential-login-form">
+            <span class="section-kicker">DGx CLOUD ACCOUNT</span>
+            <label class="field-label" for="credential-login-id">Login ID</label>
+            <input class="field-input" id="credential-login-id" name="username" autocomplete="username" autocapitalize="none" maxlength="32" required>
+            <label class="field-label" for="credential-login-password">Password</label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="credential-login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+              <button class="password-toggle" type="button" data-password-toggle="credential-login-password" aria-label="Show password" aria-pressed="false">Show</button>
+            </div>
+            <button class="button button-primary auth-submit" type="submit">Sign in <span aria-hidden="true">→</span></button>
+            <p class="form-message" id="credential-login-message" role="status" aria-live="polite"></p>
+            <div class="credential-recovery">
+              <button class="text-button" id="credential-qr-recovery" type="button">Forgot? Verify with Telegram QR</button>
+              <a class="text-button" href="https://www.instagram.com/gopal.dhapa/" target="_blank" rel="noopener noreferrer">Contact admin on Instagram</a>
+            </div>
+          </form>
+          <p class="auth-disclaimer">Your files are stored in your Telegram Saved Messages. The server can access connected sessions and media; this is not end-to-end encrypted. Only sign in on a server you trust.</p>
+        </div>
+      </section>
+
+      <dialog class="profile-dialog" id="profile-dialog" aria-labelledby="profile-title">
+        <form class="profile-dialog-form" id="profile-credentials-form">
+          <button class="dialog-close" id="profile-close" type="button" aria-label="Close">×</button>
+          <span class="section-kicker">ACCOUNT PROFILE</span>
+          <h2 id="profile-title">Login ID &amp; password</h2>
+          <p class="profile-description" id="profile-credential-description">Set credentials so you can sign in without scanning a QR code.</p>
+          <p class="profile-current-login" id="profile-current-login"></p>
+          <label class="field-label" for="profile-current-password">Current password <span>(required for changes)</span></label>
+          <div class="password-input-wrap">
+            <input class="field-input" id="profile-current-password" type="password" autocomplete="current-password" maxlength="128">
+            <button class="password-toggle" type="button" data-password-toggle="profile-current-password" aria-label="Show current password" aria-pressed="false">Show</button>
+          </div>
+          <label class="field-label" for="profile-login-id">New login ID</label>
+          <input class="field-input" id="profile-login-id" autocomplete="username" autocapitalize="none" minlength="3" maxlength="32" pattern="[A-Za-z0-9._\-]{3,32}" required>
+          <label class="field-label" for="profile-new-password">New password <span>(at least 10 characters)</span></label>
+          <div class="password-input-wrap">
+            <input class="field-input" id="profile-new-password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required>
+            <button class="password-toggle" type="button" data-password-toggle="profile-new-password" aria-label="Show new password" aria-pressed="false">Show</button>
+          </div>
+          <label class="field-label" for="profile-confirm-password">Confirm password</label>
+          <div class="password-input-wrap">
+            <input class="field-input" id="profile-confirm-password" type="password" autocomplete="new-password" minlength="10" maxlength="128" required>
+            <button class="password-toggle" type="button" data-password-toggle="profile-confirm-password" aria-label="Show password confirmation" aria-pressed="false">Show</button>
+          </div>
+          <p class="profile-security-note">Passwords are stored as one-way hashes; neither admins nor support can view them. Verify the same Telegram account with QR to set a new password; this browser session stays signed in.</p>
+          <p class="form-message" id="profile-credentials-message" role="status" aria-live="polite"></p>
+          <div class="dialog-actions">
+            <button class="button button-outline" id="profile-recovery-qr" type="button">Verify with Telegram QR</button>
+            <button class="button button-primary" type="submit">Save credentials</button>
+          </div>
+          <section class="profile-lock-settings" aria-labelledby="account-lock-heading">
+            <span class="section-kicker">OPTIONAL DEVICE LOCK</span>
+            <h3 id="account-lock-heading">Lock this account when it opens</h3>
+            <label class="account-lock-toggle"><input id="account-lock-enabled" type="checkbox"> Ask for a PIN when this website opens</label>
+            <label class="field-label" for="account-lock-current-pin">Current lock PIN</label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="account-lock-current-pin" type="password" autocomplete="current-password" minlength="6" maxlength="128">
+              <button class="password-toggle" type="button" data-password-toggle="account-lock-current-pin" aria-label="Show current lock PIN" aria-pressed="false">Show</button>
+            </div>
+            <label class="field-label" for="account-lock-new-pin">New lock PIN <span>(optional to keep existing PIN)</span></label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="account-lock-new-pin" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+              <button class="password-toggle" type="button" data-password-toggle="account-lock-new-pin" aria-label="Show new lock PIN" aria-pressed="false">Show</button>
+            </div>
+            <label class="field-label" for="account-lock-confirm-pin">Confirm new lock PIN</label>
+            <input class="field-input" id="account-lock-confirm-pin" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+            <div class="dialog-actions">
+              <button class="button button-outline" id="account-lock-save" type="button">Save lock settings</button>
+            </div>
+            <p class="form-message" id="account-lock-settings-message" role="status" aria-live="polite"></p>
+          </section>
+          <a class="profile-contact-link" href="https://www.instagram.com/gopal.dhapa/" target="_blank" rel="noopener noreferrer">Need help? Contact admin on Instagram</a>
+          <button class="button button-quiet profile-admin-button hidden" id="profile-admin-open" type="button">Open admin console</button>
+        </form>
+      </dialog>
+
+      <dialog class="vault-dialog" id="vault-dialog" aria-labelledby="vault-title">
+        <form class="vault-dialog-form" id="vault-dialog-form">
+          <button class="dialog-close" id="vault-close" type="button" aria-label="Close Vault">×</button>
+          <span class="section-kicker">PRIVATE LIBRARY</span>
+          <h2 id="vault-title">🔒 Vault</h2>
+          <p class="vault-notice">Vault files are hidden from the normal library and admin account view. This passcode lock protects access through this website; Telegram/server operators can still access the underlying files.</p>
+          <section class="vault-setup hidden" id="vault-setup">
+            <h3 id="vault-setup-title">Set a Vault passcode</h3>
+            <label class="field-label" for="vault-account-password">DGx Cloud password <span id="vault-account-password-hint"></span></label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="vault-account-password" type="password" autocomplete="current-password" maxlength="128">
+              <button class="password-toggle" type="button" data-password-toggle="vault-account-password" aria-label="Show account password" aria-pressed="false">Show</button>
+            </div>
+            <label class="field-label" for="vault-new-passcode">New passcode (6+ characters)</label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="vault-new-passcode" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+              <button class="password-toggle" type="button" data-password-toggle="vault-new-passcode" aria-label="Show new Vault passcode" aria-pressed="false">Show</button>
+            </div>
+            <label class="field-label" for="vault-confirm-passcode">Confirm passcode</label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="vault-confirm-passcode" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+              <button class="password-toggle" type="button" data-password-toggle="vault-confirm-passcode" aria-label="Show passcode confirmation" aria-pressed="false">Show</button>
+            </div>
+            <button class="button button-primary" id="vault-create-button" type="submit">Create passcode</button>
+          </section>
+          <section class="vault-unlock hidden" id="vault-unlock">
+            <label class="field-label" for="vault-passcode">Vault passcode</label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="vault-passcode" type="password" autocomplete="current-password" minlength="6" maxlength="128">
+              <button class="password-toggle" type="button" data-password-toggle="vault-passcode" aria-label="Show Vault passcode" aria-pressed="false">Show</button>
+            </div>
+            <button class="button button-primary" id="vault-unlock-button" type="button">Unlock Vault</button>
+            <button class="text-button" id="vault-forgot-button" type="button">Forgot passcode? Verify same account with Telegram QR</button>
+          </section>
+          <section class="vault-content hidden" id="vault-content">
+            <div class="vault-toolbar">
+              <div class="vault-tabs">
+                <button class="button button-outline is-active" id="vault-files-tab" type="button">Vault files</button>
+                <button class="button button-outline" id="vault-trash-tab" type="button">Vault Trash</button>
+              </div>
+              <button class="button button-quiet" id="vault-lock-button" type="button">Lock now</button>
+            </div>
+            <p class="vault-list-status" id="vault-list-status" role="status"></p>
+            <div class="vault-file-list" id="vault-file-list"></div>
+          </section>
+          <p class="form-message" id="vault-message" role="status" aria-live="polite"></p>
+        </form>
+      </dialog>
+
+      <dialog class="admin-password-dialog" id="admin-password-dialog" aria-labelledby="admin-password-title">
+        <form method="dialog" class="profile-dialog-form">
+          <button class="dialog-close" type="submit" aria-label="Close">×</button>
+          <span class="section-kicker">ADMIN ACCOUNT SUPPORT</span>
+          <h2 id="admin-password-title">Login assistance</h2>
+          <p class="admin-password-identity" id="admin-password-identity"></p>
+          <p class="admin-password-status" id="admin-password-status"></p>
+          <p class="profile-security-note">For user safety, passwords are one-way hashed and cannot be shown to admins. Share the login ID above if needed. If the user forgot their password, require a reset; they must verify ownership with Telegram QR and choose a new password themselves.</p>
+          <a class="profile-contact-link" href="https://www.instagram.com/gopal.dhapa/" target="_blank" rel="noopener noreferrer">Contact DGx Studio on Instagram</a>
+          <div class="dialog-actions">
+            <button class="button button-outline" id="admin-password-reset" type="button">Require QR-verified reset</button>
+            <button class="button button-quiet" type="submit">Close</button>
+          </div>
+        </form>
+      </dialog>
+
+      <section class="site-announcement hidden" id="site-announcement" aria-live="polite"></section>
+      <a class="site-ad hidden" id="site-ad" rel="noopener noreferrer" target="_blank"><img id="site-ad-image" alt="DG Cloud announcement"></a>
+
+      <section class="account-lock-screen hidden" id="account-lock-view" aria-labelledby="account-lock-title">
+        <div class="account-lock-card">
+          <span class="account-lock-emblem" aria-hidden="true">◈</span>
+          <span class="section-kicker">ACCOUNT PROTECTED</span>
+          <h2 id="account-lock-title">Unlock your DGx Cloud</h2>
+          <p>Enter your account lock PIN to open your library on this device.</p>
+          <form id="account-lock-form">
+            <label class="field-label" for="account-lock-pin">Account lock PIN</label>
+            <div class="password-input-wrap">
+              <input class="field-input" id="account-lock-pin" type="password" autocomplete="current-password" minlength="6" maxlength="128" required>
+              <button class="password-toggle" type="button" data-password-toggle="account-lock-pin" aria-label="Show account lock PIN" aria-pressed="false">Show</button>
+            </div>
+            <button class="button button-primary" id="account-lock-submit" type="submit">Unlock account</button>
+          </form>
+          <p class="form-message" id="account-lock-message" role="status" aria-live="polite"></p>
+          <button class="text-button" id="account-lock-signout" type="button">Sign out instead</button>
+        </div>
+      </section>
+
+      <section class="dashboard hidden" id="dashboard-view">
+        <div class="dashboard-heading">
+          <div>
+            <h2>My Storage</h2>
+            <p class="account-line">Everything you’ve uploaded to your Telegram Saved Messages</p>
+          </div>
+          <div class="library-heading-actions">
+            <label class="search-box" for="file-search"><span aria-hidden="true">⌕</span><input id="file-search" type="search" placeholder="Search files…" autocomplete="off"></label>
+            <button class="button button-outline" id="devices-button" type="button">Devices</button>
+            <button class="button button-outline" id="refresh-button" type="button"><span aria-hidden="true">↻</span> Refresh</button>
+          </div>
+        </div>
+
+        <div class="storage-overview">
+          <div class="category-grid" id="category-grid" aria-label="Filter files by type"></div>
+          <section class="storage-card" aria-label="Storage summary">
+            <div class="storage-total"><img class="storage-ring" id="storage-ring" alt="" aria-hidden="true"><span><strong id="storage-total">0 B</strong><small>Total used</small></span></div>
+            <div class="storage-breakdown" id="storage-breakdown"></div>
+          </section>
+
+          <dialog class="library-dialog" id="library-dialog">
+            <form id="library-dialog-form">
+              <button class="dialog-close" id="library-dialog-close" type="button" aria-label="Close">×</button>
+              <span class="section-kicker" id="library-dialog-kicker">LIBRARY</span>
+              <h2 id="library-dialog-title">Create folder</h2>
+              <p id="library-dialog-description">Choose a name for this folder.</p>
+              <label class="field-label" for="library-dialog-input" id="library-dialog-label">Folder name</label>
+              <input class="field-input" id="library-dialog-input" maxlength="180" required>
+              <select class="field-input hidden" id="library-dialog-select"></select>
+              <div class="dialog-actions">
+                <button class="button button-quiet" id="library-dialog-cancel" type="button">Cancel</button>
+                <button class="button button-primary" id="library-dialog-submit" type="submit">Create folder</button>
+              </div>
+            </form>
+          </dialog>
+
+          <dialog class="preview-dialog" id="preview-dialog">
+            <div class="preview-dialog-header">
+              <div><span class="section-kicker">FILE PREVIEW</span><h2 id="preview-title"></h2></div>
+              <div class="preview-dialog-actions">
+                <a class="button button-outline" id="preview-download" href="#">↓ Download</a>
+                <button class="icon-button" id="preview-close" type="button" aria-label="Close preview">×</button>
+              </div>
+            </div>
+            <div class="preview-content" id="preview-content"></div>
+          </dialog>
+
+          <dialog class="devices-dialog" id="devices-dialog" aria-labelledby="devices-title">
+            <form method="dialog" class="devices-dialog-form">
+              <button class="dialog-close" type="submit" aria-label="Close">×</button>
+              <span class="section-kicker">ACCOUNT SECURITY</span>
+              <h2 id="devices-title">Signed-in devices</h2>
+              <p class="devices-description">These are browser sessions for this DGx Cloud account, not the device list in Telegram. Sign out any browser you no longer use.</p>
+              <p class="devices-summary" id="devices-summary" role="status" aria-live="polite">Loading sessions…</p>
+              <button class="button button-outline hidden" id="devices-sign-out-others" type="button">Sign out all other devices</button>
+              <div class="devices-list" id="devices-list"></div>
+              <div class="dialog-actions">
+                <button class="button button-outline" id="devices-refresh" type="button">Refresh</button>
+                <button class="button button-quiet" type="submit">Close</button>
+              </div>
+            </form>
+          </dialog>
+        </div>
+
+        <div class="library-toolbar">
+          <nav class="breadcrumbs" id="breadcrumbs" aria-label="Folder path"></nav>
+          <div class="library-actions">
+            <button class="button button-outline" id="trash-toggle" type="button">🗑 Trash</button>
+            <button class="button button-outline delete-action hidden" id="empty-trash" type="button">Delete all</button>
+            <button class="button button-outline" id="new-folder-button" type="button">＋ New folder</button>
+            <button class="button button-outline" id="upload-folder-button" type="button">Upload folder</button>
+            <button class="button button-primary" id="upload-files-button" type="button">↑ Upload files</button>
+            <span class="file-size-limit" id="upload-limit"></span>
+          </div>
+        </div>
+        <div class="library-view-controls" aria-label="Library display settings">
+          <label>View
+            <select class="field-input" id="library-view-mode">
+              <option value="small">Small icons</option>
+              <option value="medium">Medium icons</option>
+              <option value="large">Large icons</option>
+              <option value="details">Detailed list</option>
+            </select>
+          </label>
+          <label>Sort
+            <select class="field-input" id="library-sort-mode">
+              <option value="name">Name</option>
+              <option value="date-desc">Date modified — newest</option>
+              <option value="date-asc">Date modified — oldest</option>
+            </select>
+          </label>
+          <label class="data-saver-toggle"><input id="data-saver-toggle" type="checkbox"> Data saver <span>Use smaller thumbnails</span></label>
+        </div>
+        <div class="selection-toolbar" id="selection-toolbar">
+          <span id="selection-count">0 selected</span>
+          <div class="selection-actions">
+            <button class="button button-outline" id="select-all-items" type="button">Select all</button>
+            <button class="button button-outline hidden" id="download-selected" type="button">↓ Download selected</button>
+            <button class="button button-outline hidden" id="vault-selected" type="button">🔒 Move to Vault</button>
+            <button class="button button-outline" id="move-selected" type="button">Move</button>
+            <button class="button button-outline" id="copy-selected" type="button">Copy</button>
+            <button class="button button-outline" id="paste-selected" type="button">Paste here</button>
+            <button class="button button-outline" id="trash-selected" type="button">Move to Trash</button>
+            <button class="button button-outline" id="restore-selected" type="button">Restore</button>
+            <button class="button button-outline delete-action" id="delete-selected" type="button">Delete permanently</button>
+            <button class="button button-quiet" id="clear-selection" type="button">Clear</button>
+          </div>
+          <span class="selection-download-status" id="selection-download-status" role="status" aria-live="polite"></span>
+        </div>
+        <input id="file-picker" type="file" multiple>
+        <input id="folder-picker" type="file" webkitdirectory multiple>
+        <div class="upload-queue" id="upload-queue" aria-live="polite"></div>
+        <section class="library-files" aria-labelledby="files-title">
+          <div class="library-files-heading"><h3 id="files-title">🗂️ <span id="current-folder-title">Files</span></h3><p id="file-count">Loading your files…</p><span class="selection-hint">Long-press a file or folder to select it.</span></div>
+          <div class="folder-grid" id="folder-list"></div>
+          <div class="library-file-grid" id="file-list"></div>
+          <div class="empty-state hidden" id="empty-state">
+            <span class="empty-icon" aria-hidden="true">▱</span>
+            <strong>Your cloud is ready</strong>
+            <span>Files you upload will show up here.</span>
+          </div>
+        </section>
+        <div class="upload-notice library-notice" id="telegram-notice">
+          <span class="notice-icon" aria-hidden="true">ⓘ</span>
+          <span>Files are stored in your Telegram Saved Messages. Folder organization and display names are managed by this website.</span>
+        </div>
+      </section>
+
+      <section class="admin-view hidden" id="admin-view">
+        <div class="admin-heading">
+          <div><span class="section-kicker admin-brand"><svg class="infinity-mark" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg> DGX CLOUD CONTROL ROOM</span><h2>Admin console</h2><p>Manage site announcements and account access.</p></div>
+          <div class="admin-heading-actions"><button class="button button-outline" id="admin-back-button" type="button">Back to library</button></div>
+        </div>
+        <form class="admin-settings" id="admin-settings-form">
+          <h3>Website content</h3>
+          <label class="field-label" for="admin-announcement-title">Announcement title</label>
+          <input class="field-input" id="admin-announcement-title" maxlength="100" placeholder="A short message for everyone">
+          <label class="field-label" for="admin-announcement">Announcement message</label>
+          <textarea class="field-input admin-textarea" id="admin-announcement" maxlength="500" placeholder="Shown near the top of the home page"></textarea>
+          <label class="field-label" for="admin-popup">Popup message (optional)</label>
+          <textarea class="field-input admin-textarea" id="admin-popup" maxlength="500" placeholder="Displayed once per browser after you publish it"></textarea>
+          <label class="field-label" for="admin-ad-image">Ad image URL (HTTPS)</label>
+          <input class="field-input" id="admin-ad-image" type="url" maxlength="1000" placeholder="https://example.com/banner.jpg">
+          <label class="field-label" for="admin-ad-link">Ad destination URL (HTTPS)</label>
+          <input class="field-input" id="admin-ad-link" type="url" maxlength="1000" placeholder="https://example.com">
+          <div class="admin-settings-actions"><button class="button button-primary" type="submit">Publish changes</button><span id="admin-settings-message" role="status"></span></div>
+        </form>
+        <section class="admin-users">
+          <div class="admin-users-heading"><div><h3>Registered accounts</h3><p>Open the read-only account view, manage access and require a Telegram-verified password reset. Passwords are never viewable, including by admins.</p><span class="admin-user-stats" id="admin-user-stats"></span></div><div class="admin-user-tools"><input class="field-input" id="admin-user-search" type="search" placeholder="Search accounts"><button class="button button-outline" id="admin-refresh-users" type="button">Refresh</button></div></div>
+          <div class="admin-user-list" id="admin-user-list"></div>
+        </section>
+        <dialog class="admin-account-view hidden" id="admin-account-view" aria-labelledby="admin-account-title">
+          <div class="admin-users-heading"><div><h3 id="admin-account-title">Account library</h3><p id="admin-account-summary">Admin read-only view</p></div><button class="button button-outline" id="admin-account-close" type="button">Close account</button></div>
+          <div class="admin-account-content" id="admin-account-content"></div>
+        </dialog>
+      </section>
+
+      <section class="feature-strip" id="feature-strip" aria-label="Features">
+        <article class="feature-item">
+          <span class="feature-icon feature-blue" aria-hidden="true">↥</span>
+          <div><h3>Effortless uploads</h3><p>Follow progress as files are saved to your Telegram account.</p></div>
+        </article>
+        <article class="feature-item">
+          <span class="feature-icon feature-purple" aria-hidden="true">▣</span>
+          <div><h3>Your library, your way</h3><p>Use folders, search, previews and flexible file actions.</p></div>
+        </article>
+        <article class="feature-item">
+          <span class="feature-icon feature-green" aria-hidden="true">◉</span>
+          <div><h3>Backed by Telegram</h3><p>Your uploads go to your own Saved Messages.</p></div>
+        </article>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <a class="brand footer-brand" href="/" id="footer-home-link"><span class="brand-mark" aria-hidden="true"><svg class="infinity-mark" viewBox="0 0 24 24" focusable="false"><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg></span><span>DGx <span class="brand-accent">Cloud</span></span></a>
+      <span>Your personal space for the things that matter.</span>
+      <a class="social-link" href="https://www.instagram.com/gopal.dhapa/" aria-label="Visit DGx Studio on Instagram" target="_blank" rel="noopener noreferrer"><span class="instagram-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4.2"></circle><circle class="instagram-dot" cx="17.6" cy="6.8" r="1.2"></circle></svg></span><svg class="studio-infinity" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><defs><linearGradient id="studio-gradient-link" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5b8cff"></stop><stop offset="1" stop-color="#bd55e8"></stop></linearGradient></defs><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg><span>DGx Studio</span></a>
+      <span class="footer-status"><svg class="studio-infinity" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><defs><linearGradient id="studio-gradient-footer" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#5b8cff"></stop><stop offset="1" stop-color="#bd55e8"></stop></linearGradient></defs><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg><span class="privacy-dot"></span> Developed by DGx Studio</span>
+    </footer>
+
+    <dialog class="library-dialog site-popup-dialog" id="site-popup-dialog">
+      <form method="dialog">
+        <button class="dialog-close" type="submit" aria-label="Close">×</button>
+        <span class="section-kicker">DG CLOUD UPDATE</span>
+        <h2 id="site-popup-title">A note from DG Cloud</h2>
+        <p id="site-popup-message"></p>
+        <div class="dialog-actions"><button class="button button-primary" type="submit">Got it</button></div>
+      </form>
+    </dialog>
+  </body>
+</html>
