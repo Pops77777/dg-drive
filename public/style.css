@@ -1319,47 +1319,173 @@ body {
   50% { opacity: 1; }
 }
 
-/* Scale up the file library cards and folders */
-.library-file-card {
-  padding: 12px 14px !important;
-  gap: 14px !important;
-  border-radius: 12px !important;
-  content-visibility: auto;
-  contain-intrinsic-size: 80px;
+/* ==========================================================
+   VIEW MODES: SMALL, MEDIUM, LARGE, DETAILS
+   ========================================================== */
+
+/* Default / Medium View */
+.folder-grid, .library-file-grid,
+.folder-grid[data-view="medium"], .library-file-grid[data-view="medium"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+}
+.library-file-grid[data-view="medium"] .library-file-card {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+.library-file-grid[data-view="medium"] .file-preview {
+  width: 80px;
+  height: 72px;
+  border-radius: 10px;
+}
+.library-file-grid[data-view="medium"] .file-name {
+  font-size: 14px;
+  font-weight: 600;
+}
+.library-file-grid[data-view="medium"] .file-meta {
+  font-size: 12px;
+  color: #8391a8;
 }
 
-.file-preview {
-  width: 80px !important;
-  height: 72px !important;
+/* Small Icons View */
+.folder-grid[data-view="small"], .library-file-grid[data-view="small"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)) !important;
+  gap: 10px !important;
+}
+.library-file-grid[data-view="small"] .library-file-card {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 9px !important;
+  gap: 8px !important;
   border-radius: 10px !important;
 }
-
-.file-name {
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  line-height: 1.35 !important;
+.library-file-grid[data-view="small"] .file-preview {
+  width: 100% !important;
+  height: 90px !important;
+  border-radius: 8px !important;
 }
-
-.file-meta {
+.library-file-grid[data-view="small"] .file-name {
   font-size: 12px !important;
-  color: #8391a8 !important;
+  line-height: 1.3 !important;
+}
+.library-file-grid[data-view="small"] .file-meta {
+  font-size: 10.5px !important;
+}
+.folder-grid[data-view="small"] .folder-tile {
+  min-height: 52px !important;
+  padding: 8px 10px !important;
+  gap: 8px !important;
+}
+.folder-grid[data-view="small"] .folder-open {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 16px !important;
+}
+.folder-grid[data-view="small"] .folder-info {
+  font-size: 12px !important;
 }
 
-.folder-tile {
-  padding: 12px 14px !important;
+/* Large Icons View */
+.folder-grid[data-view="large"], .library-file-grid[data-view="large"] {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  gap: 16px !important;
+}
+.library-file-grid[data-view="large"] .library-file-card {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 16px !important;
   gap: 12px !important;
-  border-radius: 12px !important;
+  border-radius: 14px !important;
+}
+.library-file-grid[data-view="large"] .file-preview {
+  width: 100% !important;
+  height: 180px !important;
+  border-radius: 10px !important;
+}
+.library-file-grid[data-view="large"] .file-name {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+}
+.library-file-grid[data-view="large"] .file-meta {
+  font-size: 12.5px !important;
+}
+.folder-grid[data-view="large"] .folder-tile {
+  min-height: 80px !important;
+  padding: 14px 16px !important;
+}
+.folder-grid[data-view="large"] .folder-open {
+  width: 48px !important;
+  height: 48px !important;
+  font-size: 24px !important;
+}
+.folder-grid[data-view="large"] .folder-info {
+  font-size: 15px !important;
 }
 
-.folder-open {
-  width: 42px !important;
+/* Detailed List View */
+.folder-grid[data-view="details"], .library-file-grid[data-view="details"] {
+  display: grid;
+  grid-template-columns: 1fr !important;
+  gap: 7px !important;
+}
+.library-file-grid[data-view="details"] .library-file-card {
+  display: grid !important;
+  grid-template-columns: 46px minmax(130px, 1fr) auto !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+}
+.library-file-grid[data-view="details"] .file-preview {
+  width: 46px !important;
   height: 42px !important;
-  font-size: 20px !important;
+  border-radius: 7px !important;
+}
+.library-file-grid[data-view="details"] .file-name {
+  font-size: 13.5px !important;
+}
+.library-file-grid[data-view="details"] .file-meta {
+  font-size: 11.5px !important;
+}
+.library-file-grid[data-view="details"] .file-actions {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+.folder-grid[data-view="details"] .folder-tile {
+  min-height: 46px !important;
+  padding: 6px 12px !important;
+}
+.folder-grid[data-view="details"] .folder-open {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 16px !important;
 }
 
+/* Folders default */
+.folder-tile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+.folder-open {
+  width: 42px;
+  height: 42px;
+  font-size: 20px;
+}
 .folder-info {
-  font-size: 14px !important;
-  line-height: 1.35 !important;
+  font-size: 14px;
+  line-height: 1.35;
 }
 
 /* Category cards */
@@ -1367,15 +1493,12 @@ body {
   padding: 14px 16px !important;
   border-radius: 14px !important;
 }
-
 .category-card strong {
   font-size: 14.5px !important;
 }
-
 .category-card span {
   font-size: 12px !important;
 }
-
 .category-card > .category-icon {
   width: 40px !important;
   height: 40px !important;
@@ -1386,15 +1509,12 @@ body {
 .library-files-heading h3 {
   font-size: 16.5px !important;
 }
-
 .library-files-heading p {
   font-size: 12.5px !important;
 }
-
 .dashboard-heading h2 {
   font-size: 30px !important;
 }
-
 .account-line {
   font-size: 13px !important;
 }
@@ -1406,34 +1526,115 @@ body {
   font-size: 13px !important;
   border-radius: 9px !important;
 }
-
 .field-input {
   height: 46px !important;
   font-size: 15px !important;
   padding: 0 14px !important;
   border-radius: 10px !important;
 }
-
 .field-label {
   font-size: 12.5px !important;
 }
-
 .topnav a {
   font-size: 14px !important;
   padding: 6px 10px !important;
 }
-
 .breadcrumbs {
   font-size: 13px !important;
 }
-
 .breadcrumb-button, .breadcrumb-separator {
   font-size: 13px !important;
 }
-
 .search-box input {
   font-size: 14px !important;
   height: 40px !important;
+}
+
+/* Close Buttons */
+.dialog-close {
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50% !important;
+  font-size: 24px !important;
+  font-weight: 700 !important;
+  background: rgba(140, 155, 185, 0.18) !important;
+  color: var(--ink) !important;
+  border: 0 !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 100 !important;
+  transition: background 0.15s, transform 0.15s !important;
+}
+.dialog-close:hover {
+  background: rgba(230, 60, 60, 0.2) !important;
+  color: #e53935 !important;
+  transform: scale(1.08);
+}
+
+.preview-close-floating {
+  position: absolute !important;
+  top: 14px !important;
+  right: 14px !important;
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 50% !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  background: rgba(0, 0, 0, 0.72) !important;
+  color: #ffffff !important;
+  border: 2px solid rgba(255, 255, 255, 0.6) !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+.preview-close-floating:hover {
+  background: #e53935 !important;
+  border-color: #fff !important;
+}
+
+/* Admin credentials box */
+.admin-credentials-box {
+  margin: 14px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #f1f4fb;
+  border: 1px solid #dbe2f0;
+  font-size: 13.5px;
+  display: grid;
+  gap: 10px;
+}
+html[data-theme="dark"] .admin-credentials-box {
+  background: #252f44;
+  border-color: #384560;
+  color: #e2e8f6;
+}
+.admin-credentials-box p {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.admin-credentials-box span {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #3b5bdb;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(67, 97, 238, 0.12);
+}
+html[data-theme="dark"] .admin-credentials-box span {
+  color: #82a8ff;
+  background: rgba(130, 168, 255, 0.15);
 }
 
 /* Performance optimizations for mobile & overall */
@@ -1447,10 +1648,10 @@ body {
     font-size: 16px;
   }
 
-  /* Remove all expensive backdrop-filters on mobile to eliminate lag */
+  /* Remove all expensive backdrop-filters on mobile to eliminate lag completely */
   .topbar, .dashboard, .admin-view, .admin-account-view[open],
   .library-file-card, .file-menu summary, .library-dialog::backdrop,
-  .preview-dialog::backdrop {
+  .preview-dialog::backdrop, .vault-dialog::backdrop, .devices-dialog::backdrop {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
@@ -1464,29 +1665,30 @@ body {
 
   .dashboard {
     background: #ffffff !important;
-    padding: 18px 14px !important;
+    padding: 16px 12px !important;
   }
   html[data-theme="dark"] .dashboard {
     background: #1a2232 !important;
   }
 
-  /* Make items roomy and easy to tap */
-  .folder-grid, .library-file-grid {
+  .folder-grid[data-view="small"], .library-file-grid[data-view="small"] {
+    grid-template-columns: repeat(auto-fill, minmax(105px, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .folder-grid[data-view="medium"], .library-file-grid[data-view="medium"] {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
   }
 
-  .library-file-card {
-    padding: 14px !important;
-    grid-template-columns: 78px minmax(0, 1fr) !important;
+  .folder-grid[data-view="large"], .library-file-grid[data-view="large"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 
-  .file-name {
-    font-size: 15px !important;
-  }
-
-  .file-meta {
-    font-size: 13px !important;
+  .folder-grid[data-view="details"], .library-file-grid[data-view="details"] {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
   }
 
   .file-actions {
@@ -1494,8 +1696,8 @@ body {
   }
 
   .file-action, .icon-button {
-    width: 36px !important;
-    height: 36px !important;
+    width: 38px !important;
+    height: 38px !important;
   }
 
   .category-card {

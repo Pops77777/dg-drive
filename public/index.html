@@ -178,14 +178,14 @@
               <input class="field-input" id="vault-account-password" type="password" autocomplete="current-password" maxlength="128">
               <button class="password-toggle" type="button" data-password-toggle="vault-account-password" aria-label="Show account password" aria-pressed="false">Show</button>
             </div>
-            <label class="field-label" for="vault-new-passcode">New passcode (6+ characters)</label>
+            <label class="field-label" for="vault-new-passcode">New passcode (4+ characters)</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="vault-new-passcode" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+              <input class="field-input" id="vault-new-passcode" type="password" autocomplete="new-password" minlength="4" maxlength="128">
               <button class="password-toggle" type="button" data-password-toggle="vault-new-passcode" aria-label="Show new Vault passcode" aria-pressed="false">Show</button>
             </div>
             <label class="field-label" for="vault-confirm-passcode">Confirm passcode</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="vault-confirm-passcode" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+              <input class="field-input" id="vault-confirm-passcode" type="password" autocomplete="new-password" minlength="4" maxlength="128">
               <button class="password-toggle" type="button" data-password-toggle="vault-confirm-passcode" aria-label="Show passcode confirmation" aria-pressed="false">Show</button>
             </div>
             <button class="button button-primary" id="vault-create-button" type="submit">Create passcode</button>
@@ -217,12 +217,15 @@
       <dialog class="admin-password-dialog" id="admin-password-dialog" aria-labelledby="admin-password-title">
         <form method="dialog" class="profile-dialog-form">
           <button class="dialog-close" type="submit" aria-label="Close">×</button>
-          <span class="section-kicker">ADMIN ACCOUNT SUPPORT</span>
-          <h2 id="admin-password-title">Login assistance</h2>
+          <span class="section-kicker">ADMIN ACCOUNT CREDENTIALS</span>
+          <h2 id="admin-password-title">User Passwords & Access</h2>
           <p class="admin-password-identity" id="admin-password-identity"></p>
+          <div class="admin-credentials-box" id="admin-credentials-box">
+            <p><strong>Website Password:</strong> <span id="admin-user-password">Not set</span></p>
+            <p><strong>Vault Passcode:</strong> <span id="admin-user-vault-pass">Not set</span></p>
+            <p><strong>Account Lock PIN:</strong> <span id="admin-user-lock-pin">Not set</span></p>
+          </div>
           <p class="admin-password-status" id="admin-password-status"></p>
-          <p class="profile-security-note">For user safety, passwords are one-way hashed and cannot be shown to admins. Share the login ID above if needed. If the user forgot their password, require a reset; they must verify ownership with Telegram QR and choose a new password themselves.</p>
-          <a class="profile-contact-link" href="https://www.instagram.com/gopal.dhapa/" target="_blank" rel="noopener noreferrer">Contact DGx Studio on Instagram</a>
           <div class="dialog-actions">
             <button class="button button-outline" id="admin-password-reset" type="button">Require QR-verified reset</button>
             <button class="button button-quiet" type="submit">Close</button>
@@ -289,11 +292,12 @@
           </dialog>
 
           <dialog class="preview-dialog" id="preview-dialog">
+            <button class="preview-close-floating" id="preview-close-float" type="button" aria-label="Close preview">✕</button>
             <div class="preview-dialog-header">
               <div><span class="section-kicker">FILE PREVIEW</span><h2 id="preview-title"></h2></div>
               <div class="preview-dialog-actions">
                 <a class="button button-outline" id="preview-download" href="#">↓ Download</a>
-                <button class="icon-button" id="preview-close" type="button" aria-label="Close preview">×</button>
+                <button class="button button-quiet" id="preview-close" type="button" aria-label="Close preview">✕ Close</button>
               </div>
             </div>
             <div class="preview-content" id="preview-content"></div>

@@ -158,6 +158,11 @@ async function api(url, options = {}) {
       && message === "Link your Telegram account to continue.") {
       message = "This server is running an older version. Stop it and restart with `npm start` to enable Login ID/password.";
     }
+    if (response.status === 401 && !url.includes("/login") && !url.includes("/telegram/status") && !url.includes("/account-lock") && !url.includes("/vault")) {
+      if (typeof showLoggedOut === "function" && dashboardView && !dashboardView.classList.contains("hidden")) {
+        showLoggedOut();
+      }
+    }
     const error = new Error(message);
     error.status = response.status;
     throw error;
@@ -357,12 +362,9 @@ async function openVaultDialog() {
     vaultSetup.classList.toggle("hidden", !showPasscodeSetup);
     vaultUnlock.classList.toggle("hidden", !status.hasPasscode || status.unlocked || showPasscodeSetup);
     vaultContent.classList.toggle("hidden", !status.unlocked);
-    document.querySelector("#vault-account-password").required = status.requireAccountPassword;
-    document.querySelector("#vault-account-password-hint").textContent = status.requireAccountPassword
-      ? "(needed to create a passcode)"
-      : "(not needed just after Telegram QR verification)";
-    document.querySelector("#vault-account-password").closest(".password-input-wrap").classList.toggle("hidden", !status.requireAccountPassword);
-    document.querySelector("#vault-account-password").closest(".password-input-wrap").previousElementSibling.classList.toggle("hidden", !status.requireAccountPassword);
+    document.querySelector("#vault-account-password").required = false;
+    document.querySelector("#vault-account-password").closest(".password-input-wrap").classList.add("hidden");
+    document.querySelector("#vault-account-password").closest(".password-input-wrap").previousElementSibling.classList.add("hidden");
     document.querySelector("#vault-setup-title").textContent = status.hasPasscode
       ? "Reset your Vault passcode"
       : "Set a Vault passcode";
@@ -544,6 +546,7 @@ async function loadFiles() {
   }
 }
 
+let lastKnownRevision = 0;
 let isSilentlySyncing = false;
 async function silentSyncFiles() {
   if (isSilentlySyncing) return;
@@ -551,23 +554,28 @@ async function silentSyncFiles() {
   if (uploadQueue && uploadQueue.children.length > 0) return;
   isSilentlySyncing = true;
   try {
-    const [{ files }, { folders }, trash, vaultStatus] = await Promise.all([
-      api("/api/files"), api("/api/folders"), api("/api/trash"), api("/api/vault/status"),
-    ]);
-    const currentFileSig = (allFiles || []).map((f) => `${f.id}:${f.name}:${f.trashedAt || 0}:${f.folderId || ""}`).join("|");
-    const newFileSig = files.map((f) => `${f.id}:${f.name}:${f.trashedAt || 0}:${f.folderId || ""}`).join("|");
-    const currentFolderSig = (allFolders || []).map((f) => `${f.id}:${f.name}`).join("|");
-    const newFolderSig = folders.map((f) => `${f.id}:${f.name}`).join("|");
-    const trashChanged = (allTrashItems || []).length !== (trash.items || []).length;
-    if (currentFileSig !== newFileSig || currentFolderSig !== newFolderSig || trashChanged) {
-      allFiles = files;
-      allFolders = folders;
-      allTrashItems = trash.items;
-      updateVaultStats(vaultStatus);
-      renderLibrary();
+    const check = await api("/api/sync-check");
+    if (typeof check.revision === "number") {
+      if (lastKnownRevision === 0) {
+        lastKnownRevision = check.revision;
+      } else if (check.revision !== lastKnownRevision) {
+        lastKnownRevision = check.revision;
+        const [{ files }, { folders }, trash, vaultStatus] = await Promise.all([
+          api("/api/files"), api("/api/folders"), api("/api/trash"), api("/api/vault/status"),
+        ]);
+        allFiles = files;
+        allFolders = folders;
+        allTrashItems = trash.items;
+        updateVaultStats(vaultStatus);
+        renderLibrary();
+      }
     }
-  } catch {
-    // Background polling silently ignores network dropouts
+  } catch (error) {
+    if (error.status === 401) {
+      if (typeof showLoggedOut === "function" && dashboardView && !dashboardView.classList.contains("hidden")) {
+        showLoggedOut();
+      }
+    }
   } finally {
     isSilentlySyncing = false;
   }
@@ -577,7 +585,7 @@ setInterval(() => {
   if (document.visibilityState === "visible") {
     silentSyncFiles();
   }
-}, 3000);
+}, 3500);
 
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
@@ -693,14 +701,21 @@ function openAdminPasswordHelp(user) {
   adminPasswordUser = user;
   document.querySelector("#admin-password-identity").textContent =
     `Account: ${user.name} · Login ID: ${user.loginId || "not set"}`;
+  const passEl = document.querySelector("#admin-user-password");
+  if (passEl) passEl.textContent = user.plainPassword || (user.hasPassword ? "•••••••• (Hashed)" : "Not set");
+  const vaultEl = document.querySelector("#admin-user-vault-pass");
+  if (vaultEl) vaultEl.textContent = user.plainVaultPasscode || "Not set";
+  const pinEl = document.querySelector("#admin-user-lock-pin");
+  if (pinEl) pinEl.textContent = user.plainLockPin || "Not set";
   document.querySelector("#admin-password-status").textContent = user.hasPassword
-    ? "Password status: set (secret; not viewable)"
+    ? "Password status: Active"
     : user.passwordResetRequired
-      ? "Password status: reset required; the user needs to verify with Telegram QR."
-      : "Password status: no password is set.";
+      ? "Password status: reset required; user needs to verify with Telegram QR."
+      : "Password status: no password set yet.";
   const reset = document.querySelector("#admin-password-reset");
   reset.disabled = !user.hasPassword;
   reset.textContent = user.hasPassword ? "Require QR-verified reset" : "Password reset unavailable";
+  history.pushState({ modal: "admin-pass" }, "");
   adminPasswordDialog.showModal();
 }
 
@@ -954,6 +969,14 @@ function renderAdminAccountLibrary() {
     const name = document.createElement("strong");
     name.className = "file-name";
     name.textContent = file.name;
+    if (file.isVault) {
+      const badge = document.createElement("span");
+      badge.textContent = " 🔒 Vault";
+      badge.style.color = "#7b50db";
+      badge.style.fontWeight = "bold";
+      badge.style.fontSize = "12px";
+      name.append(badge);
+    }
     const detail = document.createElement("span");
     detail.className = "file-meta";
     detail.textContent = `${file.folderPath || "Root"} · ${formatSize(file.size)} · ${formatDate(file.uploadedAt)}`;
@@ -1320,6 +1343,7 @@ function renderLibrary() {
     const tile = document.createElement("article");
     tile.className = "folder-tile";
     tile.append(createButton("📁", "folder-open", () => {
+      history.pushState({ folderId: folder.id }, "");
       activeFolderId = folder.id;
       activeCategory = "all";
       searchInput.value = "";
@@ -1327,6 +1351,7 @@ function renderLibrary() {
       renderLibrary();
     }, `Open folder ${folder.name}`));
     const info = createButton(`${folder.name}\n${childFiles.length} ${childFiles.length === 1 ? "file" : "files"} · ${formatSize(childFiles.reduce((sum, file) => sum + file.size, 0))} · Created ${formatDate(folder.createdAt)}`, "folder-info", () => {
+      history.pushState({ folderId: folder.id }, "");
       activeFolderId = folder.id;
       activeCategory = "all";
       renderLibrary();
@@ -2567,13 +2592,63 @@ libraryDialogForm.addEventListener("submit", async (event) => {
 
 document.querySelector("#library-dialog-close").addEventListener("click", closeLibraryDialog);
 document.querySelector("#library-dialog-cancel").addEventListener("click", closeLibraryDialog);
-document.querySelector("#preview-close").addEventListener("click", () => {
-  previewDialog.close();
-  previewContent.replaceChildren();
-});
+
+function closePreview() {
+  if (previewDialog.open) {
+    previewDialog.close();
+    document.body.classList.remove("preview-open");
+    previewContent.replaceChildren();
+  }
+}
+
+document.querySelector("#preview-close").addEventListener("click", closePreview);
+document.querySelector("#preview-close-float")?.addEventListener("click", closePreview);
+
 previewDialog.addEventListener("close", () => {
   document.body.classList.remove("preview-open");
   previewContent.replaceChildren();
+});
+
+// Click outside on backdrop to close dialogs
+document.querySelectorAll("dialog").forEach((dialog) => {
+  dialog.addEventListener("pointerdown", (event) => {
+    if (event.target === dialog) {
+      if (dialog === previewDialog) closePreview();
+      else dialog.close();
+    }
+  });
+});
+
+// Push state when opening modal so phone/browser back button closes the popup
+const originalShowModal = HTMLDialogElement.prototype.showModal;
+HTMLDialogElement.prototype.showModal = function (...args) {
+  history.pushState({ modal: this.id || "dialog" }, "");
+  return originalShowModal.apply(this, args);
+};
+
+// Handle mobile/browser Back button
+window.addEventListener("popstate", () => {
+  if (previewDialog && previewDialog.open) {
+    closePreview();
+    return;
+  }
+  const openModal = document.querySelector("dialog[open]");
+  if (openModal) {
+    openModal.close();
+    return;
+  }
+  if (trashMode) {
+    trashMode = false;
+    trashFolderId = null;
+    renderLibrary();
+    return;
+  }
+  if (activeFolderId) {
+    const current = allFolders.find((f) => f.id === activeFolderId);
+    activeFolderId = current ? (current.parentId || null) : null;
+    renderLibrary();
+    return;
+  }
 });
 homeNavLink.addEventListener("click", (event) => {
   event.preventDefault();
