@@ -1262,7 +1262,7 @@ async function sendThumbnail(res, user, file, lowQuality = false) {
     "Content-Type": contentType,
     "Content-Length": thumbnail.length,
     "Content-Disposition": "inline",
-    "Cache-Control": "private, max-age=60",
+    "Cache-Control": "private, max-age=86400, immutable",
     "X-Content-Type-Options": "nosniff",
   });
   return res.end(thumbnail);

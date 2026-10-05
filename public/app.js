@@ -544,6 +544,51 @@ async function loadFiles() {
   }
 }
 
+let isSilentlySyncing = false;
+async function silentSyncFiles() {
+  if (isSilentlySyncing) return;
+  if (!dashboardView || dashboardView.classList.contains("hidden")) return;
+  if (uploadQueue && uploadQueue.children.length > 0) return;
+  isSilentlySyncing = true;
+  try {
+    const [{ files }, { folders }, trash, vaultStatus] = await Promise.all([
+      api("/api/files"), api("/api/folders"), api("/api/trash"), api("/api/vault/status"),
+    ]);
+    const currentFileSig = (allFiles || []).map((f) => `${f.id}:${f.name}:${f.trashedAt || 0}:${f.folderId || ""}`).join("|");
+    const newFileSig = files.map((f) => `${f.id}:${f.name}:${f.trashedAt || 0}:${f.folderId || ""}`).join("|");
+    const currentFolderSig = (allFolders || []).map((f) => `${f.id}:${f.name}`).join("|");
+    const newFolderSig = folders.map((f) => `${f.id}:${f.name}`).join("|");
+    const trashChanged = (allTrashItems || []).length !== (trash.items || []).length;
+    if (currentFileSig !== newFileSig || currentFolderSig !== newFolderSig || trashChanged) {
+      allFiles = files;
+      allFolders = folders;
+      allTrashItems = trash.items;
+      updateVaultStats(vaultStatus);
+      renderLibrary();
+    }
+  } catch {
+    // Background polling silently ignores network dropouts
+  } finally {
+    isSilentlySyncing = false;
+  }
+}
+
+setInterval(() => {
+  if (document.visibilityState === "visible") {
+    silentSyncFiles();
+  }
+}, 3000);
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    silentSyncFiles();
+  }
+});
+window.addEventListener("focus", () => {
+  silentSyncFiles();
+});
+
+
 function updateVaultStats(status) {
   vaultStats = {
     fileCount: Number.isSafeInteger(status.vaultFileCount) ? status.vaultFileCount : 0,
@@ -1456,19 +1501,11 @@ function createFileCard(file) {
   thumbnail.className = "file-thumbnail";
   thumbnail.alt = "";
   thumbnail.loading = "lazy";
-  if (dataSaverEnabled) {
-    thumbnail.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=low`;
-  } else {
-    thumbnail.src = file.type.startsWith("image/")
-      && file.type !== "image/svg+xml"
-      && file.size <= 10 * 1024 * 1024
-      ? `/api/files/${encodeURIComponent(file.id)}`
-      : `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
-  }
+  thumbnail.decoding = "async";
+  thumbnail.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
   thumbnail.addEventListener("error", () => thumbnail.remove());
   open.append(thumbnail);
-  if (category === "videos" && !dataSaverEnabled) {
-    createVideoThumbnail(file, thumbnail);
+  if (category === "videos") {
     const play = document.createElement("span");
     play.className = "thumbnail-play";
     play.textContent = "▶";

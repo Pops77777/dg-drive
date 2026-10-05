@@ -1295,3 +1295,212 @@ html[data-theme="dark"] .admin-password-identity, html[data-theme="dark"] .admin
   .vault-unlock { grid-template-columns: minmax(0,1fr); }
   .vault-unlock .field-label, .vault-unlock .text-button { grid-column: auto; }
 }
+
+/* ==========================================================
+   PERFORMANCE & ZOOM ENHANCEMENTS (SUPER SMOOTH & ZOOMED IN)
+   ========================================================== */
+
+/* 1. Global UI Zoom In & Comfortable Typography */
+html {
+  font-size: 15.5px;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Eliminate expensive continuous filter animations */
+@keyframes storage-ring-glow {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 1; }
+}
+
+/* Scale up the file library cards and folders */
+.library-file-card {
+  padding: 12px 14px !important;
+  gap: 14px !important;
+  border-radius: 12px !important;
+  content-visibility: auto;
+  contain-intrinsic-size: 80px;
+}
+
+.file-preview {
+  width: 80px !important;
+  height: 72px !important;
+  border-radius: 10px !important;
+}
+
+.file-name {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 1.35 !important;
+}
+
+.file-meta {
+  font-size: 12px !important;
+  color: #8391a8 !important;
+}
+
+.folder-tile {
+  padding: 12px 14px !important;
+  gap: 12px !important;
+  border-radius: 12px !important;
+}
+
+.folder-open {
+  width: 42px !important;
+  height: 42px !important;
+  font-size: 20px !important;
+}
+
+.folder-info {
+  font-size: 14px !important;
+  line-height: 1.35 !important;
+}
+
+/* Category cards */
+.category-card {
+  padding: 14px 16px !important;
+  border-radius: 14px !important;
+}
+
+.category-card strong {
+  font-size: 14.5px !important;
+}
+
+.category-card span {
+  font-size: 12px !important;
+}
+
+.category-card > .category-icon {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 18px !important;
+}
+
+/* Headings & general text */
+.library-files-heading h3 {
+  font-size: 16.5px !important;
+}
+
+.library-files-heading p {
+  font-size: 12.5px !important;
+}
+
+.dashboard-heading h2 {
+  font-size: 30px !important;
+}
+
+.account-line {
+  font-size: 13px !important;
+}
+
+/* Buttons and Form Fields */
+.button {
+  min-height: 40px !important;
+  padding: 0 16px !important;
+  font-size: 13px !important;
+  border-radius: 9px !important;
+}
+
+.field-input {
+  height: 46px !important;
+  font-size: 15px !important;
+  padding: 0 14px !important;
+  border-radius: 10px !important;
+}
+
+.field-label {
+  font-size: 12.5px !important;
+}
+
+.topnav a {
+  font-size: 14px !important;
+  padding: 6px 10px !important;
+}
+
+.breadcrumbs {
+  font-size: 13px !important;
+}
+
+.breadcrumb-button, .breadcrumb-separator {
+  font-size: 13px !important;
+}
+
+.search-box input {
+  font-size: 14px !important;
+  height: 40px !important;
+}
+
+/* Performance optimizations for mobile & overall */
+.file-menu summary {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+@media (max-width: 768px) {
+  html {
+    font-size: 16px;
+  }
+
+  /* Remove all expensive backdrop-filters on mobile to eliminate lag */
+  .topbar, .dashboard, .admin-view, .admin-account-view[open],
+  .library-file-card, .file-menu summary, .library-dialog::backdrop,
+  .preview-dialog::backdrop {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .topbar {
+    background: #ffffff !important;
+  }
+  html[data-theme="dark"] .topbar {
+    background: #151b28 !important;
+  }
+
+  .dashboard {
+    background: #ffffff !important;
+    padding: 18px 14px !important;
+  }
+  html[data-theme="dark"] .dashboard {
+    background: #1a2232 !important;
+  }
+
+  /* Make items roomy and easy to tap */
+  .folder-grid, .library-file-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .library-file-card {
+    padding: 14px !important;
+    grid-template-columns: 78px minmax(0, 1fr) !important;
+  }
+
+  .file-name {
+    font-size: 15px !important;
+  }
+
+  .file-meta {
+    font-size: 13px !important;
+  }
+
+  .file-actions {
+    padding-top: 8px !important;
+  }
+
+  .file-action, .icon-button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .category-card {
+    min-height: 84px !important;
+    padding: 12px 14px !important;
+  }
+}
+
