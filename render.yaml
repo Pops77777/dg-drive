@@ -18,6 +18,6 @@ services:
       - key: TELEGRAM_API_HASH
         sync: false
       - key: SESSION_ENCRYPTION_KEY
-        generateValue: true
+        value: 92d8fd59f9a068eee02cb6feafe6147add2b5c01ad13d719822feb2c13619224
       - key: ADMIN_TELEGRAM_USERNAME
         value: Kingsmaster27

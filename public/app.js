@@ -246,6 +246,8 @@ function showSignedOut() {
   featureStrip.classList.remove("hidden");
   logoutButton.classList.add("hidden");
   themeToggle.classList.add("hidden");
+  document.querySelector("#admin-header-btn")?.classList.add("hidden");
+  document.querySelector("#user-menu-popover")?.classList.add("hidden");
   accountBadge.classList.add("hidden");
   accountBadge.disabled = true;
   accountAvatarImage.removeAttribute("src");
@@ -284,6 +286,12 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   homeNavLink.classList.remove("is-active");
   uploadNavLink.classList.remove("is-active");
   document.querySelector("#account-email").textContent = user.username ? `@${user.username}` : user.name;
+  const userMenuName = document.querySelector("#user-menu-name");
+  const userMenuSub = document.querySelector("#user-menu-sub");
+  if (userMenuName) userMenuName.textContent = user.name || "User";
+  if (userMenuSub) userMenuSub.textContent = user.username ? `@${user.username}` : user.loginId || "";
+  document.querySelector("#admin-header-btn")?.classList.toggle("hidden", !user.isAdmin);
+  document.querySelector("#menu-admin-btn")?.classList.toggle("hidden", !user.isAdmin);
   vipBadge.classList.toggle("hidden", !user.vip);
   adminBadge.classList.toggle("hidden", !user.isAdmin);
   startLoginButton.textContent = "Open My Library →";
@@ -1350,13 +1358,14 @@ function renderLibrary() {
       searchTerm = "";
       renderLibrary();
     }, `Open folder ${folder.name}`));
-    const info = createButton(`${folder.name}\n${childFiles.length} ${childFiles.length === 1 ? "file" : "files"} · ${formatSize(childFiles.reduce((sum, file) => sum + file.size, 0))} · Created ${formatDate(folder.createdAt)}`, "folder-info", () => {
+    const info = createButton(folder.name, "folder-info", () => {
       history.pushState({ folderId: folder.id }, "");
       activeFolderId = folder.id;
       activeCategory = "all";
       renderLibrary();
     }, `Open folder ${folder.name}`);
     tile.append(info);
+    tile.append(createButton("🔗", "folder-share", () => shareFolder(folder), `Share folder ${folder.name}`));
     tile.append(createButton("×", "folder-delete", () => deleteFolder(folder), `Delete folder ${folder.name}`));
     makeSelectable(tile, `folder:${folder.id}`);
     folderList.append(tile);
@@ -1528,7 +1537,16 @@ function createFileCard(file) {
   thumbnail.loading = "lazy";
   thumbnail.decoding = "async";
   thumbnail.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
-  thumbnail.addEventListener("error", () => thumbnail.remove());
+  thumbnail.addEventListener("error", () => {
+    if (category === "videos") {
+      createVideoThumbnail(file, thumbnail);
+    } else if (category === "photos") {
+      thumbnail.src = `/api/files/${encodeURIComponent(file.id)}`;
+      thumbnail.addEventListener("error", () => thumbnail.remove(), { once: true });
+    } else {
+      thumbnail.remove();
+    }
+  }, { once: true });
   open.append(thumbnail);
   if (category === "videos") {
     const play = document.createElement("span");
@@ -1549,10 +1567,7 @@ function createFileCard(file) {
     event.preventDefault();
     openPreview(file);
   });
-  const meta = document.createElement("span");
-  meta.className = "file-meta";
-  meta.textContent = `${formatSize(file.size)} · Uploaded ${formatDate(file.uploadedAt)}`;
-  details.append(name, meta);
+  details.append(name);
   const actions = document.createElement("div");
   actions.className = "file-actions";
   const menu = document.createElement("details");
@@ -1568,10 +1583,14 @@ function createFileCard(file) {
       });
       card.classList.add("has-menu-open");
       const rect = menu.getBoundingClientRect();
-      if (rect.bottom + 270 > window.innerHeight && rect.top > 270) {
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      if (spaceBelow < 280 && spaceAbove > spaceBelow) {
         menuItems.classList.add("popover-up");
+        menuItems.style.maxHeight = `${Math.min(320, spaceAbove - 20)}px`;
       } else {
         menuItems.classList.remove("popover-up");
+        menuItems.style.maxHeight = `${Math.min(320, Math.max(160, spaceBelow - 20))}px`;
       }
     } else {
       card.classList.remove("has-menu-open");
@@ -1593,6 +1612,7 @@ function createFileCard(file) {
   addMenuItem("👁 Preview", () => openPreview(file));
   addMenuItem("↓ Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
   addMenuItem("🔗 Share link", () => shareFile(file));
+  addMenuItem("ℹ Details / Info", () => showFileProperties(file));
   addMenuItem("✏ Rename", () => renameFile(file));
   addMenuItem("📁 Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
     try {
@@ -1781,6 +1801,7 @@ async function deleteFolder(folder) {
 }
 
 async function shareFile(file) {
+  file.shareCount = (file.shareCount || 0) + 1;
   const url = `${window.location.origin}/api/files/${encodeURIComponent(file.id)}`;
   try {
     if (navigator.share) await navigator.share({ title: file.name, url });
@@ -1791,6 +1812,65 @@ async function shareFile(file) {
   } catch (error) {
     if (error.name !== "AbortError") window.alert(`Could not share this file: ${error.message}`);
   }
+}
+
+async function shareFolder(folder) {
+  const url = `${window.location.origin}/#folder=${encodeURIComponent(folder.id)}`;
+  try {
+    if (navigator.share) await navigator.share({ title: folder.name, url });
+    else {
+      await navigator.clipboard.writeText(url);
+      window.alert(`Link to folder "${folder.name}" copied to clipboard!`);
+    }
+  } catch (error) {
+    if (error.name !== "AbortError") window.prompt("Copy folder link:", url);
+  }
+}
+
+function showFileProperties(file) {
+  const dialog = document.querySelector("#properties-dialog");
+  const grid = document.querySelector("#properties-grid");
+  const title = document.querySelector("#properties-title");
+  const copyBtn = document.querySelector("#properties-copy-link");
+  const downloadBtn = document.querySelector("#properties-download-btn");
+  if (!dialog || !grid) return;
+  title.textContent = file.name;
+  downloadBtn.href = `/api/files/${encodeURIComponent(file.id)}?download=1`;
+  const shareUrl = `${window.location.origin}/api/files/${encodeURIComponent(file.id)}`;
+  copyBtn.onclick = async () => {
+    try {
+      file.shareCount = (file.shareCount || 0) + 1;
+      await navigator.clipboard.writeText(shareUrl);
+      copyBtn.textContent = "✓ Link Copied!";
+      setTimeout(() => { copyBtn.textContent = "🔗 Copy Link"; }, 2000);
+      showFileProperties(file);
+    } catch {
+      window.prompt("Share link:", shareUrl);
+    }
+  };
+
+  const folderObj = file.folderId ? allFolders.find((f) => f.id === file.folderId) : null;
+  const folderName = folderObj ? folderObj.name : "Root (All files)";
+  const rows = [
+    ["File Name", file.name],
+    ["Size", formatSize(file.size)],
+    ["Type", file.type || "Document"],
+    ["Uploaded Date", formatDate(file.uploadedAt)],
+    ["Folder", folderName],
+    ["Share Status", (file.shareCount && file.shareCount > 0) ? `Shared (${file.shareCount} times)` : "Not shared yet"],
+  ];
+  grid.replaceChildren();
+  for (const [key, val] of rows) {
+    const row = document.createElement("div");
+    row.className = "property-row";
+    const k = document.createElement("strong");
+    k.textContent = key;
+    const v = document.createElement("span");
+    v.textContent = val;
+    row.append(k, v);
+    grid.append(row);
+  }
+  dialog.showModal();
 }
 
 async function createNewFolder() {
@@ -1918,6 +1998,10 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       }
       if (request.status >= 200 && request.status < 300) {
         item.remove();
+        if (result.file) {
+          allFiles.unshift(result.file);
+          renderLibrary();
+        }
         finish(true);
       } else {
         status.textContent = result.error || "Upload failed";
@@ -1943,6 +2027,13 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
 async function uploadMany(files, relativePathForFile = () => "") {
   const queue = [...files];
   if (!queue.length) return;
+  const pill = document.querySelector("#upload-status-pill");
+  const countSpan = document.querySelector("#upload-status-count");
+  if (pill && countSpan) {
+    pill.classList.remove("hidden");
+    countSpan.textContent = `Uploading ${queue.length} file${queue.length === 1 ? "" : "s"}...`;
+    pill.onclick = () => uploadQueue.classList.toggle("collapsed");
+  }
   const totalFiles = queue.length;
   const validTotal = queue.reduce((sum, file) => sum + (file.size <= maxFileSize ? file.size : 0), 0);
   const loadedBytes = new Map(queue.map((file) => [file, 0]));
@@ -1967,6 +2058,14 @@ async function uploadMany(files, relativePathForFile = () => "") {
     const percent = validTotal ? Math.min(100, Math.round(transferred / validTotal * 100)) : 0;
     summaryProgress.value = percent;
     summaryText.textContent = `Progress ${percent}% · ${completed}/${totalFiles} uploaded · ${uploading} uploading · ${queue.length} waiting · ${failed} failed · ${formatSize(transferred)} / ${formatSize(validTotal)}`;
+    if (pill && countSpan) {
+      if (uploading > 0 || queue.length > 0) {
+        pill.classList.remove("hidden");
+        countSpan.textContent = `${uploading} uploading (${percent}%)`;
+      } else {
+        pill.classList.add("hidden");
+      }
+    }
   };
   updateSummary();
   const workerCount = Math.min(3, queue.length);
@@ -1985,6 +2084,7 @@ async function uploadMany(files, relativePathForFile = () => "") {
       updateSummary();
     }
   }));
+  if (pill) pill.classList.add("hidden");
   if (!failed) {
     batch.remove();
   } else {
@@ -2707,9 +2807,67 @@ uploadNavLink.addEventListener("click", async (event) => {
   uploadNavLink.classList.add("is-active");
   filePicker.click();
 });
-accountBadge.addEventListener("click", () => {
+const userMenuPopover = document.querySelector("#user-menu-popover");
+const adminHeaderBtn = document.querySelector("#admin-header-btn");
+const menuProfileBtn = document.querySelector("#menu-profile-btn");
+const menuVaultBtn = document.querySelector("#menu-vault-btn");
+const menuAdminBtn = document.querySelector("#menu-admin-btn");
+const menuDevicesBtn = document.querySelector("#menu-devices-btn");
+const menuThemeBtn = document.querySelector("#menu-theme-btn");
+const vaultBackBtn = document.querySelector("#vault-back-btn");
+const propertiesClose = document.querySelector("#properties-close");
+
+accountBadge.addEventListener("click", (event) => {
+  event.stopPropagation();
+  userMenuPopover?.classList.toggle("hidden");
+});
+
+document.addEventListener("pointerdown", (event) => {
+  if (userMenuPopover && !userMenuPopover.contains(event.target) && !accountBadge.contains(event.target)) {
+    userMenuPopover.classList.add("hidden");
+  }
+});
+
+adminHeaderBtn?.addEventListener("click", enterAdminConsole);
+menuAdminBtn?.addEventListener("click", () => {
+  userMenuPopover?.classList.add("hidden");
+  enterAdminConsole();
+});
+menuProfileBtn?.addEventListener("click", () => {
+  userMenuPopover?.classList.add("hidden");
   void openProfileDialog();
 });
+menuVaultBtn?.addEventListener("click", () => {
+  userMenuPopover?.classList.add("hidden");
+  void openVaultDialog();
+});
+menuDevicesBtn?.addEventListener("click", () => {
+  userMenuPopover?.classList.add("hidden");
+  void openDevicesDialog();
+});
+menuThemeBtn?.addEventListener("click", () => {
+  applyTheme(document.documentElement.dataset.theme !== "dark");
+  renderCategories();
+});
+vaultBackBtn?.addEventListener("click", () => {
+  vaultDialog.close();
+});
+propertiesClose?.addEventListener("click", () => {
+  document.querySelector("#properties-dialog")?.close();
+});
+
+let lastScrollPosition = 0;
+window.addEventListener("scroll", () => {
+  const currentScroll = window.scrollY;
+  const topbar = document.querySelector(".topbar");
+  if (!topbar) return;
+  if (currentScroll > 75 && currentScroll - lastScrollPosition > 8) {
+    topbar.classList.add("topbar-hidden");
+  } else if (lastScrollPosition - currentScroll > 8 || currentScroll <= 25) {
+    topbar.classList.remove("topbar-hidden");
+  }
+  lastScrollPosition = currentScroll;
+}, { passive: true });
 document.querySelector("#admin-back-button").addEventListener("click", () => showLibrary());
 document.querySelector("#admin-refresh-users").addEventListener("click", loadAdminUsers);
 document.querySelector("#admin-user-search").addEventListener("input", () => {

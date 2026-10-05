@@ -65,6 +65,8 @@ if (!/^[a-z0-9_]{5,32}$/.test(ADMIN_TELEGRAM_USERNAME)) {
 }
 
 const encryptionKey = createHash("sha256").update(ENCRYPTION_SECRET, "utf8").digest();
+const FALLBACK_KEY_SECRET = "92d8fd59f9a068eee02cb6feafe6147add2b5c01ad13d719822feb2c13619224";
+const fallbackEncryptionKey = createHash("sha256").update(FALLBACK_KEY_SECRET, "utf8").digest();
 const scryptAsync = promisify(scrypt);
 let store = { users: {}, files: {}, folders: [], siteConfig: {} };
 let saveQueue = Promise.resolve();
@@ -267,12 +269,25 @@ function encryptSession(session) {
 function decryptSession(value) {
   const [encodedIv, encodedTag, encodedData] = value.split(".");
   if (!encodedIv || !encodedTag || !encodedData) throw new Error("Saved Telegram session is invalid.");
-  const decipher = createDecipheriv("aes-256-gcm", encryptionKey, Buffer.from(encodedIv, "base64url"));
-  decipher.setAuthTag(Buffer.from(encodedTag, "base64url"));
-  return Buffer.concat([
-    decipher.update(Buffer.from(encodedData, "base64url")),
-    decipher.final(),
-  ]).toString("utf8");
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", encryptionKey, Buffer.from(encodedIv, "base64url"));
+    decipher.setAuthTag(Buffer.from(encodedTag, "base64url"));
+    return Buffer.concat([
+      decipher.update(Buffer.from(encodedData, "base64url")),
+      decipher.final(),
+    ]).toString("utf8");
+  } catch (error) {
+    try {
+      const decipherFallback = createDecipheriv("aes-256-gcm", fallbackEncryptionKey, Buffer.from(encodedIv, "base64url"));
+      decipherFallback.setAuthTag(Buffer.from(encodedTag, "base64url"));
+      return Buffer.concat([
+        decipherFallback.update(Buffer.from(encodedData, "base64url")),
+        decipherFallback.final(),
+      ]).toString("utf8");
+    } catch (fallbackError) {
+      throw new Error("Saved Telegram session is invalid or decryption key changed.");
+    }
+  }
 }
 
 function telegramFlowCookie(req) {
@@ -1061,7 +1076,7 @@ async function uploadToTelegram(req, res, user, url) {
     const result = await client.sendFile("me", {
       file: tempPath,
       forceDocument: true,
-      workers: 1,
+      workers: 4,
     });
     const message = Array.isArray(result) ? result[0] : result;
     if (!message || !message.id) throw new Error("Telegram did not return a saved message.");
@@ -1254,6 +1269,12 @@ async function sendThumbnail(res, user, file, lowQuality = false) {
     } catch (error) {
       console.info(`Telegram ${size.type} thumbnail unavailable for ${file.id}: ${error.message}`);
     }
+  }
+  if (!thumbnail && media.photo) {
+    try {
+      const candidate = await client.downloadMedia(message, { thumb: 0 });
+      if (Buffer.isBuffer(candidate) && candidate.length > 0) thumbnail = candidate;
+    } catch (e) {}
   }
   if (!thumbnail) {
     return sendJson(res, 404, { error: "No thumbnail is available for this file." });
