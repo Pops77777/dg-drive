@@ -213,6 +213,7 @@ function adminUserSummaries() {
       totalBytes: activeFiles.reduce((sum, file) => sum + Number(file.size || 0), 0),
       blocked: Boolean(user.blocked),
       vip: Boolean(user.vip),
+      telegramConnected: Boolean(telegramClients.get(user.id)?.connected),
     };
   }).sort((a, b) => a.name.localeCompare(b.name));
 }
@@ -537,27 +538,75 @@ async function assignLoginCredentials(user, body, req) {
   return { loginId: user.loginId, hasPassword: true };
 }
 
-async function getTelegramClient(user) {
+async function getTelegramClient(user, req = null, overrideToken = null) {
   let current = telegramClients.get(user.id);
   if (current) {
     if (current.connected) return current;
     try {
       await current.connect();
-      return current;
-    } catch {
+      if (current.connected) return current;
+    } catch (reconnectErr) {
+      console.warn(`Could not reconnect existing client for ${user.id}:`, reconnectErr.message);
       telegramClients.delete(user.id);
     }
   }
-  const client = new TelegramClient(
-    new StringSession(decryptSession(user.telegramSession)),
-    API_ID,
-    API_HASH,
-    { connectionRetries: 5 },
-  );
-  await client.connect();
-  await client.getMe();
-  telegramClients.set(user.id, client);
-  return client;
+
+  const candidateTokens = [];
+  if (overrideToken && typeof overrideToken === "string" && overrideToken.trim()) {
+    candidateTokens.push(overrideToken.trim());
+  }
+  if (req) {
+    const headerToken = req.headers?.["x-telegram-session"];
+    if (typeof headerToken === "string" && headerToken.trim() && !candidateTokens.includes(headerToken.trim())) {
+      candidateTokens.push(headerToken.trim());
+    }
+    const cookieHeaderVal = req.headers?.cookie || "";
+    const cookieToken = parseCookies(cookieHeaderVal)["dgx_tg_session"];
+    if (typeof cookieToken === "string" && cookieToken.trim() && !candidateTokens.includes(cookieToken.trim())) {
+      candidateTokens.push(cookieToken.trim());
+    }
+  }
+  if (user?.telegramSession && !candidateTokens.includes(user.telegramSession)) {
+    candidateTokens.push(user.telegramSession);
+  }
+
+  let lastError = null;
+  for (const token of candidateTokens) {
+    let sessionString;
+    try {
+      sessionString = decryptSession(token);
+    } catch (decErr) {
+      lastError = decErr;
+      continue;
+    }
+    if (!sessionString || sessionString.length < 10) continue;
+
+    try {
+      const client = new TelegramClient(
+        new StringSession(sessionString),
+        API_ID,
+        API_HASH,
+        { connectionRetries: 3, timeout: 15 },
+      );
+      await client.connect();
+      await client.getMe();
+      telegramClients.set(user.id, client);
+      if (user.telegramSession !== token) {
+        user.telegramSession = token;
+        void saveStore().catch((err) => console.error("Error persisting updated session:", err.message));
+      }
+      return client;
+    } catch (err) {
+      lastError = err;
+      console.warn(`Connection attempt with session token failed for ${user.id}:`, err.message);
+    }
+  }
+
+  const errorMsg = lastError?.errorMessage || lastError?.message || "Telegram connection expired. Please scan QR once to link Telegram.";
+  throw Object.assign(new Error(errorMsg), {
+    statusCode: 401,
+    code: "TELEGRAM_RECONNECT_REQUIRED",
+  });
 }
 
 function createDeferred() {
@@ -711,6 +760,7 @@ async function persistTelegramLogin(flow, telegramUser) {
   }
   telegramClients.set(id, flow.client);
   flow.userId = id;
+  flow.telegramSessionToken = user.telegramSession;
   flow.step = "complete";
   flow.updatedAt = Date.now();
   clearTimeout(flow.timeout);
@@ -969,6 +1019,10 @@ function flowStatus(req, res) {
     return sendJson(res, 200, { step: "error", error: flow.error });
   }
   if (flow.step === "complete") {
+    const sessionToken = flow.telegramSessionToken || store.users[flow.userId]?.telegramSession || "";
+    const tgCookie = sessionToken
+      ? `dgx_tg_session=${encodeURIComponent(sessionToken)}; Max-Age=31536000; SameSite=Lax; Path=/${IS_PRODUCTION ? "; Secure" : ""}`
+      : "";
     if (flow.recoveryForUserId) {
       const session = sessionForRequest(req);
       if (!session || session.userId !== flow.recoveryForUserId
@@ -980,8 +1034,13 @@ function flowStatus(req, res) {
       clearTimeout(flow.timeout);
       loginFlows.delete(parseCookies(req.headers.cookie)[FLOW_COOKIE]);
       if (activeLoginFlowId === parseCookies(req.headers.cookie)[FLOW_COOKIE]) activeLoginFlowId = null;
-      res.setHeader("Set-Cookie", flowCookieHeader("", 0));
-      return sendJson(res, 200, { step: "complete", user: publicUser(store.users[flow.userId]), recovery: true });
+      res.setHeader("Set-Cookie", [flowCookieHeader("", 0), tgCookie].filter(Boolean));
+      return sendJson(res, 200, {
+        step: "complete",
+        user: publicUser(store.users[flow.userId]),
+        recovery: true,
+        telegramSessionToken: sessionToken,
+      });
     }
     clearTimeout(flow.timeout);
     loginFlows.delete(parseCookies(req.headers.cookie)[FLOW_COOKIE]);
@@ -989,8 +1048,13 @@ function flowStatus(req, res) {
     res.setHeader("Set-Cookie", [
       setSession(res, flow.userId, req),
       flowCookieHeader("", 0),
-    ]);
-    return sendJson(res, 200, { step: "complete", user: publicUser(store.users[flow.userId]) });
+      tgCookie,
+    ].filter(Boolean));
+    return sendJson(res, 200, {
+      step: "complete",
+      user: publicUser(store.users[flow.userId]),
+      telegramSessionToken: sessionToken,
+    });
   }
   if (flow.step === "waiting_for_code" && flow.codeInfo) {
     return sendJson(res, 200, {
@@ -1080,7 +1144,7 @@ async function uploadToTelegram(req, res, user, url) {
     const type = /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i.test(suppliedType)
       ? suppliedType
       : "application/octet-stream";
-    const client = await getTelegramClient(user);
+    const client = await getTelegramClient(user, req);
     const result = await client.sendFile("me", {
       file: tempPath,
       forceDocument: true,
@@ -1153,7 +1217,7 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
   const indexedSize = Number(file.size);
   if (!Number.isSafeInteger(indexedSize) || indexedSize < 0) throw new Error("Saved file size is invalid.");
   let range;
-  const client = await getTelegramClient(user);
+  const client = await getTelegramClient(user, req);
   const messageId = Number(file.telegramMessageId);
   if (!Number.isSafeInteger(messageId)) throw new Error("Saved Telegram message reference is invalid.");
   const messages = await client.getMessages("me", { ids: [messageId] });
@@ -1245,8 +1309,8 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
   }
 }
 
-async function sendThumbnail(res, user, file, lowQuality = false) {
-  const client = await getTelegramClient(user);
+async function sendThumbnail(res, user, file, lowQuality = false, req = null) {
+  const client = await getTelegramClient(user, req);
   const messageId = Number(file.telegramMessageId);
   if (!Number.isSafeInteger(messageId)) throw new Error("Saved Telegram message reference is invalid.");
   const messages = await client.getMessages("me", { ids: [messageId] });
@@ -1540,7 +1604,7 @@ async function restoreTrash(user, rootIds) {
   return { restored: ids.length };
 }
 
-async function permanentlyDeleteTrash(user, rootIds, emptyAll = false, includeVault = false) {
+async function permanentlyDeleteTrash(user, rootIds, emptyAll = false, includeVault = false, req = null) {
   const ids = emptyAll
     ? [
       ...Object.values(store.files)
@@ -1581,7 +1645,7 @@ async function permanentlyDeleteTrash(user, rootIds, emptyAll = false, includeVa
     .map((file) => Number(file.telegramMessageId))
     .filter(Number.isSafeInteger))];
   if (telegramIds.length) {
-    const client = await getTelegramClient(user);
+    const client = await getTelegramClient(user, req);
     for (let index = 0; index < telegramIds.length; index += 100) {
       await client.api.messages.deleteMessages({ id: telegramIds.slice(index, index + 100), revoke: true });
     }
@@ -1645,6 +1709,12 @@ async function handleApi(req, res, url) {
     const body = parsedBody && typeof parsedBody === "object" && !Array.isArray(parsedBody) ? parsedBody : {};
     const loginId = typeof body.loginId === "string" ? body.loginId.trim().toLocaleLowerCase("en-US") : "";
     const password = typeof body.password === "string" ? body.password : "";
+    const clientProvidedSession = typeof body.telegramSessionToken === "string" && body.telegramSessionToken.trim()
+      ? body.telegramSessionToken.trim()
+      : (typeof req.headers["x-telegram-session"] === "string" && req.headers["x-telegram-session"].trim()
+        ? req.headers["x-telegram-session"].trim()
+        : (parseCookies(req.headers.cookie)["dgx_tg_session"] || ""));
+
     const account = /^[a-z0-9._-]{3,32}$/.test(loginId)
       ? Object.values(store.users).find((candidate) => candidate.loginId === loginId)
       : null;
@@ -1654,8 +1724,27 @@ async function handleApi(req, res, url) {
     );
     if (password.length <= 128 && account && !account.passwordResetRequired
       && passwordMatches && !account.blocked) {
-      res.setHeader("Set-Cookie", setSession(res, account.id, req, "password"));
-      return sendJson(res, 200, { user: publicUser(account) });
+
+      // Proactively establish & test Telegram client during login
+      let telegramConnected = false;
+      try {
+        const client = await getTelegramClient(account, req, clientProvidedSession);
+        telegramConnected = Boolean(client?.connected);
+      } catch (tgErr) {
+        console.warn("Telegram client initial connection attempt during login:", tgErr.message);
+      }
+
+      const sessionCookie = setSession(res, account.id, req, "password");
+      const tgCookie = account.telegramSession
+        ? `dgx_tg_session=${encodeURIComponent(account.telegramSession)}; Max-Age=31536000; SameSite=Lax; Path=/${IS_PRODUCTION ? "; Secure" : ""}`
+        : "";
+      res.setHeader("Set-Cookie", [sessionCookie, tgCookie].filter(Boolean));
+
+      return sendJson(res, 200, {
+        user: publicUser(account),
+        telegramConnected,
+        telegramSessionToken: account.telegramSession || "",
+      });
     }
     return sendJson(res, 401, { error: "Login ID or password is incorrect. You can recover access with Telegram QR." });
   }
@@ -2133,7 +2222,7 @@ async function handleApi(req, res, url) {
     if (files.some((file) => !file || !file.vault || !file.deletedAt)) {
       return sendJson(res, 404, { error: "One or more Vault Trash files are unavailable." });
     }
-    const result = await permanentlyDeleteTrash(user, files.map((file) => file.id), false, true);
+    const result = await permanentlyDeleteTrash(user, files.map((file) => file.id), false, true, req);
     return sendJson(res, 200, result);
   }
 
@@ -2174,7 +2263,7 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/profile-photo") {
-    const client = await getTelegramClient(user);
+    const client = await getTelegramClient(user, req);
     const telegramUser = await client.getMe();
     const photo = await client.downloadProfilePhoto(telegramUser, { isBig: true });
     if (!photo || (Buffer.isBuffer(photo) && photo.length === 0)) {
@@ -2279,7 +2368,7 @@ async function handleApi(req, res, url) {
       requireVaultUnlocked(req, user);
       return sendJson(res, 403, { error: "Permanently delete Vault Trash from inside the unlocked Vault." });
     }
-    return sendJson(res, 200, await permanentlyDeleteTrash(user, body.rootIds, body.emptyAll === true));
+    return sendJson(res, 200, await permanentlyDeleteTrash(user, body.rootIds, body.emptyAll === true, false, req));
   }
   if (req.method === "POST" && url.pathname === "/api/folders") {
     const body = await readJson(req);
@@ -2306,7 +2395,7 @@ async function handleApi(req, res, url) {
     const file = fileForUser(user, thumbnailMatch[1]);
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
   if (file.vault) requireVaultUnlocked(req, user);
-  return sendThumbnail(res, user, file, url.searchParams.get("quality") === "low");
+  return sendThumbnail(res, user, file, url.searchParams.get("quality") === "low", req);
   }
 
   const match = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})$/i);
@@ -2449,12 +2538,30 @@ function startKeepAlive() {
   }, 8 * 60 * 1000);
 }
 
+function startTelegramClientsKeepAlive() {
+  setInterval(async () => {
+    for (const [userId, client] of telegramClients.entries()) {
+      try {
+        if (!client.connected) {
+          console.log(`Reconnecting dropped Telegram client for user ${userId}...`);
+          await client.connect();
+        } else {
+          await client.getMe().catch(() => {});
+        }
+      } catch (err) {
+        console.warn(`Keep-alive check for Telegram client of user ${userId}:`, err.message);
+      }
+    }
+  }, 2 * 60 * 1000);
+}
+
   const server = http.createServer(handleRequest);
   const port = Number(process.env.PORT || 3000);
   server.listen(port, LISTEN_HOST, () => {
     console.log(`DGx Cloud is listening on ${LISTEN_HOST}:${port}`);
     console.log(`Telegram Saved Messages uploads enabled; per-file limit: ${MAX_FILE_SIZE} bytes.`);
     startKeepAlive();
+    startTelegramClientsKeepAlive();
   });
 }
 

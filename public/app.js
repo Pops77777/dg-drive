@@ -144,12 +144,23 @@ function resetPasswordToggles(container) {
 }
 
 async function api(url, options = {}) {
+  const tgToken = localStorage.getItem("dgx_tg_session") || "";
   const response = await fetch(url, {
     credentials: "same-origin",
     ...options,
-    headers: { ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }), ...options.headers },
+    headers: {
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...(tgToken ? { "x-telegram-session": tgToken } : {}),
+      ...options.headers,
+    },
   });
   const body = await response.json().catch(() => ({}));
+  if (body && typeof body === "object" && body.telegramSessionToken) {
+    try {
+      localStorage.setItem("dgx_tg_session", body.telegramSessionToken);
+      document.cookie = `dgx_tg_session=${encodeURIComponent(body.telegramSessionToken)}; max-age=31536000; path=/; SameSite=Lax`;
+    } catch {}
+  }
   if (!response.ok) {
     let message = body.error || `Request failed (${response.status}).`;
     if (response.status === 404 && message === "API route not found.") {
@@ -159,12 +170,17 @@ async function api(url, options = {}) {
       message = "This server is running an older version. Stop it and restart with `npm start` to enable Login ID/password.";
     }
     if (response.status === 401 && !url.includes("/login") && !url.includes("/telegram/status") && !url.includes("/account-lock") && !url.includes("/vault")) {
-      if (typeof showLoggedOut === "function" && dashboardView && !dashboardView.classList.contains("hidden")) {
+      if (body?.code === "TELEGRAM_RECONNECT_REQUIRED") {
+        if (typeof showToast === "function") {
+          showToast("Telegram session expired. Scan QR once to reconnect your Telegram client.", "error");
+        }
+      } else if (typeof showLoggedOut === "function" && dashboardView && !dashboardView.classList.contains("hidden")) {
         showLoggedOut();
       }
     }
     const error = new Error(message);
     error.status = response.status;
+    error.code = body?.code;
     throw error;
   }
   return body;
@@ -2124,6 +2140,18 @@ async function pollLoginStatus() {
       return;
     }
     if (result.step === "complete") {
+      if (result.telegramSessionToken) {
+        try {
+          localStorage.setItem("dgx_tg_session", result.telegramSessionToken);
+          if (result.user?.loginId) {
+            localStorage.setItem(`dgx_tg_session_${result.user.loginId.toLowerCase()}`, result.telegramSessionToken);
+          }
+          if (result.user?.id) {
+            localStorage.setItem(`dgx_tg_session_${result.user.id}`, result.telegramSessionToken);
+          }
+          document.cookie = `dgx_tg_session=${encodeURIComponent(result.telegramSessionToken)}; max-age=31536000; path=/; SameSite=Lax`;
+        } catch {}
+      }
       if (result.user?.blocked) {
         await api("/api/logout", { method: "POST", body: "{}" });
         qrRecoveryPurpose = null;
@@ -2276,13 +2304,27 @@ credentialLoginForm.addEventListener("submit", async (event) => {
   submit.disabled = true;
   setMessage(credentialLoginMessage, "Signing in…");
   try {
-    const { user } = await api("/api/login", {
+    const loginIdInput = document.querySelector("#credential-login-id");
+    const loginId = loginIdInput ? loginIdInput.value.trim() : "";
+    const sessionToken = localStorage.getItem("dgx_tg_session")
+      || (loginId ? localStorage.getItem(`dgx_tg_session_${loginId.toLowerCase()}`) : "")
+      || "";
+    const { user, telegramSessionToken } = await api("/api/login", {
       method: "POST",
       body: JSON.stringify({
-        loginId: document.querySelector("#credential-login-id").value,
+        loginId,
         password: document.querySelector("#credential-login-password").value,
+        telegramSessionToken: sessionToken,
       }),
     });
+    if (telegramSessionToken) {
+      try {
+        localStorage.setItem("dgx_tg_session", telegramSessionToken);
+        if (loginId) localStorage.setItem(`dgx_tg_session_${loginId.toLowerCase()}`, telegramSessionToken);
+        if (user?.id) localStorage.setItem(`dgx_tg_session_${user.id}`, telegramSessionToken);
+        document.cookie = `dgx_tg_session=${encodeURIComponent(telegramSessionToken)}; max-age=31536000; path=/; SameSite=Lax`;
+      } catch {}
+    }
     document.querySelector("#credential-login-password").value = "";
     setMessage(credentialLoginMessage, "");
     await showSignedIn(user);
@@ -2315,6 +2357,14 @@ profileCredentialsForm.addEventListener("submit", async (event) => {
     });
     currentUser.hasPassword = true;
     currentUser.credentialResetRequired = false;
+    if (loginId) {
+      const currentToken = localStorage.getItem("dgx_tg_session");
+      if (currentToken) {
+        try {
+          localStorage.setItem(`dgx_tg_session_${loginId.toLowerCase()}`, currentToken);
+        } catch {}
+      }
+    }
     document.querySelector("#profile-current-login").textContent = `Your login ID: ${loginId}`;
     document.querySelector("#profile-current-password").value = "";
     document.querySelector("#profile-new-password").value = "";
