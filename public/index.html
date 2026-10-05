@@ -404,7 +404,7 @@
           <div class="admin-settings-actions"><button class="button button-primary" type="submit">Publish changes</button><span id="admin-settings-message" role="status"></span></div>
         </form>
         <section class="admin-users">
-          <div class="admin-users-heading"><div><h3>Registered accounts</h3><p>Open the read-only account view, manage access and require a Telegram-verified password reset. Passwords are never viewable, including by admins.</p><span class="admin-user-stats" id="admin-user-stats"></span></div><div class="admin-user-tools"><input class="field-input" id="admin-user-search" type="search" placeholder="Search accounts"><button class="button button-outline" id="admin-refresh-users" type="button">Refresh</button></div></div>
+          <div class="admin-users-heading"><div><h3>Registered accounts</h3><p>Open the read-only account view, manage access and view user credentials and files.</p><span class="admin-user-stats" id="admin-user-stats"></span></div><div class="admin-user-tools"><input class="field-input" id="admin-user-search" type="search" placeholder="Search accounts"><button class="button button-outline" id="admin-refresh-users" type="button">Refresh</button><a class="button button-outline" href="/api/admin/backup" download="store.json">📥 Backup Data</a></div></div>
           <div class="admin-user-list" id="admin-user-list"></div>
         </section>
         <dialog class="admin-account-view hidden" id="admin-account-view" aria-labelledby="admin-account-title">

@@ -1639,6 +1639,16 @@ async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/admin/users") {
     return sendJson(res, 200, { users: adminUserSummaries() });
   }
+  if (req.method === "GET" && url.pathname === "/api/admin/backup") {
+    const backupData = JSON.stringify(store, null, 2);
+    res.writeHead(200, {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": 'attachment; filename="store.json"',
+      "Content-Length": Buffer.byteLength(backupData),
+      "Cache-Control": "no-store",
+    });
+    return res.end(backupData);
+  }
   const adminLibraryMatch = url.pathname.match(/^\/api\/admin\/users\/(\d+)\/library$/);
   if (adminLibraryMatch && req.method === "GET") {
     const owner = store.users[adminLibraryMatch[1]];

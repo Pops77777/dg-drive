@@ -1558,6 +1558,25 @@ function createFileCard(file) {
   const menu = document.createElement("details");
   menu.className = "file-menu";
   menu.addEventListener("pointerdown", (event) => event.stopPropagation());
+  menu.addEventListener("toggle", () => {
+    if (menu.open) {
+      document.querySelectorAll(".file-menu[open]").forEach((other) => {
+        if (other !== menu) {
+          other.open = false;
+          other.closest(".library-file-card")?.classList.remove("has-menu-open");
+        }
+      });
+      card.classList.add("has-menu-open");
+      const rect = menu.getBoundingClientRect();
+      if (rect.bottom + 270 > window.innerHeight && rect.top > 270) {
+        menuItems.classList.add("popover-up");
+      } else {
+        menuItems.classList.remove("popover-up");
+      }
+    } else {
+      card.classList.remove("has-menu-open");
+    }
+  });
   const menuButton = document.createElement("summary");
   menuButton.textContent = "⋮";
   menuButton.setAttribute("aria-label", `More actions for ${file.name}`);
@@ -1566,15 +1585,16 @@ function createFileCard(file) {
   const addMenuItem = (label, handler, destructive = false) => {
     const button = createButton(label, destructive ? "file-menu-item is-destructive" : "file-menu-item", async () => {
       menu.open = false;
+      card.classList.remove("has-menu-open");
       await handler();
     });
     menuItems.append(button);
   };
-  addMenuItem("Preview", () => openPreview(file));
-  addMenuItem("Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
-  addMenuItem("Share link", () => shareFile(file));
-  addMenuItem("Rename", () => renameFile(file));
-  addMenuItem("Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
+  addMenuItem("👁 Preview", () => openPreview(file));
+  addMenuItem("↓ Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
+  addMenuItem("🔗 Share link", () => shareFile(file));
+  addMenuItem("✏ Rename", () => renameFile(file));
+  addMenuItem("📁 Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
     try {
       await api("/api/items/move", {
         method: "POST",
@@ -1585,7 +1605,7 @@ function createFileCard(file) {
       window.alert(error.message);
     }
   }));
-  addMenuItem("Copy to folder", () => openDestinationDialog("Copy file", async (targetFolderId) => {
+  addMenuItem("📄 Copy to folder", () => openDestinationDialog("Copy file", async (targetFolderId) => {
     try {
       await api("/api/items/copy", {
         method: "POST",
@@ -1596,7 +1616,17 @@ function createFileCard(file) {
       window.alert(error.message);
     }
   }));
-  addMenuItem("Move to Trash", () => deleteFile(file), true);
+  if (!file.vault) {
+    addMenuItem("🔒 Move to Vault", async () => {
+      try {
+        await moveFilesIntoVault([file.id]);
+        await loadFiles();
+      } catch (error) {
+        window.alert(error.message);
+      }
+    });
+  }
+  addMenuItem("🗑 Move to Trash", () => deleteFile(file), true);
   menu.append(menuButton, menuItems);
   actions.append(menu);
   card.append(open, details, actions);
@@ -2759,10 +2789,13 @@ themeToggle.addEventListener("click", () => {
   applyTheme(document.documentElement.dataset.theme !== "dark");
   renderCategories();
 });
-document.addEventListener("click", (event) => {
+document.addEventListener("pointerdown", (event) => {
   const clickedMenu = event.target instanceof Element ? event.target.closest(".file-menu") : null;
   for (const menu of document.querySelectorAll(".file-menu[open]")) {
-    if (!clickedMenu || menu !== clickedMenu) menu.open = false;
+    if (!clickedMenu || menu !== clickedMenu) {
+      menu.open = false;
+      menu.closest(".library-file-card")?.classList.remove("has-menu-open");
+    }
   }
 });
 
