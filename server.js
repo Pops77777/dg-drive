@@ -38,7 +38,7 @@ loadLocalEnv();
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, "data"));
 const STORE_PATH = path.join(DATA_DIR, "store.json");
 const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE_BYTES || 2 * 1024 * 1024 * 1024);
-const SESSION_TTL = 7 * 24 * 60 * 60 * 1000;
+const SESSION_TTL = 365 * 24 * 60 * 60 * 1000;
 const COOKIE_NAME = "cloudbox_session";
 const FLOW_COOKIE = "cloudbox_telegram_flow";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
@@ -538,8 +538,16 @@ async function assignLoginCredentials(user, body, req) {
 }
 
 async function getTelegramClient(user) {
-  const current = telegramClients.get(user.id);
-  if (current) return current;
+  let current = telegramClients.get(user.id);
+  if (current) {
+    if (current.connected) return current;
+    try {
+      await current.connect();
+      return current;
+    } catch {
+      telegramClients.delete(user.id);
+    }
+  }
   const client = new TelegramClient(
     new StringSession(decryptSession(user.telegramSession)),
     API_ID,

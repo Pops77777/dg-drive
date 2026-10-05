@@ -2005,16 +2005,27 @@ html[data-theme="dark"] .user-menu-item:hover {
   color: #b91c1c;
 }
 
-/* Sticky Contextual Selection Toolbar */
-.selection-toolbar {
-  position: sticky !important;
-  top: 0 !important;
-  z-index: 600 !important;
-  background: #ffffff !important;
-  border-bottom: 2px solid #496ff0 !important;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.15) !important;
-  padding: 10px 16px !important;
-  border-radius: 0 0 12px 12px !important;
+/* Google Drive Sticky Control Bar */
+.drive-sticky-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 550;
+  background: var(--surface, #ffffff);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 8px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme="dark"] .drive-sticky-toolbar {
+  background: #1e2638;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+.drive-toolbar-main {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2022,10 +2033,504 @@ html[data-theme="dark"] .user-menu-item:hover {
   gap: 8px;
 }
 
-html[data-theme="dark"] .selection-toolbar {
-  background: #1e2638 !important;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5) !important;
-  border-bottom-color: #587bf5 !important;
+.drive-quick-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.drive-toolbar-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+html[data-theme="dark"] .drive-toolbar-controls {
+  border-top-color: rgba(255, 255, 255, 0.05);
+}
+
+.drive-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Material Pill Buttons */
+.drive-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid #dadce0;
+  background: #ffffff;
+  color: #3c4043;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.drive-pill-btn:hover {
+  background: #f1f3f4;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.2);
+}
+
+.drive-pill-primary {
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+  border-color: #1a73e8 !important;
+  font-weight: 600 !important;
+}
+
+.drive-pill-primary:hover {
+  background: #1557b0 !important;
+  box-shadow: 0 2px 6px rgba(26, 115, 232, 0.4) !important;
+}
+
+.drive-pill-danger {
+  color: #d93025 !important;
+  border-color: #fce8e6 !important;
+  background: #fef7f6 !important;
+}
+
+.drive-pill-danger:hover {
+  background: #fce8e6 !important;
+}
+
+html[data-theme="dark"] .drive-pill-btn {
+  background: #252e42;
+  border-color: #38455e;
+  color: #e8eaed;
+}
+
+html[data-theme="dark"] .drive-pill-btn:hover {
+  background: #2e3b54;
+}
+
+html[data-theme="dark"] .drive-pill-primary {
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+}
+
+/* Compact Icon Buttons */
+.drive-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #dadce0;
+  background: #ffffff;
+  color: #3c4043;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: background 0.15s;
+}
+
+.drive-icon-btn:hover {
+  background: #f1f3f4;
+}
+
+.drive-icon {
+  font-size: 15px;
+}
+
+html[data-theme="dark"] .drive-icon-btn {
+  background: #252e42;
+  border-color: #38455e;
+  color: #e8eaed;
+}
+
+html[data-theme="dark"] .drive-icon-btn:hover {
+  background: #2e3b54;
+}
+
+/* Data Saver Pill */
+.drive-pill-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid #dadce0;
+  background: #f8fafc;
+  color: #5f6368;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.drive-pill-toggle.is-active {
+  background: #e8f0fe;
+  color: #1a73e8;
+  border-color: #1a73e8;
+  font-weight: 600;
+}
+
+html[data-theme="dark"] .drive-pill-toggle {
+  background: #202738;
+  border-color: #364259;
+  color: #9aa0a6;
+}
+
+html[data-theme="dark"] .drive-pill-toggle.is-active {
+  background: #172b4d;
+  color: #8ab4f8;
+  border-color: #8ab4f8;
+}
+
+/* Premium Admin Header Button */
+.admin-header-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 5px 12px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%) !important;
+  border: 1.5px solid #f59e0b !important;
+  color: #b45309 !important;
+  font-weight: 700 !important;
+  font-size: 12.5px !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.25) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.admin-header-btn:hover {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4) !important;
+  transform: translateY(-1px) !important;
+}
+
+.admin-crown-icon {
+  font-size: 14px;
+  filter: drop-shadow(0 1px 2px rgba(180, 83, 9, 0.3));
+}
+
+html[data-theme="dark"] .admin-header-btn {
+  background: linear-gradient(135deg, #3d2c0b 0%, #583c0f 100%) !important;
+  border-color: #f59e0b !important;
+  color: #fef3c7 !important;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.2) !important;
+}
+
+/* Sticky Google Drive Contextual Selection Toolbar */
+.selection-toolbar {
+  display: none !important;
+}
+
+.selection-toolbar.is-active {
+  display: flex !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 600 !important;
+  background: #1a73e8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+  padding: 8px 16px !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.selection-close-btn {
+  background: transparent;
+  border: 0;
+  color: #ffffff;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+.selection-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.selection-actions .drive-pill-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  font-weight: 500 !important;
+}
+
+.selection-actions .drive-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+.selection-actions .drive-pill-danger {
+  background: #dc2626 !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+}
+
+/* File Action Button */
+.file-action-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  color: #3c4043;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.18);
+  transition: background 0.12s, transform 0.1s;
+  z-index: 5;
+}
+
+.file-action-btn:hover {
+  background: #f1f3f4;
+  transform: scale(1.06);
+}
+
+html[data-theme="dark"] .file-action-btn {
+  background: #252e42;
+  border-color: #384661;
+  color: #e8eaed;
+}
+
+html[data-theme="dark"] .file-action-btn:hover {
+  background: #313d54;
+}
+
+/* Bottom Action Sheet Modal - NEVER CLIPS! */
+.action-sheet-dialog {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  margin: 0;
+  max-width: 100vw;
+  width: 100vw;
+  max-height: 100vh;
+  height: 100vh;
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: none;
+}
+
+.action-sheet-dialog[open] {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.action-sheet-panel {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.28);
+  padding: 14px 18px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 82vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  animation: slideUpSheet 0.22s ease-out;
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+html[data-theme="dark"] .action-sheet-panel {
+  background: #1e2638;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.65);
+}
+
+.action-sheet-drag-handle {
+  width: 42px;
+  height: 4px;
+  background: #cbd5e1;
+  border-radius: 2px;
+  margin: 0 auto 4px;
+}
+
+html[data-theme="dark"] .action-sheet-drag-handle {
+  background: #475569;
+}
+
+.action-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #edf2f7;
+}
+
+html[data-theme="dark"] .action-sheet-header {
+  border-bottom-color: #2e3a52;
+}
+
+.action-sheet-thumb-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .action-sheet-thumb-wrap {
+  background: #29344c;
+}
+
+.action-sheet-file-icon {
+  font-size: 20px;
+}
+
+.action-sheet-file-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.action-sheet-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.action-sheet-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-theme="dark"] .action-sheet-name {
+  color: #f1f5f9;
+}
+
+.action-sheet-meta {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted, #64748b);
+  margin-top: 2px;
+}
+
+.action-sheet-close-btn {
+  background: #f1f5f9;
+  border: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #475569;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+html[data-theme="dark"] .action-sheet-close-btn {
+  background: #2a354c;
+  color: #cbd5e1;
+}
+
+.action-sheet-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.action-sheet-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink, #334155);
+  font-size: 14px;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.action-sheet-btn:hover {
+  background: #f1f5f9;
+  color: #1a73e8;
+}
+
+html[data-theme="dark"] .action-sheet-btn {
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .action-sheet-btn:hover {
+  background: #2a354c;
+  color: #8ab4f8;
+}
+
+.action-sheet-btn .action-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.action-sheet-btn.is-destructive {
+  color: #dc2626 !important;
+}
+
+.action-sheet-btn.is-destructive:hover {
+  background: #fee2e2 !important;
+}
+
+html[data-theme="dark"] .action-sheet-btn.is-destructive:hover {
+  background: #3e1b1b !important;
+}
+
+/* Fast Rendering & Smooth Scrolling */
+.library-file-grid, .folder-grid {
+  contain: content;
+  transform: translateZ(0);
+}
+
+.library-file-card {
+  will-change: transform;
+  transition: transform 0.12s ease-out, box-shadow 0.12s ease-out;
 }
 
 /* Vault Full Page Screen */
@@ -2150,5 +2655,47 @@ html[data-theme="dark"] .property-row span {
 
 .folder-share:hover {
   background: rgba(73, 111, 240, 0.12) !important;
+}
+
+/* Mobile Optimization & Lag Prevention */
+@media (max-width: 768px) {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .topbar, .dashboard, .admin-view, .category-card, .storage-card, .drive-sticky-toolbar {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+  .drive-sticky-toolbar {
+    padding: 6px 12px;
+  }
+  .drive-quick-actions {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+    width: 100%;
+  }
+  .drive-toolbar-controls {
+    flex-wrap: nowrap;
+  }
+  .drive-pill-btn {
+    padding: 5px 11px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+  .selection-toolbar.is-active {
+    padding: 8px 12px !important;
+  }
+  .selection-actions {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-bottom: 4px;
+  }
+  .selection-actions .drive-pill-btn {
+    flex-shrink: 0;
+  }
 }
 

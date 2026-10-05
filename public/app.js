@@ -1570,51 +1570,67 @@ function createFileCard(file) {
   details.append(name);
   const actions = document.createElement("div");
   actions.className = "file-actions";
-  const menu = document.createElement("details");
-  menu.className = "file-menu";
-  menu.addEventListener("pointerdown", (event) => event.stopPropagation());
-  menu.addEventListener("toggle", () => {
-    if (menu.open) {
-      document.querySelectorAll(".file-menu[open]").forEach((other) => {
-        if (other !== menu) {
-          other.open = false;
-          other.closest(".library-file-card")?.classList.remove("has-menu-open");
-        }
-      });
-      card.classList.add("has-menu-open");
-      const rect = menu.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const spaceAbove = rect.top;
-      if (spaceBelow < 280 && spaceAbove > spaceBelow) {
-        menuItems.classList.add("popover-up");
-        menuItems.style.maxHeight = `${Math.min(320, spaceAbove - 20)}px`;
-      } else {
-        menuItems.classList.remove("popover-up");
-        menuItems.style.maxHeight = `${Math.min(320, Math.max(160, spaceBelow - 20))}px`;
-      }
+  const menuButton = createButton("⋮", "file-action-btn", (event) => {
+    event.stopPropagation();
+    openFileActionSheet(file);
+  }, `More actions for ${file.name}`);
+  actions.append(menuButton);
+  card.append(open, details, actions);
+  makeSelectable(card, `file:${file.id}`);
+  return card;
+}
+
+function openFileActionSheet(file) {
+  const dialog = document.querySelector("#action-sheet-dialog");
+  if (!dialog) return;
+  const nameEl = document.querySelector("#action-sheet-name");
+  const metaEl = document.querySelector("#action-sheet-meta");
+  const iconEl = document.querySelector("#action-sheet-icon");
+  const thumbEl = document.querySelector("#action-sheet-thumb");
+  const actionsContainer = document.querySelector("#action-sheet-actions");
+
+  if (nameEl) nameEl.textContent = file.name;
+  if (metaEl) metaEl.textContent = `${formatSize(file.size)} • ${formatDate(file.uploadedAt)}`;
+
+  const category = fileCategory(file);
+  if (iconEl) iconEl.textContent = category === "videos" ? "▶" : category === "photos" ? "▧" : "📄";
+
+  if (thumbEl) {
+    if (category === "photos" || category === "videos") {
+      thumbEl.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
+      thumbEl.classList.remove("hidden");
+      thumbEl.onerror = () => thumbEl.classList.add("hidden");
     } else {
-      card.classList.remove("has-menu-open");
+      thumbEl.classList.add("hidden");
     }
-  });
-  const menuButton = document.createElement("summary");
-  menuButton.textContent = "⋮";
-  menuButton.setAttribute("aria-label", `More actions for ${file.name}`);
-  const menuItems = document.createElement("div");
-  menuItems.className = "file-menu-popover";
-  const addMenuItem = (label, handler, destructive = false) => {
-    const button = createButton(label, destructive ? "file-menu-item is-destructive" : "file-menu-item", async () => {
-      menu.open = false;
-      card.classList.remove("has-menu-open");
+  }
+
+  actionsContainer.replaceChildren();
+
+  const addAction = (icon, text, handler, isDestructive = false) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `action-sheet-btn${isDestructive ? " is-destructive" : ""}`;
+    const iconSpan = document.createElement("span");
+    iconSpan.className = "action-icon";
+    iconSpan.textContent = icon;
+    const textSpan = document.createElement("span");
+    textSpan.className = "action-label";
+    textSpan.textContent = text;
+    btn.append(iconSpan, textSpan);
+    btn.addEventListener("click", async () => {
+      dialog.close();
       await handler();
     });
-    menuItems.append(button);
+    actionsContainer.append(btn);
   };
-  addMenuItem("👁 Preview", () => openPreview(file));
-  addMenuItem("↓ Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
-  addMenuItem("🔗 Share link", () => shareFile(file));
-  addMenuItem("ℹ Details / Info", () => showFileProperties(file));
-  addMenuItem("✏ Rename", () => renameFile(file));
-  addMenuItem("📁 Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
+
+  addAction("👁", "Preview", () => openPreview(file));
+  addAction("↓", "Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
+  addAction("🔗", "Share link", () => shareFile(file));
+  addAction("ℹ", "Details / Info", () => showFileProperties(file));
+  addAction("✏", "Rename", () => renameFile(file));
+  addAction("📁", "Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
     try {
       await api("/api/items/move", {
         method: "POST",
@@ -1625,7 +1641,7 @@ function createFileCard(file) {
       window.alert(error.message);
     }
   }));
-  addMenuItem("📄 Copy to folder", () => openDestinationDialog("Copy file", async (targetFolderId) => {
+  addAction("📄", "Copy to folder", () => openDestinationDialog("Copy file", async (targetFolderId) => {
     try {
       await api("/api/items/copy", {
         method: "POST",
@@ -1637,7 +1653,7 @@ function createFileCard(file) {
     }
   }));
   if (!file.vault) {
-    addMenuItem("🔒 Move to Vault", async () => {
+    addAction("🔒", "Move to Vault", async () => {
       try {
         await moveFilesIntoVault([file.id]);
         await loadFiles();
@@ -1646,12 +1662,9 @@ function createFileCard(file) {
       }
     });
   }
-  addMenuItem("🗑 Move to Trash", () => deleteFile(file), true);
-  menu.append(menuButton, menuItems);
-  actions.append(menu);
-  card.append(open, details, actions);
-  makeSelectable(card, `file:${file.id}`);
-  return card;
+  addAction("🗑", "Move to Trash", () => deleteFile(file), true);
+
+  dialog.showModal();
 }
 
 async function restoreTrashItems(itemIds) {
@@ -2675,22 +2688,72 @@ searchInput.addEventListener("input", () => {
 const libraryViewSelect = document.querySelector("#library-view-mode");
 const librarySortSelect = document.querySelector("#library-sort-mode");
 const dataSaverToggle = document.querySelector("#data-saver-toggle");
-libraryViewSelect.value = ["small", "medium", "large", "details"].includes(libraryViewMode) ? libraryViewMode : "medium";
-librarySortSelect.value = ["name", "date-desc", "date-asc"].includes(librarySortMode) ? librarySortMode : "name";
-dataSaverToggle.checked = dataSaverEnabled;
-libraryViewSelect.addEventListener("change", () => {
+const viewModeToggle = document.querySelector("#view-mode-toggle");
+const viewModeIcon = document.querySelector("#view-mode-icon");
+const sortModeToggle = document.querySelector("#sort-mode-toggle");
+const sortModeLabel = document.querySelector("#sort-mode-label");
+const dataSaverPill = document.querySelector("#data-saver-pill");
+const dataSaverStatus = document.querySelector("#data-saver-status");
+
+function updateControlsUI() {
+  if (libraryViewSelect) libraryViewSelect.value = ["small", "medium", "large", "details"].includes(libraryViewMode) ? libraryViewMode : "medium";
+  if (viewModeIcon) viewModeIcon.textContent = libraryViewMode === "details" ? "☰" : "⊞";
+  if (viewModeToggle) viewModeToggle.title = libraryViewMode === "details" ? "List view (click for Grid)" : "Grid view (click for List)";
+
+  if (librarySortSelect) librarySortSelect.value = ["name", "date-desc", "date-asc"].includes(librarySortMode) ? librarySortMode : "name";
+  if (sortModeLabel) {
+    sortModeLabel.textContent = librarySortMode === "name" ? "Name"
+      : librarySortMode === "date-desc" ? "Newest"
+      : "Oldest";
+  }
+
+  if (dataSaverToggle) dataSaverToggle.checked = dataSaverEnabled;
+  if (dataSaverPill) dataSaverPill.classList.toggle("is-active", dataSaverEnabled);
+  if (dataSaverStatus) dataSaverStatus.textContent = dataSaverEnabled ? "Saver: ON" : "Data saver";
+}
+
+updateControlsUI();
+
+viewModeToggle?.addEventListener("click", () => {
+  libraryViewMode = libraryViewMode === "details" ? "medium" : "details";
+  window.localStorage.setItem("dgcloud-library-view", libraryViewMode);
+  updateControlsUI();
+  renderLibrary();
+});
+
+sortModeToggle?.addEventListener("click", () => {
+  const nextSort = librarySortMode === "name" ? "date-desc" : librarySortMode === "date-desc" ? "date-asc" : "name";
+  librarySortMode = nextSort;
+  window.localStorage.setItem("dgcloud-library-sort", librarySortMode);
+  updateControlsUI();
+  renderLibrary();
+});
+
+dataSaverPill?.addEventListener("click", () => {
+  dataSaverEnabled = !dataSaverEnabled;
+  window.localStorage.setItem("dgcloud-data-saver", String(dataSaverEnabled));
+  updateControlsUI();
+  renderLibrary();
+});
+
+libraryViewSelect?.addEventListener("change", () => {
   libraryViewMode = libraryViewSelect.value;
   window.localStorage.setItem("dgcloud-library-view", libraryViewMode);
+  updateControlsUI();
   renderLibrary();
 });
-librarySortSelect.addEventListener("change", () => {
+
+librarySortSelect?.addEventListener("change", () => {
   librarySortMode = librarySortSelect.value;
   window.localStorage.setItem("dgcloud-library-sort", librarySortMode);
+  updateControlsUI();
   renderLibrary();
 });
-dataSaverToggle.addEventListener("change", () => {
+
+dataSaverToggle?.addEventListener("change", () => {
   dataSaverEnabled = dataSaverToggle.checked;
   window.localStorage.setItem("dgcloud-data-saver", String(dataSaverEnabled));
+  updateControlsUI();
   renderLibrary();
 });
 
@@ -2856,18 +2919,14 @@ propertiesClose?.addEventListener("click", () => {
   document.querySelector("#properties-dialog")?.close();
 });
 
-let lastScrollPosition = 0;
-window.addEventListener("scroll", () => {
-  const currentScroll = window.scrollY;
-  const topbar = document.querySelector(".topbar");
-  if (!topbar) return;
-  if (currentScroll > 75 && currentScroll - lastScrollPosition > 8) {
-    topbar.classList.add("topbar-hidden");
-  } else if (lastScrollPosition - currentScroll > 8 || currentScroll <= 25) {
-    topbar.classList.remove("topbar-hidden");
+document.querySelector("#action-sheet-close-btn")?.addEventListener("click", () => {
+  document.querySelector("#action-sheet-dialog")?.close();
+});
+document.querySelector("#action-sheet-dialog")?.addEventListener("click", (event) => {
+  if (event.target === document.querySelector("#action-sheet-dialog")) {
+    document.querySelector("#action-sheet-dialog")?.close();
   }
-  lastScrollPosition = currentScroll;
-}, { passive: true });
+});
 document.querySelector("#admin-back-button").addEventListener("click", () => showLibrary());
 document.querySelector("#admin-refresh-users").addEventListener("click", loadAdminUsers);
 document.querySelector("#admin-user-search").addEventListener("input", () => {
