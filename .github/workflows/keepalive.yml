@@ -1,0 +1,22 @@
+name: Keep DGx Cloud Awake
+
+on:
+  schedule:
+    # Trigger every 10 minutes to prevent Render 15-minute inactivity sleep
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping Web Service
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send keep-alive HTTP ping
+        run: |
+          TARGET_URL="${{ secrets.RENDER_APP_URL }}"
+          if [ -z "$TARGET_URL" ]; then
+            TARGET_URL="https://dgx-cloud.onrender.com"
+          fi
+          echo "Sending keep-alive ping to $TARGET_URL/ping"
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -m 25 "$TARGET_URL/ping" || echo "failed")
+          echo "Ping response status: $STATUS"

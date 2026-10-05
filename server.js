@@ -2332,13 +2332,17 @@ const staticFiles = {
 async function handleRequest(req, res) {
   setSecurityHeaders(res);
   try {
+    const url = new URL(req.url, "http://localhost");
+    if (url.pathname === "/ping" || url.pathname === "/healthz") {
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store" });
+      return res.end("pong");
+    }
     if (IS_PRODUCTION
       && !req.socket.encrypted
       && !(req.headers["x-forwarded-proto"] === "https"
         && (isLoopbackAddress(req.socket.remoteAddress) || TRUST_PROXY_HTTPS))) {
       return sendJson(res, 426, { error: "HTTPS is required. Connect through the local TLS reverse proxy." });
     }
-    const url = new URL(req.url, "http://localhost");
     if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
     const item = req.method === "GET" && staticFiles[url.pathname];
     if (!item) return sendJson(res, 404, { error: "Page not found." });
@@ -2398,11 +2402,30 @@ async function start() {
     }
   }
 
+function startKeepAlive() {
+  const externalUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+  if (!externalUrl) return;
+  const pingUrl = `${externalUrl.replace(/\/+$/, "")}/ping`;
+  console.log(`Keep-alive auto-pinger enabled for: ${pingUrl}`);
+  setInterval(async () => {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const response = await fetch(pingUrl, { signal: controller.signal });
+      clearTimeout(timeout);
+      console.log(`Keep-alive ping sent to ${pingUrl} (status: ${response.status})`);
+    } catch (error) {
+      console.warn(`Keep-alive ping error: ${error.message}`);
+    }
+  }, 8 * 60 * 1000);
+}
+
   const server = http.createServer(handleRequest);
   const port = Number(process.env.PORT || 3000);
   server.listen(port, LISTEN_HOST, () => {
     console.log(`DGx Cloud is listening on ${LISTEN_HOST}:${port}`);
     console.log(`Telegram Saved Messages uploads enabled; per-file limit: ${MAX_FILE_SIZE} bytes.`);
+    startKeepAlive();
   });
 }
 
