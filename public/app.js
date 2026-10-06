@@ -347,15 +347,19 @@ function showSignedOut() {
   dashboardView.classList.add("hidden");
   if (homeDashboardView) homeDashboardView.classList.add("hidden");
   adminView.classList.add("hidden");
-  featureStrip.classList.remove("hidden");
   logoutButton.classList.add("hidden");
-  themeToggle.classList.add("hidden");
-  document.body.classList.remove("is-signed-in");
-  document.querySelector("#app-sidebar")?.classList.add("hidden");
-  document.querySelector("#mobile-bottom-dock")?.classList.add("hidden");
+
+  // Keep master frosted app shell active and visible so visitor always sees the new UI
+  document.body.classList.add("is-signed-in");
+  document.querySelector("#app-sidebar")?.classList.remove("hidden");
+  document.querySelector("#mobile-bottom-dock")?.classList.remove("hidden");
+  document.querySelector("#topbar-search-wrap")?.classList.remove("hidden");
+  document.querySelector("#live-synced-badge")?.classList.remove("hidden");
+  document.querySelector("#theme-toggle")?.classList.remove("hidden");
+
+  // Show Login button, hide Upload button
   document.querySelector("#top-upload-btn")?.classList.add("hidden");
-  document.querySelector("#live-synced-badge")?.classList.add("hidden");
-  document.querySelector("#topbar-search-wrap")?.classList.add("hidden");
+  document.querySelector("#top-login-btn")?.classList.remove("hidden");
   document.querySelector("#sidebar-admin-btn")?.classList.add("hidden");
   const adminHeaderBtn = document.querySelector("#admin-header-btn");
   if (adminHeaderBtn) {
@@ -390,7 +394,6 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   if (homeDashboardView) homeDashboardView.classList.add("hidden");
   accountLockView.classList.add("hidden");
   adminView.classList.add("hidden");
-  featureStrip.classList.remove("hidden");
   logoutButton.classList.remove("hidden");
   themeToggle.classList.remove("hidden");
   accountBadge.classList.remove("hidden");
@@ -403,6 +406,7 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   const appSidebar = document.querySelector("#app-sidebar");
   const mobileDock = document.querySelector("#mobile-bottom-dock");
   const topUploadBtn = document.querySelector("#top-upload-btn");
+  const topLoginBtn = document.querySelector("#top-login-btn");
   const liveSyncedBadge = document.querySelector("#live-synced-badge");
   const topbarSearchWrap = document.querySelector("#topbar-search-wrap");
   const sidebarAdminBtn = document.querySelector("#sidebar-admin-btn");
@@ -410,6 +414,7 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   if (appSidebar) appSidebar.classList.remove("hidden");
   if (mobileDock) mobileDock.classList.remove("hidden");
   if (topUploadBtn) topUploadBtn.classList.remove("hidden");
+  if (topLoginBtn) topLoginBtn.classList.add("hidden");
   if (liveSyncedBadge) liveSyncedBadge.classList.remove("hidden");
   if (topbarSearchWrap) topbarSearchWrap.classList.remove("hidden");
   if (sidebarAdminBtn) sidebarAdminBtn.classList.toggle("hidden", !user.isAdmin);
@@ -3662,10 +3667,27 @@ window.addEventListener("keydown", (event) => {
   }
 });
 
-// Topbar Upload Button
+// Topbar Upload & Login Buttons
 document.querySelector("#top-upload-btn")?.addEventListener("click", () => {
   if (!checkCanUpload()) return;
   filePicker.click();
+});
+
+document.querySelector("#top-login-btn")?.addEventListener("click", () => {
+  startLoginButton.click();
+});
+
+document.querySelector("#welcome-id-login-btn")?.addEventListener("click", () => {
+  authView.classList.remove("hidden");
+  passwordMethodButton.click();
+  authView.scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+// Category clicks on guest welcome screen
+document.querySelectorAll(".welcome-showcase-view .home-category-tile").forEach((tile) => {
+  tile.addEventListener("click", () => {
+    startLoginButton.click();
+  });
 });
 
 // Sidebar Navigation Actions
@@ -3674,6 +3696,10 @@ document.querySelector("#sidebar-dash-btn")?.addEventListener("click", () => {
 });
 
 document.querySelector("#sidebar-files-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   if (trashMode) {
     trashToggle.click();
   }
@@ -3681,6 +3707,10 @@ document.querySelector("#sidebar-files-btn")?.addEventListener("click", () => {
 });
 
 document.querySelector("#sidebar-recents-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   showHome();
   const recentSection = document.querySelector("#home-recent-section");
   if (recentSection) {
@@ -3690,6 +3720,10 @@ document.querySelector("#sidebar-recents-btn")?.addEventListener("click", () => 
 });
 
 document.querySelector("#sidebar-starred-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   showLibrary();
   updateNavActive("starred");
 });
@@ -3700,15 +3734,27 @@ document.querySelector("#sidebar-shared-btn")?.addEventListener("click", () => {
 });
 
 document.querySelector("#sidebar-vault-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   openVaultDialog();
   updateNavActive("vault");
 });
 
 document.querySelector("#sidebar-admin-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   enterAdminConsole();
 });
 
 document.querySelector("#sidebar-trash-btn")?.addEventListener("click", async () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   await showLibrary();
   if (!trashMode) {
     trashToggle.click();
@@ -3722,6 +3768,10 @@ document.querySelector("#dock-dash-btn")?.addEventListener("click", () => {
 });
 
 document.querySelector("#dock-files-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   if (trashMode) {
     trashToggle.click();
   }
@@ -3729,16 +3779,28 @@ document.querySelector("#dock-files-btn")?.addEventListener("click", () => {
 });
 
 document.querySelector("#dock-upload-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   if (!checkCanUpload()) return;
   filePicker.click();
 });
 
 document.querySelector("#dock-vault-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   openVaultDialog();
   updateNavActive("vault");
 });
 
 document.querySelector("#dock-profile-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
   openProfileDialog();
 });
 

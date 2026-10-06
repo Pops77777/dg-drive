@@ -5,9 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#f5f8ff">
     <meta name="description" content="DGx Cloud — a premium personal file library, securely organised with Telegram Saved Messages.">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=2.6">
-    <script src="/app.js?v=2.6" defer></script>
+    <link rel="stylesheet" href="/style.css?v=4.0">
+    <script src="/app.js?v=4.0" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -36,6 +39,7 @@
         <button class="upload-status-pill hidden" id="upload-status-pill" type="button" title="View uploading progress"><span class="upload-spinner">⏳</span> <span id="upload-status-count">Uploading...</span></button>
         <button class="admin-header-btn hidden" id="admin-header-btn" type="button" title="Open Admin Control Room" hidden aria-hidden="true"><span class="admin-crown-icon">👑</span> <span class="admin-btn-text">Admin</span></button>
         <button class="button button-primary upload-gradient-btn hidden" id="top-upload-btn" type="button"><span class="upload-plus">＋</span> New Upload</button>
+        <button class="button button-primary upload-gradient-btn" id="top-login-btn" type="button"><span class="upload-plus">⚡</span> Login with Telegram</button>
         <div class="user-menu-container">
           <button class="account-badge hidden" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false"><span class="account-avatar"><span class="account-avatar-fallback" aria-hidden="true">☁</span><img id="account-avatar-image" alt="Telegram profile photo"></span><strong id="account-email"></strong><span class="vip-badge hidden" id="vip-badge">VIP</span><span class="admin-badge hidden" id="admin-badge">ADMIN</span><span class="menu-arrow">▾</span></button>
           <div class="user-menu-popover hidden" id="user-menu-popover" role="menu">
@@ -53,91 +57,11 @@
             <button class="user-menu-item is-destructive" id="logout-button" type="button">🚪 Sign out</button>
           </div>
         </div>
-        <button class="button button-quiet hidden" id="theme-toggle" type="button" aria-label="Switch to dark mode">☾</button>
+        <button class="button button-quiet" id="theme-toggle" type="button" aria-label="Switch to dark mode">☾</button>
       </div>
     </header>
 
     <main class="page-shell">
-      <section class="hero" id="welcome-view">
-        <div class="hero-copy">
-          <div class="eyebrow"><span class="eyebrow-line"></span> YOUR PERSONAL CLOUD, REIMAGINED</div>
-          <h1><svg class="infinity-mark title-infinity" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg> DGx Cloud<br><span class="text-gradient unlimited-title">Unlimited Storage*</span></h1>
-          <p class="hero-description">Bring your photos, videos and important files together in one refined library. Upload directly to your own Telegram Saved Messages, organise with folders, and preview your media whenever you need it.</p>
-          <div class="hero-points">
-            <span><span class="check">✓</span> Your Telegram account stores your files</span>
-            <span><span class="check">✓</span> Preview, search and organise with ease</span>
-          </div>
-          <p class="storage-disclaimer">*Storage is backed by Telegram; file-size and account limits apply.</p>
-          <button class="button button-primary hero-cta" id="start-login-button" type="button">Login with Telegram <span aria-hidden="true">→</span></button>
-        </div>
-        <div class="hero-art" aria-hidden="true">
-          <div class="orbit orbit-one"></div>
-          <div class="orbit orbit-two"></div>
-          <div class="cloud-illustration">
-            <span class="cloud-back"></span>
-            <span class="cloud-front">☁</span>
-            <span class="file-float file-one">▤</span>
-            <span class="file-float file-two">▶</span>
-            <span class="file-float file-three">▧</span>
-          </div>
-          <div class="art-caption"><span class="art-caption-dot"></span> Everything in its place</div>
-        </div>
-      </section>
-
-      <section class="auth-layout hidden" id="auth-view">
-        <div class="auth-intro">
-          <span class="section-kicker">A BETTER WAY TO KEEP YOUR FILES</span>
-          <h2>Simple to use.<br>Yours to manage.</h2>
-          <p>Connect your Telegram account and make a private, searchable library from your Saved Messages.</p>
-          <div class="auth-note"><span class="note-icon">🔒</span><span>Files are stored in your Telegram Saved Messages. This is not end-to-end encrypted: the trusted server operator and authorized site admin can access connected accounts and files indexed here. Connect only to a server you control or trust.</span></div>
-        </div>
-        <div class="auth-card">
-          <div class="auth-method-tabs" role="tablist" aria-label="Sign-in method">
-            <button class="auth-method-tab is-active" id="qr-method-button" type="button" role="tab" aria-selected="true">Telegram QR</button>
-            <button class="auth-method-tab" id="password-method-button" type="button" role="tab" aria-selected="false">Login ID</button>
-          </div>
-          <form id="auth-form">
-            <div class="qr-login-panel" id="qr-login-panel">
-              <span class="section-kicker">SECURE TELEGRAM SIGN-IN</span>
-              <img class="login-qr-image hidden" id="login-qr-image" alt="Telegram login QR code">
-              <ol class="qr-instructions">
-                <li>Open Telegram on your phone and go to <strong>Settings → Devices</strong>.</li>
-                <li>Tap <strong>Link Desktop Device</strong> and scan the QR code shown here.</li>
-                <li>Approve the sign-in in Telegram to open your DGx Cloud library.</li>
-              </ol>
-              <button class="button button-outline qr-refresh-button" id="refresh-qr-login" type="button">Refresh QR code</button>
-              <button class="button button-quiet qr-back-button" id="auth-back-button" type="button">Back to home</button>
-            </div>
-            <div class="telegram-password hidden" id="password-step">
-              <label class="field-label" for="telegram-password">Telegram two-step verification password</label>
-              <div class="password-input-wrap">
-                <input class="field-input" id="telegram-password" name="telegram-password" type="password" autocomplete="current-password" placeholder="Your Telegram 2-step password" maxlength="256">
-                <button class="password-toggle" type="button" data-password-toggle="telegram-password" aria-label="Show Telegram password" aria-pressed="false">Show</button>
-              </div>
-            </div>
-            <button class="button button-primary auth-submit hidden" id="auth-submit" type="submit">Verify Telegram password <span aria-hidden="true">→</span></button>
-            <p class="form-message" id="auth-message" role="status" aria-live="polite"></p>
-          </form>
-          <form class="credential-login hidden" id="credential-login-form">
-            <span class="section-kicker">DGx CLOUD ACCOUNT</span>
-            <label class="field-label" for="credential-login-id">Login ID</label>
-            <input class="field-input" id="credential-login-id" name="username" autocomplete="username" autocapitalize="none" maxlength="32" required>
-            <label class="field-label" for="credential-login-password">Password</label>
-            <div class="password-input-wrap">
-              <input class="field-input" id="credential-login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
-              <button class="password-toggle" type="button" data-password-toggle="credential-login-password" aria-label="Show password" aria-pressed="false">Show</button>
-            </div>
-            <button class="button button-primary auth-submit" type="submit">Sign in <span aria-hidden="true">→</span></button>
-            <p class="form-message" id="credential-login-message" role="status" aria-live="polite"></p>
-            <div class="credential-recovery">
-              <button class="text-button" id="credential-qr-recovery" type="button">Forgot? Verify with Telegram QR</button>
-              <a class="text-button" href="https://www.instagram.com/gopal.dhapa/" target="_blank" rel="noopener noreferrer">Contact admin on Instagram</a>
-            </div>
-          </form>
-          <p class="auth-disclaimer">Your files are stored in your Telegram Saved Messages. The server can access connected sessions and media; this is not end-to-end encrypted. Only sign in on a server you trust.</p>
-        </div>
-      </section>
-
       <dialog class="profile-dialog" id="profile-dialog" aria-labelledby="profile-title">
         <form class="profile-dialog-form" id="profile-credentials-form">
           <button class="dialog-close" id="profile-close" type="button" aria-label="Close">×</button>
@@ -287,7 +211,7 @@
       </section>
 
       <div class="app-main-layout" id="app-main-layout">
-        <aside class="app-sidebar hidden" id="app-sidebar">
+        <aside class="app-sidebar" id="app-sidebar">
           <nav class="sidebar-nav">
             <button class="sidebar-item is-active" id="sidebar-dash-btn" type="button">
               <span class="sidebar-icon">🏠</span>
@@ -333,6 +257,135 @@
         </aside>
 
         <div class="app-content-body">
+          <section class="home-dashboard welcome-showcase-view" id="welcome-view">
+            <div class="welcome-hero-card">
+              <div class="welcome-hero-copy">
+                <span class="section-kicker">✦ ZERO-LAG TELEGRAM CLOUD</span>
+                <h1><svg class="infinity-mark title-infinity" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg> DGx Cloud<br><span class="text-gradient unlimited-title">Unlimited Storage</span></h1>
+                <p class="hero-description">Bring your photos, videos, and important files together in a refined frosted library. Uploaded straight to your personal Telegram Saved Messages with 0% lag, instant video streaming, and private vault protection.</p>
+                <div class="welcome-hero-actions">
+                  <button class="button button-primary upload-gradient-btn hero-cta" id="start-login-button" type="button"><span class="upload-plus">⚡</span> Login with Telegram <span aria-hidden="true">→</span></button>
+                  <button class="button button-outline" id="welcome-id-login-btn" type="button">🔑 Sign in with Login ID</button>
+                </div>
+                <div class="welcome-badges">
+                  <span><span class="check">✓</span> Backed by Telegram Saved Messages</span>
+                  <span><span class="check">✓</span> Instant 206 Partial-Content Video Seeking</span>
+                  <span><span class="check">✓</span> Passcode Protected Private Vault</span>
+                  <span><span class="check">✓</span> 0% Server Lag &amp; High FPS UI</span>
+                </div>
+              </div>
+              <div class="welcome-hero-art" aria-hidden="true">
+                <div class="orbit orbit-one"></div>
+                <div class="orbit orbit-two"></div>
+                <div class="cloud-illustration">
+                  <span class="cloud-back"></span>
+                  <span class="cloud-front">☁</span>
+                  <span class="file-float file-one">▤</span>
+                  <span class="file-float file-two">▶</span>
+                  <span class="file-float file-three">▧</span>
+                </div>
+                <div class="art-caption"><span class="art-caption-dot"></span> Everything in its place</div>
+              </div>
+            </div>
+
+            <div class="home-overview-grid welcome-features-grid">
+              <section class="storage-card home-storage-card" aria-label="Storage summary">
+                <div class="home-card-title">
+                  <h3>Cloud Architecture</h3>
+                  <span class="storage-pill">Telegram MTProto</span>
+                </div>
+                <div class="storage-total">
+                  <span class="welcome-stat-icon">♾</span>
+                  <span><strong>Unlimited*</strong><small>Capacity backed by Telegram</small></span>
+                </div>
+                <p class="welcome-feature-desc">Files are directly streamed from Telegram MTProto with 1MB chunked caching for instant seeking without delays.</p>
+              </section>
+
+              <section class="home-categories-card" aria-label="Media Categories">
+                <div class="home-card-title">
+                  <h3>Supported Media</h3>
+                  <span class="home-sub-text">Connect Telegram to view your library</span>
+                </div>
+                <div class="home-category-tiles">
+                  <div class="home-category-tile" id="welcome-cat-photos">
+                    <span class="home-cat-icon">🖼</span>
+                    <span class="home-cat-name">Photos &amp; Images</span>
+                    <span class="home-cat-meta">Full uncropped high-res preview</span>
+                  </div>
+                  <div class="home-category-tile" id="welcome-cat-videos">
+                    <span class="home-cat-icon">🎬</span>
+                    <span class="home-cat-name">Videos &amp; Movies</span>
+                    <span class="home-cat-meta">Instant zero-lag 206 streaming</span>
+                  </div>
+                  <div class="home-category-tile" id="welcome-cat-docs">
+                    <span class="home-cat-icon">📄</span>
+                    <span class="home-cat-name">Documents &amp; PDF</span>
+                    <span class="home-cat-meta">In-browser preview &amp; text reader</span>
+                  </div>
+                  <div class="home-category-tile" id="welcome-cat-vault">
+                    <span class="home-cat-icon">🔒</span>
+                    <span class="home-cat-name">Private Vault</span>
+                    <span class="home-cat-meta">Passcode &amp; PIN protected</span>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <section class="auth-layout hidden" id="auth-view">
+            <div class="auth-intro">
+              <span class="section-kicker">A BETTER WAY TO KEEP YOUR FILES</span>
+              <h2>Simple to use.<br>Yours to manage.</h2>
+              <p>Connect your Telegram account and make a private, searchable library from your Saved Messages.</p>
+              <div class="auth-note"><span class="note-icon">🔒</span><span>Files are stored in your Telegram Saved Messages. Connect only to a server you control or trust.</span></div>
+            </div>
+            <div class="auth-card">
+              <div class="auth-method-tabs" role="tablist" aria-label="Sign-in method">
+                <button class="auth-method-tab is-active" id="qr-method-button" type="button" role="tab" aria-selected="true">Telegram QR</button>
+                <button class="auth-method-tab" id="password-method-button" type="button" role="tab" aria-selected="false">Login ID</button>
+              </div>
+              <form id="auth-form">
+                <div class="qr-login-panel" id="qr-login-panel">
+                  <span class="section-kicker">SECURE TELEGRAM SIGN-IN</span>
+                  <img class="login-qr-image hidden" id="login-qr-image" alt="Telegram login QR code">
+                  <ol class="qr-instructions">
+                    <li>Open Telegram on your phone and go to <strong>Settings → Devices</strong>.</li>
+                    <li>Tap <strong>Link Desktop Device</strong> and scan the QR code shown here.</li>
+                    <li>Approve the sign-in in Telegram to open your DGx Cloud library.</li>
+                  </ol>
+                  <button class="button button-outline qr-refresh-button" id="refresh-qr-login" type="button">Refresh QR code</button>
+                  <button class="button button-quiet qr-back-button" id="auth-back-button" type="button">Back to home</button>
+                </div>
+                <div class="telegram-password hidden" id="password-step">
+                  <label class="field-label" for="telegram-password">Telegram two-step verification password</label>
+                  <div class="password-input-wrap">
+                    <input class="field-input" id="telegram-password" name="telegram-password" type="password" autocomplete="current-password" placeholder="Your Telegram 2-step password" maxlength="256">
+                    <button class="password-toggle" type="button" data-password-toggle="telegram-password" aria-label="Show Telegram password" aria-pressed="false">Show</button>
+                  </div>
+                </div>
+                <button class="button button-primary auth-submit hidden" id="auth-submit" type="submit">Verify Telegram password <span aria-hidden="true">→</span></button>
+                <p class="form-message" id="auth-message" role="status" aria-live="polite"></p>
+              </form>
+              <form class="credential-login hidden" id="credential-login-form">
+                <span class="section-kicker">DGx CLOUD ACCOUNT</span>
+                <label class="field-label" for="credential-login-id">Login ID</label>
+                <input class="field-input" id="credential-login-id" name="username" autocomplete="username" autocapitalize="none" maxlength="32" required>
+                <label class="field-label" for="credential-login-password">Password</label>
+                <div class="password-input-wrap">
+                  <input class="field-input" id="credential-login-password" name="password" type="password" autocomplete="current-password" maxlength="128" required>
+                  <button class="password-toggle" type="button" data-password-toggle="credential-login-password" aria-label="Show password" aria-pressed="false">Show</button>
+                </div>
+                <button class="button button-primary auth-submit" type="submit">Sign in <span aria-hidden="true">→</span></button>
+                <p class="form-message" id="credential-login-message" role="status" aria-live="polite"></p>
+                <div class="credential-recovery">
+                  <button class="text-button" id="credential-qr-recovery" type="button">Forgot? Verify with Telegram QR</button>
+                  <a class="text-button" href="https://www.instagram.com/gopal.dhapa/" target="_blank" rel="noopener noreferrer">Contact admin on Instagram</a>
+                </div>
+              </form>
+              <p class="auth-disclaimer">Your files are stored in your Telegram Saved Messages.</p>
+            </div>
+          </section>
+
           <section class="home-dashboard hidden" id="home-dashboard-view">
         <div class="home-dashboard-header">
           <div>
@@ -629,7 +682,7 @@
         <div class="dialog-actions"><button class="button button-primary" type="submit">Got it</button></div>
       </form>
     </dialog>
-    <nav class="mobile-bottom-dock hidden" id="mobile-bottom-dock">
+    <nav class="mobile-bottom-dock" id="mobile-bottom-dock">
       <button class="dock-btn is-active" id="dock-dash-btn" type="button" title="Dashboard">
         <span class="dock-icon">🏠</span>
         <span class="dock-label">Dashboard</span>

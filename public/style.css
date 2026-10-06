@@ -3666,4 +3666,124 @@ html[data-theme="dark"] .drive-sticky-toolbar {
   }
 }
 
+/* Master Frosted Welcome Showcase in Dashboard Layout */
+.welcome-showcase-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.welcome-hero-card {
+  display: grid;
+  grid-template-columns: 1.25fr 0.75fr;
+  align-items: center;
+  gap: 24px;
+  padding: 36px 32px;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .welcome-hero-card {
+  background: rgba(18, 24, 38, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35) !important;
+}
+
+.welcome-hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 22px 0 18px;
+}
+
+.welcome-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+html[data-theme="dark"] .welcome-badges {
+  color: #94a3b8;
+}
+
+.welcome-hero-art {
+  min-height: 240px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.welcome-stat-icon {
+  font-size: 42px;
+  line-height: 1;
+  color: #3b82f6;
+  margin-right: 12px;
+}
+
+.welcome-feature-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #64748b;
+  margin-top: 14px;
+}
+
+html[data-theme="dark"] .welcome-feature-desc {
+  color: #94a3b8;
+}
+
+/* Frosted Auth Layout */
+.auth-layout {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(24px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(180%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  border-radius: 24px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04) !important;
+  padding: 32px 36px !important;
+  margin: 12px 0 !important;
+  max-width: 100% !important;
+}
+
+html[data-theme="dark"] .auth-layout {
+  background: rgba(18, 24, 38, 0.75) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35) !important;
+}
+
+.auth-card {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+}
+
+html[data-theme="dark"] .auth-card {
+  background: rgba(26, 34, 52, 0.85) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+@media (max-width: 900px) {
+  .welcome-hero-card {
+    grid-template-columns: 1fr !important;
+    padding: 24px 20px !important;
+  }
+  .welcome-hero-art {
+    display: none !important;
+  }
+  .auth-layout {
+    grid-template-columns: 1fr !important;
+    padding: 20px 16px !important;
+  }
+}
+
+
 
