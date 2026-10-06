@@ -9,8 +9,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=5.0">
-    <script src="/app.js?v=5.0" defer></script>
+    <link rel="stylesheet" href="/style.css?v=8.0">
+    <script src="/app.js?v=8.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -276,14 +276,14 @@
 
             <!-- User Menu container -->
             <div class="user-menu-container">
-              <button class="account-badge hidden" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false">
-                <span class="account-avatar"><span class="account-avatar-fallback">☁</span><img id="account-avatar-image" alt="Telegram profile photo"></span>
+              <button class="account-badge" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false">
+                <span class="account-avatar"><span class="account-avatar-fallback">👤</span><img id="account-avatar-image" alt="Telegram profile photo" class="hidden"></span>
                 <strong id="account-email">Alex Harper</strong>
                 <span class="vip-badge hidden" id="vip-badge">VIP</span>
                 <span class="admin-badge hidden" id="admin-badge">ADMIN</span>
                 <span class="menu-arrow">▾</span>
               </button>
-              <button class="button button-primary upload-gradient-btn" id="top-login-btn" type="button"><span class="upload-plus">⚡</span> Login</button>
+              <button class="button button-primary upload-gradient-btn hidden" id="top-login-btn" type="button"><span class="upload-plus">⚡</span> Login</button>
               <button class="button button-primary upload-gradient-btn hidden" id="start-login-button" type="button"><span class="upload-plus">⚡</span> Login with Telegram</button>
 
               <div class="user-menu-popover hidden" id="user-menu-popover" role="menu">
@@ -460,7 +460,35 @@
                     <h3>Recent Uploads</h3>
                   </div>
                   <div class="master-recents-grid-4col" id="home-recent-grid">
-                    <!-- Populated dynamically by app.js with thumbnails and play overlay -->
+                    <div class="master-recent-card" data-recent-mock="1">
+                      <div class="recent-card-thumb-wrap">
+                        <img class="recent-card-thumb-img" src="/assets/coastline.svg" alt="Photo" loading="lazy">
+                      </div>
+                      <span class="recent-card-title">Photo</span>
+                      <span class="recent-card-type">Photo</span>
+                    </div>
+                    <div class="master-recent-card" data-recent-mock="2">
+                      <div class="recent-card-thumb-wrap">
+                        <img class="recent-card-thumb-img" src="/assets/dog.svg" alt="Photo" loading="lazy">
+                      </div>
+                      <span class="recent-card-title">Photo</span>
+                      <span class="recent-card-type">Photo</span>
+                    </div>
+                    <div class="master-recent-card" data-recent-mock="3">
+                      <div class="recent-card-thumb-wrap">
+                        <img class="recent-card-thumb-img" src="/assets/mountain.svg" alt="Mountain Hike" loading="lazy">
+                        <span class="recent-card-play-overlay">▶</span>
+                      </div>
+                      <span class="recent-card-title">Mountain Hike</span>
+                      <span class="recent-card-type">MP4</span>
+                    </div>
+                    <div class="master-recent-card" data-recent-mock="4">
+                      <div class="recent-card-thumb-wrap">
+                        <img class="recent-card-thumb-img" src="/assets/q3_report.svg" alt="Q3 Report" loading="lazy">
+                      </div>
+                      <span class="recent-card-title">Q3 Report</span>
+                      <span class="recent-card-type">PDF</span>
+                    </div>
                   </div>
                 </section>
               </div>
@@ -471,7 +499,9 @@
           <section class="master-library-view hidden" id="dashboard-view">
             <!-- Breadcrumbs Toolbar -->
             <div class="master-library-header-row">
-              <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path"></nav>
+              <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path">
+                <span>Root</span> <span class="breadcrumb-separator">/</span> <span>Projects</span> <span class="breadcrumb-separator">/</span> <strong class="breadcrumb-current">2026_Media</strong>
+              </nav>
               <div class="hidden">
                 <input id="file-search" type="search" placeholder="Search files…">
                 <button id="devices-button" type="button">Devices</button>
@@ -536,7 +566,123 @@
             <div class="master-library-split-layout">
               <div class="master-files-container">
                 <div class="folder-grid" id="folder-list"></div>
-                <div class="library-file-grid master-3col-file-grid" id="file-list" data-view="large"></div>
+                <div class="library-file-grid master-3col-file-grid" id="file-list" data-view="large">
+                  <article class="library-file-card master-mock-card" data-mock-name="IMG_01.jpg" data-mock-src="/assets/coastline.svg" data-mock-type="photo">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/coastline.svg" alt="IMG_01.jpg" loading="lazy">
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">IMG_01.jpg</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="Project_Video.mp4" data-mock-src="/assets/mountain.svg" data-mock-type="video">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/mountain.svg" alt="Project_Video.mp4" loading="lazy">
+                      <span class="thumbnail-play">▶</span>
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                        <span class="master-card-tag tag-purple">Tages</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">Project_Video.mp4</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="IMG_02.jpg" data-mock-src="/assets/mountain.svg" data-mock-type="video">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/mountain.svg" alt="IMG_02.jpg" loading="lazy">
+                      <span class="thumbnail-play">▶</span>
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                        <span class="master-card-tag tag-purple">Tages</span>
+                        <span class="master-card-tag tag-salmon">Tages</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">IMG_02.jpg</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="Project_Video_02.mp4" data-mock-src="/assets/mountain.svg" data-mock-type="video">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/mountain.svg" alt="Project_Video_02.mp4" loading="lazy">
+                      <span class="thumbnail-play">▶</span>
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-video">Videos</span>
+                        <span class="master-card-tag tag-green">Tags</span>
+                        <span class="master-card-tag tag-salmon">Tages</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">Project_Video_02.mp4</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="Dog_Park_Photo.jpg" data-mock-src="/assets/dog.svg" data-mock-type="photo">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/dog.svg" alt="Dog_Park_Photo.jpg" loading="lazy">
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">Dog_Park_Photo.jpg</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="Pug_Portrait.jpg" data-mock-src="/assets/pug.svg" data-mock-type="photo">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/pug.svg" alt="Pug_Portrait.jpg" loading="lazy">
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">Pug_Portrait.jpg</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="Sunset_Pier.jpg" data-mock-src="/assets/pier.svg" data-mock-type="photo">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/pier.svg" alt="Sunset_Pier.jpg" loading="lazy">
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">Sunset_Pier.jpg</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="Dog_Park_Photo_02.jpg" data-mock-src="/assets/dog.svg" data-mock-type="photo">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/dog.svg" alt="Dog_Park_Photo_02.jpg" loading="lazy">
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">Dog_Park_Photo_02.jpg</span>
+                    </div>
+                  </article>
+
+                  <article class="library-file-card master-mock-card" data-mock-name="IMG_03.jpg" data-mock-src="/assets/coastline.svg" data-mock-type="photo">
+                    <div class="file-preview">
+                      <img class="file-thumbnail" src="/assets/coastline.svg" alt="IMG_03.jpg" loading="lazy">
+                      <div class="master-card-tags">
+                        <span class="master-card-tag tag-photo">Photo</span>
+                      </div>
+                    </div>
+                    <div class="library-file-details">
+                      <span class="file-name">IMG_03.jpg</span>
+                    </div>
+                  </article>
+                </div>
                 <div class="empty-state hidden" id="empty-state">
                   <span class="empty-icon" aria-hidden="true">▱</span>
                   <strong>Your cloud is ready</strong>
@@ -547,9 +693,9 @@
               <!-- Right Inspector Pane (Matching dgx_cloud_master_lib) -->
               <aside class="master-inspector-pane" id="library-inspector-pane">
                 <div class="inspector-media-box" id="inspector-preview-wrap">
-                  <img id="inspector-preview-img" class="inspector-media-element" alt="Selected preview">
+                  <img id="inspector-preview-img" class="inspector-media-element" src="/assets/mountain.svg" alt="Selected preview">
                   <video id="inspector-preview-video" class="inspector-media-element hidden" playsinline></video>
-                  <div class="inspector-play-btn hidden" id="inspector-play-overlay">▶</div>
+                  <div class="inspector-play-btn" id="inspector-play-overlay">▶</div>
                 </div>
                 <div class="inspector-info-group">
                   <strong class="inspector-file-title" id="inspector-title">Selected: Video_01.mp4</strong>
@@ -560,7 +706,7 @@
                   <div class="inspector-share-box">
                     <span class="share-box-label">Shareable Link:</span>
                     <div class="share-box-row">
-                      <input type="text" id="inspector-share-link" readonly value="https://dgx.cloud/s/video_01.mp4">
+                      <input type="text" id="inspector-share-link" readonly value="https://www.linkpopthams.com/?selected/Video_03=02601.mp4">
                       <button type="button" class="inspector-copy-btn" id="inspector-copy-btn" title="Copy Link">⧉</button>
                     </div>
                   </div>

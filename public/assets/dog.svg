@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="grass-lawn" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#84cc16" />
+      <stop offset="40%" stop-color="#65a30d" />
+      <stop offset="100%" stop-color="#4d7c0f" />
+    </linearGradient>
+    <linearGradient id="dog-fur-white" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="85%" stop-color="#f8fafc" />
+      <stop offset="100%" stop-color="#e2e8f0" />
+    </linearGradient>
+    <linearGradient id="dog-fur-tan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ea580c" />
+      <stop offset="50%" stop-color="#c2410c" />
+      <stop offset="100%" stop-color="#9a3412" />
+    </linearGradient>
+    <radialGradient id="sun-warmth" cx="50%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.6" />
+      <stop offset="100%" stop-color="#fef08a" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <!-- Lush Green Grass Field -->
+  <rect width="600" height="450" fill="url(#grass-lawn)" />
+  <rect width="600" height="300" fill="url(#sun-warmth)" />
+  <!-- Grass Blades depth -->
+  <ellipse cx="300" cy="380" rx="280" ry="60" fill="#3f6212" opacity="0.35" />
+  
+  <!-- Running Dog Silhouette/Illustration -->
+  <!-- Dog Shadow -->
+  <ellipse cx="310" cy="360" rx="95" ry="25" fill="#14532d" opacity="0.45" />
+
+  <!-- Body -->
+  <ellipse cx="300" cy="245" rx="75" ry="46" fill="url(#dog-fur-white)" transform="rotate(-6 300 245)" />
+  <!-- Tan Patch on Back -->
+  <path d="M260,215 Q295,200 330,225 Q320,265 270,255 Z" fill="url(#dog-fur-tan)" />
+
+  <!-- Tail (up and wagging) -->
+  <path d="M230,240 Q205,210 195,175 Q210,185 235,225 Z" fill="url(#dog-fur-white)" />
+  <path d="M205,190 Q200,180 195,175 Q205,180 215,198 Z" fill="url(#dog-fur-tan)" />
+
+  <!-- Back Legs running -->
+  <path d="M245,260 Q230,305 210,335 Q225,340 245,310 Q255,285 260,265 Z" fill="url(#dog-fur-white)" />
+  <path d="M275,265 Q265,315 250,345 Q265,350 285,315 Q290,285 285,265 Z" fill="#e2e8f0" />
+
+  <!-- Front Legs leaping forward -->
+  <path d="M350,260 Q370,305 390,340 Q405,335 390,300 Q375,270 360,255 Z" fill="url(#dog-fur-white)" />
+  <path d="M330,265 Q355,300 370,325 Q382,320 370,295 Q355,270 340,260 Z" fill="#e2e8f0" />
+
+  <!-- Neck & Head -->
+  <ellipse cx="365" cy="200" rx="35" ry="40" fill="url(#dog-fur-white)" transform="rotate(22 365 200)" />
+  <!-- Tan Patch on Ears & Face -->
+  <path d="M345,170 Q375,150 400,185 Q385,215 350,205 Z" fill="url(#dog-fur-tan)" />
+
+  <!-- Left Floppy Ear -->
+  <path d="M340,165 Q320,175 325,205 Q340,200 345,180 Z" fill="url(#dog-fur-tan)" />
+  <!-- Right Ear -->
+  <path d="M380,155 Q405,160 410,190 Q395,190 385,170 Z" fill="url(#dog-fur-tan)" />
+
+  <!-- Snout / Muzzle -->
+  <ellipse cx="395" cy="205" rx="22" ry="16" fill="url(#dog-fur-white)" />
+  <!-- Dark Nose -->
+  <ellipse cx="414" cy="200" rx="7" ry="5" fill="#0f172a" />
+
+  <!-- Joyful Eyes -->
+  <circle cx="378" cy="188" r="5" fill="#0f172a" />
+  <circle cx="376" cy="186" r="2" fill="#ffffff" />
+  <circle cx="396" cy="186" r="4.5" fill="#0f172a" />
+  <circle cx="395" cy="184" r="1.8" fill="#ffffff" />
+
+  <!-- Happy Open Mouth & Tongue -->
+  <path d="M395,210 Q405,222 415,212 Q405,228 395,210 Z" fill="#991b1b" />
+  <path d="M402,216 Q408,234 416,222 Q412,214 402,216 Z" fill="#f43f5e" />
+
+  <!-- Foreground bokeh grass sparks -->
+  <circle cx="80" cy="400" r="12" fill="#a3e635" opacity="0.3" />
+  <circle cx="520" cy="380" r="18" fill="#a3e635" opacity="0.35" />
+</svg>

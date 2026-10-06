@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="sky-blue" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="60%" stop-color="#bae6fd" />
+      <stop offset="100%" stop-color="#f0f9ff" />
+    </linearGradient>
+    <linearGradient id="peak-distant" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#94a3b8" />
+      <stop offset="100%" stop-color="#64748b" />
+    </linearGradient>
+    <linearGradient id="peak-mid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#475569" />
+      <stop offset="100%" stop-color="#334155" />
+    </linearGradient>
+    <linearGradient id="peak-green" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#15803d" />
+      <stop offset="100%" stop-color="#14532d" />
+    </linearGradient>
+    <linearGradient id="ridge-fore" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#166534" />
+      <stop offset="100%" stop-color="#052e16" />
+    </linearGradient>
+  </defs>
+  <!-- Clear Sky -->
+  <rect width="600" height="450" fill="url(#sky-blue)" />
+  <!-- Fluffy Cloud -->
+  <ellipse cx="480" cy="110" rx="90" ry="25" fill="#ffffff" opacity="0.6" />
+  <ellipse cx="510" cy="95" rx="55" ry="35" fill="#ffffff" opacity="0.75" />
+
+  <!-- Distant Andes Peaks -->
+  <polygon points="120,240 210,130 310,240" fill="url(#peak-distant)" opacity="0.7" />
+  <polygon points="260,240 370,110 490,260" fill="url(#peak-distant)" opacity="0.6" />
+
+  <!-- Mid Ground Machu Picchu / Ridge Peak -->
+  <polygon points="200,320 320,140 450,330" fill="url(#peak-mid)" />
+  <!-- Sunlit face of peak -->
+  <polygon points="320,140 450,330 330,330" fill="url(#peak-green)" opacity="0.8" />
+  
+  <!-- Lower Terraces / Slopes -->
+  <path d="M0,320 Q120,280 240,310 T480,310 L600,340 L600,450 L0,450 Z" fill="#15803d" />
+
+  <!-- Immediate Foreground Ridge Trail -->
+  <path d="M140,450 Q280,330 360,340 Q440,350 600,450 Z" fill="url(#ridge-fore)" />
+  <path d="M260,450 L310,360 L330,360 L360,450 Z" fill="#78716c" opacity="0.8" />
+
+  <!-- Hiker Silhouette Standing on Ridge -->
+  <!-- Legs -->
+  <line x1="312" y1="358" x2="310" y2="335" stroke="#0f172a" stroke-width="4" stroke-linecap="round" />
+  <line x1="322" y1="358" x2="320" y2="335" stroke="#0f172a" stroke-width="4" stroke-linecap="round" />
+  <!-- Body / Backpack -->
+  <ellipse cx="316" cy="324" rx="7" ry="11" fill="#0284c7" />
+  <ellipse cx="312" cy="323" rx="5" ry="8" fill="#ea580c" /> <!-- Orange Backpack -->
+  <!-- Head & Hat -->
+  <circle cx="316" cy="309" r="4.5" fill="#fde047" />
+</svg>

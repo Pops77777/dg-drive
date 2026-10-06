@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="sky-facade" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#bae6fd" />
+      <stop offset="100%" stop-color="#e0f2fe" />
+    </linearGradient>
+    <linearGradient id="glass-reflect" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+  </defs>
+  <rect width="600" height="450" fill="url(#sky-facade)" />
+  
+  <!-- Architectural Skyscraper Corner Perspective (Looking Up) -->
+  <polygon points="300,0 550,450 300,450" fill="#334155" />
+  <polygon points="300,0 50,450 300,450" fill="#1e293b" />
+  
+  <!-- Glass Window Panes Left Side -->
+  <line x1="300" y1="0" x2="300" y2="450" stroke="#f8fafc" stroke-width="4" />
+  
+  <polygon points="295,40 180,180 180,240 295,110" fill="url(#glass-reflect)" opacity="0.8" />
+  <polygon points="295,130 140,290 140,360 295,210" fill="url(#glass-reflect)" opacity="0.85" />
+  <polygon points="295,230 90,420 90,450 295,320" fill="url(#glass-reflect)" opacity="0.9" />
+
+  <!-- Glass Window Panes Right Side -->
+  <polygon points="305,40 420,180 420,240 305,110" fill="url(#glass-reflect)" opacity="0.6" />
+  <polygon points="305,130 460,290 460,360 305,210" fill="url(#glass-reflect)" opacity="0.65" />
+  <polygon points="305,230 510,420 510,450 305,320" fill="url(#glass-reflect)" opacity="0.7" />
+
+  <!-- Diagonal Facade Ribs -->
+  <line x1="300" y1="50" x2="150" y2="450" stroke="#94a3b8" stroke-width="3" />
+  <line x1="300" y1="50" x2="450" y2="450" stroke="#94a3b8" stroke-width="3" />
+  <line x1="300" y1="180" x2="220" y2="450" stroke="#64748b" stroke-width="3" />
+  <line x1="300" y1="180" x2="380" y2="450" stroke="#64748b" stroke-width="3" />
+</svg>

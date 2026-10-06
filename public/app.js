@@ -351,9 +351,9 @@ function showSignedOut() {
   document.querySelector("#live-synced-badge")?.classList.remove("hidden");
   document.querySelector("#theme-toggle")?.classList.remove("hidden");
 
-  // Show both New Upload and Login buttons in topbar
+  // Show New Upload and keep Alex Harper user pill visible in topbar matching mockups
   document.querySelector("#top-upload-btn")?.classList.remove("hidden");
-  document.querySelector("#top-login-btn")?.classList.remove("hidden");
+  document.querySelector("#top-login-btn")?.classList.add("hidden");
   document.querySelector("#sidebar-admin-btn")?.classList.add("hidden");
   const adminHeaderBtn = document.querySelector("#admin-header-btn");
   if (adminHeaderBtn) {
@@ -363,10 +363,12 @@ function showSignedOut() {
   }
   document.querySelector("#menu-admin-btn")?.classList.add("hidden");
   document.querySelector("#user-menu-popover")?.classList.add("hidden");
-  accountBadge.classList.add("hidden");
-  accountBadge.disabled = true;
+  accountBadge.classList.remove("hidden");
+  accountBadge.disabled = false;
+  document.querySelector("#account-email").textContent = "Alex Harper";
   accountAvatarImage.removeAttribute("src");
   accountAvatarImage.classList.add("hidden");
+  accountAvatarFallback.textContent = "👤";
   accountAvatarFallback.classList.remove("hidden");
   adminBadge.classList.add("hidden");
   updateNavActive("dashboard");
@@ -1387,6 +1389,23 @@ function updateInspectorPane(file) {
   const inspectorShareLink = document.querySelector("#inspector-share-link");
   const inspectorDownloadBtn = document.querySelector("#inspector-download-btn");
 
+  if (file.img) {
+    if (inspectorImg) {
+      inspectorImg.src = file.img;
+      inspectorImg.classList.remove("hidden");
+    }
+    if (inspectorVideo) inspectorVideo.classList.add("hidden");
+    if (inspectorPlay) inspectorPlay.classList.toggle("hidden", !file.isVid);
+    if (inspectorTitle) inspectorTitle.textContent = `Selected: ${file.name}`;
+    if (inspectorMeta) inspectorMeta.textContent = `${file.isVid ? "4K UHD • " : ""}${formatSize(file.size)} • ${file.isVid ? "60fps" : file.type || "File"}`;
+    if (inspectorShareLink) inspectorShareLink.value = `https://www.linkpopthams.com/?selected/${encodeURIComponent(file.name)}`;
+    if (inspectorDownloadBtn) {
+      inspectorDownloadBtn.href = file.img;
+      inspectorDownloadBtn.setAttribute("download", file.name);
+    }
+    return;
+  }
+
   const category = fileCategory(file);
   const isVid = category === "videos";
   const isImg = category === "photos";
@@ -1548,10 +1567,10 @@ function renderHomeDashboard() {
     } else {
       // 4 Realistic master mock cards matching the screenshots
       const mockCards = [
-        { title: "Photo", type: "Photo", img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80", isVid: false },
-        { title: "Photo", type: "Photo", img: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=400&q=80", isVid: false },
-        { title: "Mountain Hike", type: "MP4", img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80", isVid: true },
-        { title: "Q3 Report", type: "PDF", img: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=400&q=80", isVid: false }
+        { title: "Photo", type: "Photo", img: "/assets/coastline.svg", isVid: false },
+        { title: "Photo", type: "Photo", img: "/assets/dog.svg", isVid: false },
+        { title: "Mountain Hike", type: "MP4", img: "/assets/mountain.svg", isVid: true },
+        { title: "Q3 Report", type: "PDF", img: "/assets/q3_report.svg", isVid: false }
       ];
       for (const item of mockCards) {
         const card = document.createElement("div");
@@ -1753,13 +1772,15 @@ function renderLibrary() {
     } else if (!trashMode && !childFolders.length) {
       // Master mockup sample cards matching dgx_cloud_master_lib & mobile views
       const mockLibFiles = [
-        { id: "mock_1", name: "IMG_01.jpg", type: "image/jpeg", size: 4.2 * 1024 * 1024, img: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=600&q=80", tag: "Photo" },
-        { id: "mock_2", name: "Project_Video.mp4", type: "video/mp4", size: 1.2 * 1024 * 1024 * 1024, img: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80", isVid: true, tag: "Videos" },
-        { id: "mock_3", name: "IMG_02.jpg", type: "image/jpeg", size: 3.8 * 1024 * 1024, img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80", tag: "Photo" },
-        { id: "mock_4", name: "Project_Video_02.mp4", type: "video/mp4", size: 850 * 1024 * 1024, img: "https://images.unsplash.com/photo-1518495973542-4542c06a5843?auto=format&fit=crop&w=600&q=80", isVid: true, tag: "Videos" },
-        { id: "mock_5", name: "Plan_A.pdf", type: "application/pdf", size: 12.4 * 1024 * 1024, img: "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=600&q=80", tag: "Tages" },
-        { id: "mock_6", name: "Dog_Park_Photo.jpg", type: "image/jpeg", size: 2.9 * 1024 * 1024, img: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=600&q=80", tag: "Photo" },
-        { id: "mock_7", name: "Mountain_Hike_Clip.mp4", type: "video/mp4", size: 1.4 * 1024 * 1024 * 1024, img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=600&q=80", isVid: true, tag: "Videos" }
+        { id: "mock_1", name: "IMG_01.jpg", type: "image/jpeg", size: 4.2 * 1024 * 1024, img: "/assets/coastline.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
+        { id: "mock_2", name: "Project_Video.mp4", type: "video/mp4", size: 1.2 * 1024 * 1024 * 1024, img: "/assets/mountain.svg", isVid: true, tags: [{ text: "Photo", cls: "tag-photo" }, { text: "Tages", cls: "tag-purple" }] },
+        { id: "mock_3", name: "IMG_02.jpg", type: "video/mp4", size: 3.8 * 1024 * 1024, img: "/assets/mountain.svg", isVid: true, tags: [{ text: "Photo", cls: "tag-photo" }, { text: "Tages", cls: "tag-purple" }, { text: "Tages", cls: "tag-salmon" }] },
+        { id: "mock_4", name: "Project_Video_02.mp4", type: "video/mp4", size: 850 * 1024 * 1024, img: "/assets/mountain.svg", isVid: true, tags: [{ text: "Videos", cls: "tag-video" }, { text: "Tags", cls: "tag-green" }, { text: "Tages", cls: "tag-salmon" }] },
+        { id: "mock_5", name: "Dog_Park_Photo.jpg", type: "image/jpeg", size: 2.9 * 1024 * 1024, img: "/assets/dog.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
+        { id: "mock_6", name: "Pug_Portrait.jpg", type: "image/jpeg", size: 1.8 * 1024 * 1024, img: "/assets/pug.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
+        { id: "mock_7", name: "Sunset_Pier.jpg", type: "image/jpeg", size: 3.4 * 1024 * 1024, img: "/assets/pier.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
+        { id: "mock_8", name: "Dog_Park_Photo_02.jpg", type: "image/jpeg", size: 2.9 * 1024 * 1024, img: "/assets/dog.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
+        { id: "mock_9", name: "IMG_03.jpg", type: "image/jpeg", size: 4.5 * 1024 * 1024, img: "/assets/coastline.svg", tags: [{ text: "Photo", cls: "tag-photo" }] }
       ];
       for (const item of mockLibFiles) {
         const card = document.createElement("article");
@@ -1777,10 +1798,17 @@ function renderLibrary() {
           play.textContent = "▶";
           previewBtn.append(play);
         }
-        const tag = document.createElement("span");
-        tag.className = "master-card-tag";
-        tag.textContent = item.tag;
-        previewBtn.append(tag);
+        if (Array.isArray(item.tags)) {
+          const tagsWrap = document.createElement("div");
+          tagsWrap.className = "master-card-tags";
+          for (const t of item.tags) {
+            const tag = document.createElement("span");
+            tag.className = `master-card-tag ${t.cls || "tag-photo"}`;
+            tag.textContent = t.text;
+            tagsWrap.append(tag);
+          }
+          previewBtn.append(tagsWrap);
+        }
 
         const details = document.createElement("div");
         details.className = "library-file-details";
@@ -3655,6 +3683,10 @@ const propertiesClose = document.querySelector("#properties-close");
 
 accountBadge.addEventListener("click", (event) => {
   event.stopPropagation();
+  if (!currentUser) {
+    openAuthModal();
+    return;
+  }
   userMenuPopover?.classList.toggle("hidden");
 });
 

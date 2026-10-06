@@ -4181,7 +4181,38 @@ html[data-theme="dark"] .share-box-row input {
   display: none;
 }
 
+.mobile-brand-box {
+  display: none;
+}
+
 @media (max-width: 900px) {
+  .mobile-brand-box {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+  }
+  .mobile-brand-box .brand-infinity-glow {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+  }
+  .mobile-brand-box .sidebar-brand-title {
+    font-size: 18px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  html[data-theme="dark"] .mobile-brand-box .sidebar-brand-title {
+    color: #f8fafc;
+  }
+  .app-floating-topbar {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+  }
+  .topbar-left-zone {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
   .dgx-app-container {
     padding: 12px 10px 90px !important;
     flex-direction: column !important;
@@ -4191,6 +4222,7 @@ html[data-theme="dark"] .share-box-row input {
   }
   .topbar-search-wrap {
     max-width: 100% !important;
+    width: 100% !important;
   }
   .master-dash-layout-grid {
     grid-template-columns: 1fr !important;
@@ -4278,6 +4310,153 @@ html[data-theme="dark"] .share-box-row input {
     display: none !important;
   }
 }
+
+/* Master Frosted Mock Cards & Library Grid Items */
+.master-mock-card,
+.library-file-grid[data-view="large"] .library-file-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  border-radius: 20px;
+  padding: 10px;
+  box-shadow: 0 10px 25px -8px rgba(100, 130, 180, 0.12);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+html[data-theme="dark"] .master-mock-card,
+html[data-theme="dark"] .library-file-grid[data-view="large"] .library-file-card {
+  background: rgba(24, 32, 48, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.master-mock-card:hover,
+.library-file-grid[data-view="large"] .library-file-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px -6px rgba(100, 130, 180, 0.22);
+}
+
+.master-mock-card .file-preview,
+.library-file-grid[data-view="large"] .file-preview {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 11;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #cbd5e1;
+}
+
+.master-mock-card .file-thumbnail,
+.library-file-grid[data-view="large"] .file-preview img,
+.library-file-grid[data-view="large"] .file-preview video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.master-mock-card .thumbnail-play,
+.library-file-grid[data-view="large"] .thumbnail-play {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+  color: #0f172a;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.master-card-tags {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  display: flex;
+  gap: 5px;
+  z-index: 2;
+}
+
+.master-card-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tag-photo { background: rgba(224, 242, 254, 0.95); color: #0284c7; }
+.tag-video { background: rgba(219, 234, 254, 0.95); color: #1d4ed8; }
+.tag-purple { background: rgba(243, 232, 255, 0.95); color: #7e22ce; }
+.tag-salmon { background: rgba(255, 237, 213, 0.95); color: #c2410c; }
+.tag-green { background: rgba(220, 252, 231, 0.95); color: #15803d; }
+
+.master-mock-card .library-file-details,
+.library-file-grid[data-view="large"] .library-file-details {
+  padding: 10px 4px 2px;
+}
+
+.master-mock-card .file-name,
+.library-file-grid[data-view="large"] .file-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+html[data-theme="dark"] .master-mock-card .file-name,
+html[data-theme="dark"] .library-file-grid[data-view="large"] .file-name {
+  color: #f8fafc;
+}
+
+/* Master Breadcrumbs Pill (Matching media_1791301389215.jpg) */
+.master-breadcrumbs {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 22px;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(226, 232, 240, 0.85);
+  border-radius: 9999px;
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+html[data-theme="dark"] .master-breadcrumbs {
+  background: rgba(24, 32, 48, 0.75);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.breadcrumb-current {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+html[data-theme="dark"] .breadcrumb-current {
+  color: #f8fafc;
+}
+
 
 
 

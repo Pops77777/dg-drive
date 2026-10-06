@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450" width="100%" height="100%">
+  <defs>
+    <linearGradient id="pug-stone" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#cbd5e1" />
+      <stop offset="100%" stop-color="#94a3b8" />
+    </linearGradient>
+    <linearGradient id="pug-fur" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fed7aa" />
+      <stop offset="50%" stop-color="#fdba74" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+  </defs>
+  <!-- Background Street Pavement -->
+  <rect width="600" height="450" fill="url(#pug-stone)" />
+  <!-- Pavement Grid Perspective -->
+  <line x1="0" y1="280" x2="600" y2="280" stroke="#64748b" stroke-width="2" opacity="0.4" />
+  <line x1="0" y1="360" x2="600" y2="360" stroke="#64748b" stroke-width="2.5" opacity="0.5" />
+  <line x1="200" y1="200" x2="100" y2="450" stroke="#64748b" stroke-width="2" opacity="0.4" />
+  <line x1="400" y1="200" x2="500" y2="450" stroke="#64748b" stroke-width="2" opacity="0.4" />
+  
+  <!-- Pug Shadow -->
+  <ellipse cx="300" cy="380" rx="90" ry="22" fill="#334155" opacity="0.45" />
+
+  <!-- Pug Body -->
+  <ellipse cx="300" cy="290" rx="70" ry="85" fill="url(#pug-fur)" />
+  
+  <!-- Front Paws -->
+  <ellipse cx="260" cy="370" rx="20" ry="15" fill="#f97316" />
+  <ellipse cx="340" cy="370" rx="20" ry="15" fill="#f97316" />
+
+  <!-- Pug Round Head -->
+  <circle cx="300" cy="180" r="68" fill="url(#pug-fur)" />
+  <!-- Black Mask & Wrinkles -->
+  <ellipse cx="300" cy="205" rx="42" ry="28" fill="#1e293b" />
+  
+  <!-- Big Pug Eyes -->
+  <circle cx="265" cy="165" r="14" fill="#0f172a" />
+  <circle cx="262" cy="161" r="5" fill="#ffffff" />
+  <circle cx="335" cy="165" r="14" fill="#0f172a" />
+  <circle cx="332" cy="161" r="5" fill="#ffffff" />
+  
+  <!-- Black Ears (folded) -->
+  <path d="M225,145 Q210,180 235,195 Q250,165 240,140 Z" fill="#1e293b" />
+  <path d="M375,145 Q390,180 365,195 Q350,165 360,140 Z" fill="#1e293b" />
+  
+  <!-- Cute Nose & Mouth -->
+  <ellipse cx="300" cy="198" rx="10" ry="7" fill="#020617" />
+  <path d="M295,212 Q300,218 305,212" stroke="#475569" stroke-width="2" fill="none" />
+</svg>

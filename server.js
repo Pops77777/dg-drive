@@ -2704,15 +2704,38 @@ async function handleRequest(req, res) {
       return sendJson(res, 426, { error: "HTTPS is required. Connect through the local TLS reverse proxy." });
     }
     if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
-    const item = req.method === "GET" && staticFiles[url.pathname];
-    if (!item) return sendJson(res, 404, { error: "Page not found." });
-    const content = await fs.promises.readFile(path.join(ROOT, "public", item[0]));
-    res.writeHead(200, {
-      "Content-Type": item[1],
-      "Content-Length": content.length,
-      "Cache-Control": "no-cache",
-    });
-    return res.end(content);
+    if (req.method === "GET") {
+      let relativePath = url.pathname === "/" || url.pathname === "/library" ? "index.html" : url.pathname.replace(/^\/+/, "");
+      const safePath = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, "");
+      const fullPath = path.join(ROOT, "public", safePath);
+      if (fullPath.startsWith(path.join(ROOT, "public")) && fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+        const ext = path.extname(fullPath).toLowerCase();
+        const contentTypes = {
+          ".html": "text/html; charset=utf-8",
+          ".css": "text/css; charset=utf-8",
+          ".js": "text/javascript; charset=utf-8",
+          ".svg": "image/svg+xml",
+          ".png": "image/png",
+          ".jpg": "image/jpeg",
+          ".jpeg": "image/jpeg",
+          ".webp": "image/webp",
+          ".gif": "image/gif",
+          ".ico": "image/x-icon",
+          ".json": "application/json"
+        };
+        const contentType = contentTypes[ext] || "application/octet-stream";
+        const content = await fs.promises.readFile(fullPath);
+        res.writeHead(200, {
+          "Content-Type": contentType,
+          "Content-Length": content.length,
+          "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
+          "Pragma": "no-cache",
+          "Expires": "0",
+        });
+        return res.end(content);
+      }
+    }
+    return sendJson(res, 404, { error: "Page not found." });
   } catch (error) {
     console.error("Request error:", error);
     if (!res.headersSent) {
