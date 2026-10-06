@@ -370,10 +370,11 @@ const MIME_EXTENSIONS = {
   ".zip": "application/zip",
   ".rar": "application/x-rar-compressed",
   ".7z": "application/x-7z-compressed",
-  ".tar": "application/x-tar",
-  ".gz": "application/gzip",
+  ".doc": "application/msword",
   ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
   ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
   ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
 };
 
@@ -838,10 +839,11 @@ async function runTelegramQrLogin(flow) {
         abortSignal: flow.abortController.signal,
         qrCode: async ({ token, expires }) => {
           const loginUrl = `tg://login?token=${token.toString("base64url")}`;
-          flow.qrImage = await QRCode.toDataURL(loginUrl, { errorCorrectionLevel: "M", margin: 2, width: 240 });
+          flow.qrImage = await QRCode.toDataURL(loginUrl, { errorCorrectionLevel: "L", margin: 1, width: 250 });
           flow.qrExpires = expires;
           flow.step = "waiting_for_qr_scan";
           flow.updatedAt = Date.now();
+          if (typeof flow.onQrReady === "function") flow.onQrReady();
         },
         password: async () => {
           flow.step = "waiting_for_password";
@@ -979,9 +981,20 @@ async function beginQrLogin(req, res, user) {
   flow.timeout.unref();
   flow.code.promise.catch(() => {});
   flow.password.promise.catch(() => {});
+  const qrReadyPromise = new Promise((resolve) => {
+    flow.onQrReady = resolve;
+  });
   runTelegramQrLogin(flow);
+  await Promise.race([
+    qrReadyPromise,
+    new Promise((resolve) => setTimeout(resolve, 1500)),
+  ]);
   res.setHeader("Set-Cookie", flowCookieHeader(flowId, 600));
-  return sendJson(res, 202, { status: "starting" });
+  return sendJson(res, 202, {
+    status: flow.step,
+    qrImage: flow.qrImage || null,
+    qrExpires: flow.qrExpires || null,
+  });
 }
 
 async function trySmsCode(req, res) {
@@ -1072,6 +1085,7 @@ function publicUser(user) {
     isAdmin: isAdminUser(user),
     hasPassword: Boolean(user.passwordHash && !user.passwordResetRequired),
     credentialResetRequired: Boolean(user.passwordResetRequired),
+    apiEnabled: user.apiEnabled !== false,
   };
 }
 
@@ -1455,7 +1469,7 @@ async function streamLocalFile(req, res, filePath, file, forceDownload = false) 
   res.writeHead(range ? 206 : 200, {
     "Content-Type": type,
     "Content-Length": contentLength,
-    "Content-Disposition": contentDisposition(file.name, canPreview && !forceDownload ? "inline" : "attachment"),
+    "Content-Disposition": contentDisposition(file.name, !forceDownload ? "inline" : "attachment"),
     "Accept-Ranges": "bytes",
     ...(range ? { "Content-Range": `bytes ${start}-${end}/${size}` } : {}),
     "Cache-Control": "private, max-age=86400",
@@ -1510,7 +1524,7 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
   res.writeHead(range ? 206 : 200, {
     "Content-Type": type,
     "Content-Length": contentLength,
-    "Content-Disposition": contentDisposition(file.name, canPreview && !forceDownload ? "inline" : "attachment"),
+    "Content-Disposition": contentDisposition(file.name, !forceDownload ? "inline" : "attachment"),
     "Accept-Ranges": "bytes",
     ...(range ? { "Content-Range": `bytes ${start}-${end}/${size}` } : {}),
     "Cache-Control": "private, no-store",
@@ -1906,7 +1920,128 @@ async function deleteFromTelegram(res, user, file) {
   return sendJson(res, 200, { ok: true, trashed: true });
 }
 
+function findApiKeyUser(req, url) {
+  const authHeader = req.headers["authorization"] || "";
+  const apiKeyHeader = req.headers["x-api-key"] || "";
+  let token = "";
+  if (authHeader.startsWith("Bearer ")) {
+    token = authHeader.slice(7).trim();
+  } else if (apiKeyHeader) {
+    token = apiKeyHeader.trim();
+  } else if (url && url.searchParams) {
+    token = (url.searchParams.get("api_key") || "").trim();
+  }
+  if (!token) return null;
+  for (const u of Object.values(store.users)) {
+    if (!u.apiKeys || !Array.isArray(u.apiKeys)) continue;
+    const foundKey = u.apiKeys.find((k) => k.key === token);
+    if (foundKey) {
+      return { user: u, apiKey: foundKey };
+    }
+  }
+  return null;
+}
+
+async function handleDeveloperV1Api(req, res, url) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Authorization, X-API-Key, Content-Type, Content-Length, X-File-Name, Range");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS, HEAD");
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    return res.end();
+  }
+
+  const authResult = findApiKeyUser(req, url);
+  if (!authResult) {
+    return sendJson(res, 401, {
+      error: "Authentication required. Provide 'Authorization: Bearer <your_api_key>' or 'X-API-Key: <your_api_key>' header.",
+    });
+  }
+  const { user, apiKey } = authResult;
+  if (apiKey.expiresAt && apiKey.expiresAt < Date.now()) {
+    return sendJson(res, 403, { error: "This API key has expired." });
+  }
+
+  apiKey.callsCount = (apiKey.callsCount || 0) + 1;
+  apiKey.lastUsedAt = Date.now();
+  void saveStore().catch(() => {});
+
+  if (req.method === "GET" && url.pathname === "/api/v1/files") {
+    const files = Object.values(store.files)
+      .filter((f) => f.userId === user.id && (f.folderId === apiKey.folderId || f.apiKeyId === apiKey.id) && !f.deletedAt && !f.vault)
+      .map((f) => ({
+        id: f.id,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        folderId: f.folderId,
+        uploadedAt: f.uploadedAt,
+        streamUrl: `/api/v1/stream/${f.id}?api_key=${apiKey.key}`,
+        downloadUrl: `/api/v1/files/${f.id}?download=1&api_key=${apiKey.key}`,
+      }));
+    return sendJson(res, 200, {
+      ok: true,
+      apiKey: apiKey.name,
+      folderId: apiKey.folderId,
+      count: files.length,
+      files,
+    });
+  }
+
+  const streamMatch = url.pathname.match(/^\/api\/v1\/(?:files|stream)\/([0-9a-f-]{36})$/i);
+  if (streamMatch && ["GET", "HEAD"].includes(req.method)) {
+    const fileId = streamMatch[1];
+    const file = store.files[fileId];
+    if (!file || file.userId !== user.id || file.deletedAt) {
+      return sendJson(res, 404, { error: "File not found." });
+    }
+    const forceDownload = url.searchParams.get("download") === "1" || url.pathname.startsWith("/api/v1/files/");
+    const isStreamReq = url.pathname.startsWith("/api/v1/stream/");
+    const shouldDownload = forceDownload && !isStreamReq;
+    const cachedPath = path.join(UPLOADS_DIR, file.id);
+    if (fs.existsSync(cachedPath)) {
+      return streamLocalFile(req, res, cachedPath, file, shouldDownload);
+    }
+    return streamFromTelegram(req, res, user, file, shouldDownload);
+  }
+
+  const deleteMatch = url.pathname.match(/^\/api\/v1\/files\/([0-9a-f-]{36})$/i);
+  if (deleteMatch && req.method === "DELETE") {
+    const fileId = deleteMatch[1];
+    const file = store.files[fileId];
+    if (!file || file.userId !== user.id || file.deletedAt) {
+      return sendJson(res, 404, { error: "File not found." });
+    }
+    file.deletedAt = Date.now();
+    apiKey.bytesUsed = Math.max(0, (apiKey.bytesUsed || 0) - file.size);
+    await saveStore();
+    return sendJson(res, 200, { ok: true, message: `File ${file.name} deleted successfully.` });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/v1/upload") {
+    const contentLength = Number(req.headers["content-length"]) || 0;
+    if (apiKey.quotaBytes > 0 && (apiKey.bytesUsed || 0) + contentLength > apiKey.quotaBytes) {
+      req.resume();
+      return sendJson(res, 413, { error: `Storage quota exceeded for API key '${apiKey.name}'.` });
+    }
+    let rawName = req.headers["x-file-name"] || url.searchParams.get("name");
+    if (!rawName) {
+      const cd = req.headers["content-disposition"] || "";
+      const fnMatch = cd.match(/filename\*?=(?:UTF-8'')?"?([^";]+)"?/i);
+      rawName = fnMatch ? fnMatch[1] : `api-upload-${Date.now()}`;
+    }
+    req.headers["x-file-name"] = encodeURIComponent(rawName);
+    url.searchParams.set("folderId", apiKey.folderId);
+    return uploadToTelegram(req, res, user, url);
+  }
+
+  return sendJson(res, 404, { error: "API route not found." });
+}
+
 async function handleApi(req, res, url) {
+  if (url.pathname.startsWith("/api/v1/")) {
+    return handleDeveloperV1Api(req, res, url);
+  }
   const user = getUser(req);
   if (req.method === "GET" && url.pathname === "/api/site-config") {
     return sendJson(res, 200, { config: publicSiteConfig() });
@@ -2627,6 +2762,98 @@ async function handleApi(req, res, url) {
     }
     return sendJson(res, 201, { folder: publicFolder(folder) });
   }
+
+  // Developer API Key Management
+  if (req.method === "GET" && url.pathname === "/api/developer/keys") {
+    if (!user) return sendJson(res, 401, { error: "Sign in required." });
+    const keys = user.apiKeys || [];
+    for (const k of keys) {
+      const kFiles = Object.values(store.files).filter(
+        (f) => f.userId === user.id && (f.folderId === k.folderId || f.apiKeyId === k.id) && !f.deletedAt && !f.vault,
+      );
+      k.bytesUsed = kFiles.reduce((sum, f) => sum + f.size, 0);
+    }
+    return sendJson(res, 200, {
+      apiEnabled: user.apiEnabled !== false,
+      keys: keys.map((k) => ({
+        id: k.id,
+        name: k.name,
+        key: k.key,
+        folderId: k.folderId,
+        quotaBytes: k.quotaBytes || 0,
+        bytesUsed: k.bytesUsed || 0,
+        callsCount: k.callsCount || 0,
+        createdAt: k.createdAt,
+        expiresAt: k.expiresAt || null,
+        lastUsedAt: k.lastUsedAt || null,
+        encrypted: true,
+      })),
+    });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/developer/keys") {
+    if (!user) return sendJson(res, 401, { error: "Sign in required." });
+    const body = (await readJson(req)) || {};
+    const name = cleanFileName(String(body.name || "App Service").trim()) || "App Service";
+    const quotaBytes = Number(body.quotaBytes) || 0;
+    const expiresDays = Number(body.expiresDays) || 0;
+    const expiresAt = expiresDays > 0 ? Date.now() + expiresDays * 86400000 : null;
+
+    const folderName = `[API] ${name}`;
+    let existingFolder = store.folders.find((f) => f.userId === user.id && f.name === folderName && !f.deletedAt);
+    let folderId;
+    if (existingFolder) {
+      folderId = existingFolder.id;
+    } else {
+      folderId = randomUUID();
+      store.folders.push({
+        id: folderId,
+        userId: user.id,
+        name: folderName,
+        parentId: null,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+
+    const newKey = {
+      id: "apk_" + randomUUID().slice(0, 8),
+      key: "dgx_live_" + randomBytes(24).toString("hex"),
+      name,
+      folderId,
+      quotaBytes,
+      bytesUsed: 0,
+      callsCount: 0,
+      createdAt: Date.now(),
+      expiresAt,
+      lastUsedAt: null,
+      encrypted: true,
+    };
+
+    user.apiKeys = user.apiKeys || [];
+    user.apiKeys.push(newKey);
+    user.apiEnabled = true;
+    await saveStore();
+    return sendJson(res, 201, { ok: true, apiKey: newKey });
+  }
+
+  const devKeyDelMatch = url.pathname.match(/^\/api\/developer\/keys\/([a-zA-Z0-9_]+)$/);
+  if (req.method === "DELETE" && devKeyDelMatch) {
+    if (!user) return sendJson(res, 401, { error: "Sign in required." });
+    const keyId = devKeyDelMatch[1];
+    user.apiKeys = (user.apiKeys || []).filter((k) => k.id !== keyId);
+    await saveStore();
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/developer/toggle") {
+    if (!user) return sendJson(res, 401, { error: "Sign in required." });
+    const body = (await readJson(req)) || {};
+    user.apiEnabled = Boolean(body.enabled);
+    await saveStore();
+    return sendJson(res, 200, { ok: true, apiEnabled: user.apiEnabled });
+  }
+
   if (req.method === "POST" && url.pathname === "/api/upload") return uploadToTelegram(req, res, user, url);
   if (req.method === "POST" && url.pathname === "/api/upload/resumable/init") return handleResumableInit(req, res, user, url);
   if (req.method === "GET" && url.pathname === "/api/upload/resumable/status") return handleResumableStatus(req, res, user, url);

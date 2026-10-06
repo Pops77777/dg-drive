@@ -1504,6 +1504,40 @@ function renderHomeDashboard() {
     progressCircle.style.strokeDashoffset = totalSize > 0 ? "120" : "0";
   }
 
+  // Calculate Developer API storage usage
+  const apiFolderIds = new Set(allFolders.filter((f) => f.name.startsWith("[API] ")).map((f) => f.id));
+  const apiFiles = allFiles.filter((f) => f.apiKeyId || (f.folderId && apiFolderIds.has(f.folderId)));
+  const apiTotalBytes = apiFiles.reduce((sum, f) => sum + f.size, 0);
+
+  const photosVideosBytes = totals.photos.size + totals.videos.size;
+  const vaultBytes = totals.vault.size;
+  const docsBytes = totals.other.size;
+
+  const legPhotos = document.querySelector("#legend-photos-videos");
+  if (legPhotos) legPhotos.textContent = `Photos & Videos · ${formatSize(photosVideosBytes)}`;
+  const legVault = document.querySelector("#legend-vault");
+  if (legVault) legVault.textContent = `Private Vault · ${formatSize(vaultBytes)}`;
+  const legApi = document.querySelector("#legend-api");
+  if (legApi) legApi.textContent = `Developer API · ${formatSize(apiTotalBytes)}`;
+  const legOther = document.querySelector("#legend-other");
+  if (legOther) legOther.textContent = `Documents · ${formatSize(docsBytes)}`;
+
+  // Connect Developer API Suite toggle switch
+  const apiToggle = document.querySelector("#api-feature-toggle");
+  if (apiToggle) {
+    const isApiOn = currentUser?.apiEnabled !== false && window.localStorage.getItem("dgcloud-api-enabled") !== "false";
+    apiToggle.checked = isApiOn;
+    updateApiToggleUI(isApiOn);
+    apiToggle.onchange = async () => {
+      const enabled = apiToggle.checked;
+      window.localStorage.setItem("dgcloud-api-enabled", enabled ? "true" : "false");
+      updateApiToggleUI(enabled);
+      try {
+        await api("/api/developer/toggle", { method: "POST", body: JSON.stringify({ enabled }) });
+      } catch {}
+    };
+  }
+
   // Sidebar storage bar & numbers
   const sidebarStorageUsed = document.querySelector("#sidebar-storage-used");
   const sidebarStorageBar = document.querySelector("#sidebar-storage-bar");
@@ -1618,29 +1652,45 @@ function renderBreadcrumbs() {
       }));
     }
     currentFolderTitle.textContent = chain.at(-1)?.name || "Trash";
-    return;
-  }
-  const root = createButton("Root", "breadcrumb-button", () => {
-    activeFolderId = null;
-    renderLibrary();
-  });
-  breadcrumbs.append(root);
-  const chain = [];
-  let current = allFolders.find((folder) => folder.id === activeFolderId);
-  while (current) {
-    chain.unshift(current);
-    current = allFolders.find((folder) => folder.id === current.parentId);
-  }
-  for (const folder of chain) {
-    const separator = document.createElement("span");
-    separator.className = "breadcrumb-separator";
-    separator.textContent = "/";
-    breadcrumbs.append(separator, createButton(folder.name, "breadcrumb-button", () => {
-      activeFolderId = folder.id;
+  } else {
+    const root = createButton("Root", "breadcrumb-button", () => {
+      activeFolderId = null;
       renderLibrary();
-    }));
+    });
+    breadcrumbs.append(root);
+    const chain = [];
+    let current = allFolders.find((folder) => folder.id === activeFolderId);
+    while (current) {
+      chain.unshift(current);
+      current = allFolders.find((folder) => folder.id === current.parentId);
+    }
+    for (const folder of chain) {
+      const separator = document.createElement("span");
+      separator.className = "breadcrumb-separator";
+      separator.textContent = "/";
+      breadcrumbs.append(separator, createButton(folder.name, "breadcrumb-button", () => {
+        activeFolderId = folder.id;
+        renderLibrary();
+      }));
+    }
+    currentFolderTitle.textContent = chain.length ? chain.at(-1).name : "Files";
   }
-  currentFolderTitle.textContent = chain.length ? chain.at(-1).name : "Files";
+
+  const backBtn = document.querySelector("#folder-back-btn");
+  if (backBtn) {
+    const isInsideFolder = (trashMode && trashFolderId) || (!trashMode && Boolean(activeFolderId));
+    backBtn.classList.toggle("hidden", !isInsideFolder);
+    backBtn.onclick = () => {
+      if (trashMode && trashFolderId) {
+        trashFolderId = null;
+        renderLibrary();
+      } else if (activeFolderId) {
+        const cur = allFolders.find((f) => f.id === activeFolderId);
+        activeFolderId = cur ? (cur.parentId || null) : null;
+        renderLibrary();
+      }
+    };
+  }
 }
 
 function renderLibrary() {
@@ -1730,10 +1780,18 @@ function renderLibrary() {
       renderLibrary();
     }, `Open folder ${folder.name}`);
     tile.append(info);
-    const shareBtn = createButton("", "folder-share", () => shareFolder(folder), `Share folder ${folder.name}`);
-    shareBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
-    tile.append(shareBtn);
-    tile.append(createButton("×", "folder-delete", () => deleteFolder(folder), `Delete folder ${folder.name}`));
+    
+    const folderActionBtn = document.createElement("button");
+    folderActionBtn.type = "button";
+    folderActionBtn.className = "folder-action-btn";
+    folderActionBtn.setAttribute("aria-label", `More actions for ${folder.name}`);
+    folderActionBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>`;
+    folderActionBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openFolderActionSheet(folder);
+    });
+    tile.append(folderActionBtn);
     makeSelectable(tile, `folder:${folder.id}`);
     folderList.append(tile);
   }
@@ -1947,22 +2005,6 @@ function createFileCard(file) {
     open.append(play);
   }
 
-  // Tags overlay matching screenshots
-  const tagsWrap = document.createElement("div");
-  tagsWrap.className = "master-card-tags";
-  if (file._uploading) {
-    const uploadTag = document.createElement("span");
-    uploadTag.className = "master-card-tag tag-salmon";
-    uploadTag.textContent = "Uploading...";
-    tagsWrap.append(uploadTag);
-  } else {
-    const tag = document.createElement("span");
-    tag.className = `master-card-tag ${category === "videos" ? "tag-video" : category === "photos" ? "tag-photo" : "tag-purple"}`;
-    tag.textContent = category === "videos" ? "Video" : category === "photos" ? "Photo" : "Doc";
-    tagsWrap.append(tag);
-  }
-  open.append(tagsWrap);
-
   const details = document.createElement("div");
   details.className = "library-file-details";
   const name = document.createElement("a");
@@ -1975,6 +2017,20 @@ function createFileCard(file) {
     if (!file._uploading) openPreview(file);
   });
   details.append(name);
+
+  // Mini tag pinned at the bottom of the card
+  const bottomMeta = document.createElement("div");
+  bottomMeta.className = "file-card-bottom-row";
+  const sizeSpan = document.createElement("span");
+  sizeSpan.className = "file-mini-size";
+  sizeSpan.textContent = formatSize(file.size);
+
+  const miniTag = document.createElement("span");
+  miniTag.className = `file-mini-tag ${category === "videos" ? "tag-video" : category === "photos" ? "tag-photo" : "tag-purple"}`;
+  miniTag.textContent = file._uploading ? "Uploading" : category === "videos" ? "Video" : category === "photos" ? "Photo" : "Doc";
+
+  bottomMeta.append(sizeSpan, miniTag);
+  details.append(bottomMeta);
 
   const actions = document.createElement("div");
   actions.className = "file-actions";
@@ -2100,6 +2156,73 @@ function openFileActionSheet(file) {
     });
   }
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`, "Move to Trash", () => deleteFile(file), true);
+
+  dialog.showModal();
+}
+
+function openFolderActionSheet(folder) {
+  const dialog = document.querySelector("#folder-action-sheet-dialog");
+  if (!dialog) return;
+  const nameEl = document.querySelector("#folder-action-sheet-name");
+  const metaEl = document.querySelector("#folder-action-sheet-meta");
+  const actionsContainer = document.querySelector("#folder-action-sheet-actions");
+  if (nameEl) nameEl.textContent = folder.name;
+  if (metaEl) {
+    const descendants = folderDescendantIds(folder.id);
+    const childFiles = allFiles.filter((file) => descendants.has(file.folderId));
+    metaEl.textContent = `${childFiles.length} ${childFiles.length === 1 ? "file" : "files"}`;
+  }
+  actionsContainer.replaceChildren();
+
+  const addAction = (iconSvg, text, handler, isDestructive = false) => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `action-sheet-btn${isDestructive ? " is-destructive" : ""}`;
+    const iconSpan = document.createElement("span");
+    iconSpan.className = "action-icon";
+    iconSpan.innerHTML = iconSvg;
+    const textSpan = document.createElement("span");
+    textSpan.className = "action-label";
+    textSpan.textContent = text;
+    btn.append(iconSpan, textSpan);
+    btn.addEventListener("click", () => {
+      dialog.close();
+      handler();
+    });
+    actionsContainer.append(btn);
+  };
+
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>`, "Open Folder", () => {
+    history.pushState({ folderId: folder.id }, "");
+    activeFolderId = folder.id;
+    activeCategory = "all";
+    renderLibrary();
+  });
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share folder link", () => shareFolder(folder));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`, "Rename folder", () => renameFolder(folder));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>`, "Move folder", () => openDestinationDialog("Move folder", async (targetFolderId) => {
+    try {
+      await api("/api/items/move", {
+        method: "POST",
+        body: JSON.stringify({ folderIds: [folder.id], targetFolderId }),
+      });
+      await loadFiles();
+    } catch (error) {
+      window.alert(error.message);
+    }
+  }));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`, "Copy folder", () => openDestinationDialog("Copy folder", async (targetFolderId) => {
+    try {
+      await api("/api/items/copy", {
+        method: "POST",
+        body: JSON.stringify({ folderIds: [folder.id], targetFolderId }),
+      });
+      await loadFiles();
+    } catch (error) {
+      window.alert(error.message);
+    }
+  }));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`, "Move to Trash", () => deleteFolder(folder), true);
 
   dialog.showModal();
 }
@@ -2435,6 +2558,13 @@ function openPreview(file) {
     frame.className = "preview-pdf-frame";
     frame.src = previewUrl;
     frame.title = `Preview of ${file.name}`;
+    previewContent.append(frame);
+  } else if (file.name.toLowerCase().endsWith(".doc") || file.name.toLowerCase().endsWith(".docx")) {
+    const frame = document.createElement("iframe");
+    frame.className = "preview-pdf-frame";
+    const docUrl = encodeURIComponent(`${window.location.origin}${previewUrl}`);
+    frame.src = `https://docs.google.com/viewer?url=${docUrl}&embedded=true`;
+    frame.title = `Document Preview: ${file.name}`;
     previewContent.append(frame);
   } else if (isTextDocument(file)) {
     renderTextDocumentPreview(file, previewUrl, previewContent);
@@ -4025,12 +4155,406 @@ document.querySelector("#dock-vault-btn")?.addEventListener("click", () => {
   updateNavActive("vault");
 });
 
+document.querySelector("#dock-api-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
+  showApi();
+});
+
 document.querySelector("#dock-profile-btn")?.addEventListener("click", () => {
   if (!currentUser) {
     startLoginButton.click();
     return;
   }
-  openProfileDialog();
+  showProfile();
+});
+
+document.querySelector("#sidebar-api-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
+  showApi();
+});
+
+document.querySelector("#sidebar-profile-btn")?.addEventListener("click", () => {
+  if (!currentUser) {
+    startLoginButton.click();
+    return;
+  }
+  showProfile();
+});
+
+document.querySelector("#profile-back-btn")?.addEventListener("click", () => {
+  showHome();
+});
+
+document.querySelector("#api-back-btn")?.addEventListener("click", () => {
+  showHome();
+});
+
+document.querySelector("#menu-profile-btn")?.addEventListener("click", () => {
+  showProfile();
+});
+
+document.querySelector("#profile-lock-settings-btn")?.addEventListener("click", () => {
+  openLockSettingsDialog();
+});
+
+document.querySelector("#profile-devices-btn")?.addEventListener("click", () => {
+  openDevicesDialog();
+});
+
+document.querySelector("#folder-action-sheet-close-btn")?.addEventListener("click", () => {
+  document.querySelector("#folder-action-sheet-dialog")?.close();
+});
+
+function updateApiToggleUI(enabled) {
+  const dockApiBtn = document.querySelector("#dock-api-btn");
+  if (dockApiBtn) dockApiBtn.classList.toggle("hidden", !enabled);
+  const sidebarApiBtn = document.querySelector("#sidebar-api-btn");
+  if (sidebarApiBtn) sidebarApiBtn.classList.toggle("hidden", !enabled);
+}
+
+function showProfile() {
+  if (!currentUser) {
+    openAuthModal();
+    return;
+  }
+  welcomeView.classList.add("hidden");
+  authView.classList.add("hidden");
+  dashboardView.classList.add("hidden");
+  adminView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
+  document.querySelector("#api-view")?.classList.add("hidden");
+  const profileView = document.querySelector("#profile-view");
+  if (profileView) profileView.classList.remove("hidden");
+  document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
+  document.querySelector("#topbar-search-wrap")?.classList.remove("hidden");
+  updateNavActive("profile");
+  populateProfilePageView();
+}
+
+function showApi() {
+  if (!currentUser) {
+    openAuthModal();
+    return;
+  }
+  welcomeView.classList.add("hidden");
+  authView.classList.add("hidden");
+  dashboardView.classList.add("hidden");
+  adminView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
+  document.querySelector("#profile-view")?.classList.add("hidden");
+  const apiView = document.querySelector("#api-view");
+  if (apiView) apiView.classList.remove("hidden");
+  document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
+  document.querySelector("#topbar-search-wrap")?.classList.remove("hidden");
+  updateNavActive("api");
+  loadAndRenderApiKeys();
+}
+
+function populateProfilePageView() {
+  if (!currentUser) return;
+  const nameEl = document.querySelector("#profile-page-name");
+  if (nameEl) nameEl.textContent = currentUser.name || "DGx Cloud User";
+  const userEl = document.querySelector("#profile-page-username");
+  if (userEl) userEl.textContent = currentUser.username ? `@${currentUser.username}` : "DGx Personal Storage";
+  const loginInput = document.querySelector("#profile-page-login-id");
+  if (loginInput) loginInput.value = currentUser.username || "";
+  const statStorage = document.querySelector("#profile-stat-storage");
+  if (statStorage) statStorage.textContent = "Unlimited (∞)";
+}
+
+document.querySelector("#profile-credentials-page-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const currentPass = document.querySelector("#profile-page-current-password")?.value;
+  const newLogin = document.querySelector("#profile-page-login-id")?.value?.trim();
+  const newPass = document.querySelector("#profile-page-new-password")?.value;
+  const confirmPass = document.querySelector("#profile-page-confirm-password")?.value;
+  const msg = document.querySelector("#profile-page-credentials-message");
+  if (newPass && newPass !== confirmPass) {
+    if (msg) { msg.textContent = "New passwords do not match."; msg.className = "form-message is-error"; }
+    return;
+  }
+  try {
+    await api("/api/credentials", {
+      method: "PUT",
+      body: JSON.stringify({
+        currentPassword: currentPass || undefined,
+        newLoginId: newLogin || undefined,
+        newPassword: newPass || undefined,
+      }),
+    });
+    if (msg) {
+      msg.textContent = "Credentials updated successfully!";
+      msg.className = "form-message is-success";
+    }
+  } catch (err) {
+    if (msg) {
+      msg.textContent = err.message;
+      msg.className = "form-message is-error";
+    }
+  }
+});
+
+let userApiKeys = [];
+
+async function loadAndRenderApiKeys() {
+  const container = document.querySelector("#api-keys-container");
+  const emptyEl = document.querySelector("#api-empty-keys");
+  const keysCountEl = document.querySelector("#api-metric-keys-count");
+  const callsCountEl = document.querySelector("#api-metric-calls-count");
+  const storageUsedEl = document.querySelector("#api-metric-storage-used");
+  try {
+    const res = await api("/api/developer/keys");
+    userApiKeys = res.keys || [];
+    if (keysCountEl) keysCountEl.textContent = userApiKeys.length;
+    const totalCalls = userApiKeys.reduce((sum, k) => sum + (k.callsCount || 0), 0);
+    if (callsCountEl) callsCountEl.textContent = totalCalls;
+    const totalBytes = userApiKeys.reduce((sum, k) => sum + (k.bytesUsed || 0), 0);
+    if (storageUsedEl) storageUsedEl.textContent = formatSize(totalBytes);
+
+    if (container) {
+      container.replaceChildren();
+      if (!userApiKeys.length) {
+        if (emptyEl) emptyEl.classList.remove("hidden");
+        container.append(emptyEl);
+        updateSnippetLanguage("curl");
+        return;
+      }
+      if (emptyEl) emptyEl.classList.add("hidden");
+
+      for (const key of userApiKeys) {
+        const card = document.createElement("article");
+        card.className = "api-key-card";
+
+        const topRow = document.createElement("div");
+        topRow.className = "api-key-top-row";
+        const name = document.createElement("strong");
+        name.className = "api-key-name";
+        name.textContent = key.name;
+        const statusPill = document.createElement("span");
+        statusPill.className = "api-key-status-pill";
+        statusPill.textContent = "AES-256-GCM Encrypted";
+        topRow.append(name, statusPill);
+
+        const tokenBox = document.createElement("div");
+        tokenBox.className = "api-token-box";
+        const tokenInput = document.createElement("input");
+        tokenInput.type = "password";
+        tokenInput.readOnly = true;
+        tokenInput.value = key.key;
+        tokenInput.className = "api-token-input";
+
+        const showBtn = document.createElement("button");
+        showBtn.type = "button";
+        showBtn.className = "button button-outline button-mini";
+        showBtn.textContent = "Show";
+        showBtn.onclick = () => {
+          if (tokenInput.type === "password") {
+            tokenInput.type = "text";
+            showBtn.textContent = "Hide";
+          } else {
+            tokenInput.type = "password";
+            showBtn.textContent = "Show";
+          }
+        };
+
+        const copyBtn = document.createElement("button");
+        copyBtn.type = "button";
+        copyBtn.className = "button button-primary button-mini";
+        copyBtn.textContent = "Copy Key";
+        copyBtn.onclick = async () => {
+          await navigator.clipboard.writeText(key.key);
+          copyBtn.textContent = "Copied!";
+          setTimeout(() => { copyBtn.textContent = "Copy Key"; }, 1500);
+        };
+
+        tokenBox.append(tokenInput, showBtn, copyBtn);
+
+        const metaRow = document.createElement("div");
+        metaRow.className = "api-key-meta-row";
+        const folderSpan = document.createElement("span");
+        folderSpan.className = "api-key-folder-tag";
+        folderSpan.innerHTML = `<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg> Folder: [API] ${key.name}`;
+        folderSpan.onclick = () => {
+          if (key.folderId) {
+            activeFolderId = key.folderId;
+            showLibrary();
+          }
+        };
+
+        const usageSpan = document.createElement("span");
+        usageSpan.textContent = `Used: ${formatSize(key.bytesUsed)} ${key.quotaBytes > 0 ? `/ ${formatSize(key.quotaBytes)}` : "(Unlimited)"}`;
+
+        const callsSpan = document.createElement("span");
+        callsSpan.textContent = `Calls: ${key.callsCount}`;
+
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.className = "button button-quiet text-danger button-mini";
+        delBtn.textContent = "Revoke Key";
+        delBtn.onclick = async () => {
+          if (confirm(`Revoke and delete API Key '${key.name}'?`)) {
+            try {
+              await api(`/api/developer/keys/${encodeURIComponent(key.id)}`, { method: "DELETE" });
+              await loadAndRenderApiKeys();
+              await loadFiles();
+            } catch (err) {
+              alert(err.message);
+            }
+          }
+        };
+
+        metaRow.append(folderSpan, usageSpan, callsSpan, delBtn);
+        card.append(topRow, tokenBox, metaRow);
+        container.append(card);
+      }
+    }
+    updateSnippetLanguage("curl");
+  } catch (err) {
+    console.error("Error loading developer keys:", err);
+  }
+}
+
+function updateSnippetLanguage(lang) {
+  const codeEl = document.querySelector("#api-code-snippet");
+  if (!codeEl) return;
+  const sampleKey = userApiKeys[0]?.key || "YOUR_API_KEY";
+  const origin = window.location.origin;
+  if (lang === "curl") {
+    codeEl.textContent = `# 1. Upload a file via API into your dedicated folder
+curl -X POST "${origin}/api/v1/upload" \\
+  -H "Authorization: Bearer ${sampleKey}" \\
+  -H "X-File-Name: document.pdf" \\
+  --data-binary "@document.pdf"
+
+# 2. Direct Stream or Download a file
+curl "${origin}/api/v1/stream/FILE_ID?api_key=${sampleKey}"
+
+# 3. List all files for this API key
+curl "${origin}/api/v1/files" \\
+  -H "Authorization: Bearer ${sampleKey}"
+
+# 4. Delete a file
+curl -X DELETE "${origin}/api/v1/files/FILE_ID" \\
+  -H "Authorization: Bearer ${sampleKey}"`;
+  } else if (lang === "js") {
+    codeEl.textContent = `// JavaScript / Node.js / React / Next.js
+const API_KEY = "${sampleKey}";
+const BASE_URL = "${origin}";
+
+// 1. Upload File
+async function uploadFile(file) {
+  const res = await fetch(\`\${BASE_URL}/api/v1/upload\`, {
+    method: "POST",
+    headers: {
+      "Authorization": \`Bearer \${API_KEY}\`,
+      "X-File-Name": encodeURIComponent(file.name),
+    },
+    body: file
+  });
+  return await res.json();
+}
+
+// 2. Stream File (Audio / Video / Image)
+const streamUrl = \`\${BASE_URL}/api/v1/stream/\${fileId}?api_key=\${API_KEY}\`;
+
+// 3. List Files
+const files = await fetch(\`\${BASE_URL}/api/v1/files\`, {
+  headers: { "Authorization": \`Bearer \${API_KEY}\` }
+}).then(r => r.json());`;
+  } else if (lang === "python") {
+    codeEl.textContent = `# Python (requests)
+import requests
+
+API_KEY = "${sampleKey}"
+BASE_URL = "${origin}"
+
+# 1. Upload a file
+with open("report.pdf", "rb") as f:
+    res = requests.post(
+        f"{BASE_URL}/api/v1/upload",
+        headers={"Authorization": f"Bearer {API_KEY}", "X-File-Name": "report.pdf"},
+        data=f
+    )
+print(res.json())
+
+# 2. List files
+files = requests.get(
+    f"{BASE_URL}/api/v1/files",
+    headers={"Authorization": f"Bearer {API_KEY}"}
+).json()
+
+# 3. Stream / Download
+stream_url = f"{BASE_URL}/api/v1/stream/{file_id}?api_key={API_KEY}"`;
+  }
+}
+
+document.querySelectorAll(".api-tab-btn").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".api-tab-btn").forEach((b) => b.classList.remove("is-active"));
+    btn.classList.add("is-active");
+    updateSnippetLanguage(btn.dataset.tab);
+  });
+});
+
+document.querySelector("#api-copy-snippet-btn")?.addEventListener("click", async () => {
+  const codeEl = document.querySelector("#api-code-snippet");
+  if (codeEl) {
+    await navigator.clipboard.writeText(codeEl.textContent);
+    const btn = document.querySelector("#api-copy-snippet-btn");
+    if (btn) {
+      btn.textContent = "✓ Copied!";
+      setTimeout(() => { btn.textContent = "📋 Copy Snippet"; }, 1500);
+    }
+  }
+});
+
+document.querySelector("#api-refresh-keys-btn")?.addEventListener("click", () => {
+  loadAndRenderApiKeys();
+});
+
+document.querySelector("#api-create-key-btn")?.addEventListener("click", () => {
+  const dialog = document.querySelector("#api-create-dialog");
+  dialog?.showModal();
+});
+
+document.querySelector("#api-create-cancel")?.addEventListener("click", () => {
+  document.querySelector("#api-create-dialog")?.close();
+});
+
+document.querySelector("#api-create-close")?.addEventListener("click", () => {
+  document.querySelector("#api-create-dialog")?.close();
+});
+
+document.querySelector("#api-create-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const nameInput = document.querySelector("#api-key-name-input");
+  const quotaSelect = document.querySelector("#api-quota-select");
+  const expirySelect = document.querySelector("#api-expiry-select");
+  const msg = document.querySelector("#api-create-message");
+  const name = nameInput?.value?.trim();
+  if (!name) return;
+  try {
+    await api("/api/developer/keys", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        quotaBytes: Number(quotaSelect?.value) || 0,
+        expiresDays: Number(expirySelect?.value) || 0,
+      }),
+    });
+    document.querySelector("#api-create-dialog")?.close();
+    if (nameInput) nameInput.value = "";
+    await loadAndRenderApiKeys();
+    await loadFiles();
+  } catch (err) {
+    if (msg) msg.textContent = err.message;
+  }
 });
 
 async function initialize() {

@@ -9,8 +9,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=9.2">
-    <script src="/app.js?v=9.2" defer></script>
+    <link rel="stylesheet" href="/style.css?v=9.3">
+    <script src="/app.js?v=9.3" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -205,9 +205,13 @@
               <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
               <span class="sidebar-label">Private Vault</span>
             </button>
-            <button class="sidebar-item sidebar-admin-item hidden" id="sidebar-admin-btn" type="button">
-              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg></span>
-              <span class="sidebar-label">Admin Console</span>
+            <button class="sidebar-item hidden" id="sidebar-api-btn" type="button">
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+              <span class="sidebar-label">Developer API</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-profile-btn" type="button">
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <span class="sidebar-label">Profile &amp; Security</span>
             </button>
             <button class="sidebar-item" id="sidebar-trash-btn" type="button">
               <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></span>
@@ -366,7 +370,10 @@
           <!-- MASTER DASHBOARD VIEW (100% Matching dgx_cloud_master_dash & mobile views) -->
           <section class="master-dashboard-view" id="home-dashboard-view">
             <div class="master-dash-header-row">
-              <h1 class="master-dash-heading">Dashboard</h1>
+              <div class="master-dash-title-cluster">
+                <h1 class="master-dash-heading">Dashboard</h1>
+                <span class="dashboard-highlight-pill" title="Telegram Cloud High Speed Storage"><span class="highlight-pill-icon">⚡</span> Up to 2 GB per file · High Speed</span>
+              </div>
               <button class="button button-primary upload-gradient-btn master-dash-upload-btn" id="top-upload-btn" type="button">
                 <span class="upload-plus">＋</span> New Upload
               </button>
@@ -377,6 +384,13 @@
               <section class="master-glass-card storage-overview-panel" aria-label="Storage summary">
                 <div class="master-card-title-row">
                   <h3>Storage Overview</h3>
+                  <div class="api-toggle-box" title="Enable or disable Developer API Suite">
+                    <span class="api-toggle-label">API Access</span>
+                    <label class="switch-toggle" for="api-feature-toggle">
+                      <input type="checkbox" id="api-feature-toggle" aria-label="Toggle Developer API Suite">
+                      <span class="slider-round"></span>
+                    </label>
+                  </div>
                 </div>
                 <div class="master-donut-wrap">
                   <div class="master-donut-aurora"></div>
@@ -412,11 +426,19 @@
                 <div class="master-storage-legend-box" id="home-storage-breakdown">
                   <div class="master-legend-item">
                     <span class="legend-dot dot-cyan"></span>
-                    <span class="legend-text">Photos &amp; Videos</span>
+                    <span class="legend-text" id="legend-photos-videos">Photos &amp; Videos · 0 B</span>
                   </div>
                   <div class="master-legend-item">
                     <span class="legend-dot dot-purple"></span>
-                    <span class="legend-text">Private Vault</span>
+                    <span class="legend-text" id="legend-vault">Private Vault · 0 B</span>
+                  </div>
+                  <div class="master-legend-item">
+                    <span class="legend-dot dot-green"></span>
+                    <span class="legend-text" id="legend-api">Developer API · 0 B</span>
+                  </div>
+                  <div class="master-legend-item">
+                    <span class="legend-dot dot-amber"></span>
+                    <span class="legend-text" id="legend-other">Documents · 0 B</span>
                   </div>
                 </div>
               </section>
@@ -485,6 +507,10 @@
           <section class="master-library-view hidden" id="dashboard-view">
             <!-- Breadcrumbs Toolbar -->
             <div class="master-library-header-row">
+              <button class="breadcrumb-back-btn hidden" id="folder-back-btn" type="button" aria-label="Go to parent folder">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                <span>Back</span>
+              </button>
               <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path">
                 <span>Root</span>
               </nav>
@@ -514,14 +540,14 @@
                   <span class="pill-btn-icon">✕</span> Delete all
                 </button>
                 <button class="toolbar-pill-btn" id="view-mode-toggle" type="button" title="View mode">
-                  <span class="pill-btn-icon" id="view-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> <span id="view-mode-label">Large View (3 in row)</span>
+                  <span class="pill-btn-icon" id="view-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> <span id="view-mode-label">Large View</span>
                 </button>
                 <button class="toolbar-pill-btn" id="sort-mode-toggle" type="button" title="Sort files">
                   <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/></svg></span> <span id="sort-mode-label">Sort: Newest ▾</span>
                 </button>
               </div>
               <div class="actions-meta-cluster">
-                <span class="file-size-limit" id="upload-limit"></span>
+                <span class="file-size-limit hidden" id="upload-limit"></span>
               </div>
               <select class="hidden" id="library-view-mode"><option value="large">Large</option></select>
               <select class="hidden" id="library-sort-mode"><option value="date-desc">Newest</option></select>
@@ -661,6 +687,179 @@
               <div class="admin-account-content" id="admin-account-content"></div>
             </dialog>
           </section>
+
+          <!-- PROFILE FULL PAGE VIEW (Dedicated Full-Screen View) -->
+          <section class="master-page-screen hidden" id="profile-view">
+            <div class="master-dash-header-row">
+              <div class="master-dash-title-cluster">
+                <button class="view-back-btn" id="profile-back-btn" type="button" aria-label="Back to dashboard">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                  <span>Dashboard</span>
+                </button>
+                <h1 class="master-dash-heading">Profile &amp; Account</h1>
+              </div>
+            </div>
+
+            <div class="profile-cards-grid">
+              <!-- Account Identity Card -->
+              <section class="master-glass-card profile-info-card">
+                <div class="profile-user-hero">
+                  <div class="profile-big-avatar" id="profile-big-avatar">
+                    <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </div>
+                  <div class="profile-hero-meta">
+                    <h2 class="profile-hero-name" id="profile-page-name">User Account</h2>
+                    <span class="profile-hero-sub" id="profile-page-username">@TelegramUser</span>
+                    <span class="profile-status-pill" id="profile-page-status">Active Cloud Session</span>
+                  </div>
+                </div>
+
+                <div class="profile-quick-stats">
+                  <div class="pstat-item">
+                    <span class="pstat-label">Cloud Storage</span>
+                    <strong class="pstat-val" id="profile-stat-storage">Unlimited (∞)</strong>
+                  </div>
+                  <div class="pstat-item">
+                    <span class="pstat-label">Private Vault</span>
+                    <strong class="pstat-val" id="profile-stat-vault">Enabled</strong>
+                  </div>
+                  <div class="pstat-item">
+                    <span class="pstat-label">Developer API</span>
+                    <strong class="pstat-val" id="profile-stat-api">Active</strong>
+                  </div>
+                </div>
+              </section>
+
+              <!-- Credentials Management Card -->
+              <section class="master-glass-card profile-form-card">
+                <div class="master-card-title-row">
+                  <h3>Sign-in ID &amp; Website Password</h3>
+                </div>
+                <form id="profile-credentials-page-form">
+                  <label class="field-label" for="profile-page-login-id">Login ID</label>
+                  <input class="field-input" id="profile-page-login-id" autocomplete="username" autocapitalize="none" minlength="3" maxlength="32" placeholder="Set or update username">
+
+                  <label class="field-label" for="profile-page-current-password">Current password</label>
+                  <input class="field-input" id="profile-page-current-password" type="password" autocomplete="current-password" placeholder="Enter current password">
+
+                  <label class="field-label" for="profile-page-new-password">New password</label>
+                  <input class="field-input" id="profile-page-new-password" type="password" autocomplete="new-password" placeholder="Enter new password (10+ characters)">
+
+                  <label class="field-label" for="profile-page-confirm-password">Confirm new password</label>
+                  <input class="field-input" id="profile-page-confirm-password" type="password" autocomplete="new-password" placeholder="Repeat new password">
+
+                  <p class="form-message" id="profile-page-credentials-message" role="status"></p>
+                  <div class="profile-form-actions">
+                    <button class="button button-primary" type="submit">Update Credentials</button>
+                  </div>
+                </form>
+              </section>
+
+              <!-- Security & Account Lock Card -->
+              <section class="master-glass-card profile-form-card">
+                <div class="master-card-title-row">
+                  <h3>Security &amp; PIN Protection</h3>
+                </div>
+                <div class="profile-security-row">
+                  <div>
+                    <strong>Account Lock PIN</strong>
+                    <p class="profile-desc">Require a 4-digit PIN every time DGx Cloud is opened on this device.</p>
+                  </div>
+                  <button class="button button-outline" id="profile-lock-settings-btn" type="button">Configure PIN</button>
+                </div>
+                <div class="profile-security-row">
+                  <div>
+                    <strong>Active Devices</strong>
+                    <p class="profile-desc">Manage browsers and sessions logged into your cloud storage.</p>
+                  </div>
+                  <button class="button button-outline" id="profile-devices-btn" type="button">View Sessions</button>
+                </div>
+              </section>
+            </div>
+          </section>
+
+          <!-- DEVELOPER API FULL PAGE VIEW (End-to-End Encrypted Cloud Storage & Database Suite) -->
+          <section class="master-page-screen hidden" id="api-view">
+            <div class="master-dash-header-row">
+              <div class="master-dash-title-cluster">
+                <button class="view-back-btn" id="api-back-btn" type="button" aria-label="Back to dashboard">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                  <span>Dashboard</span>
+                </button>
+                <div>
+                  <h1 class="master-dash-heading">Developer API Suite</h1>
+                  <span class="api-subtitle">End-to-End Encrypted Cloud Storage &amp; Database API for your Projects</span>
+                </div>
+              </div>
+              <button class="button button-primary upload-gradient-btn" id="api-create-key-btn" type="button">
+                <span>＋ Create API Key</span>
+              </button>
+            </div>
+
+            <!-- API Stat Highlights -->
+            <div class="api-metrics-grid">
+              <div class="master-glass-card api-metric-card">
+                <span class="api-metric-label">Active API Keys</span>
+                <strong class="api-metric-val" id="api-metric-keys-count">0</strong>
+                <span class="api-metric-sub">Unlimited Keys Available</span>
+              </div>
+              <div class="master-glass-card api-metric-card">
+                <span class="api-metric-label">Total API Calls</span>
+                <strong class="api-metric-val" id="api-metric-calls-count">0</strong>
+                <span class="api-metric-sub">Fast CDN Stream Requests</span>
+              </div>
+              <div class="master-glass-card api-metric-card">
+                <span class="api-metric-label">API Storage Used</span>
+                <strong class="api-metric-val" id="api-metric-storage-used">0 B</strong>
+                <span class="api-metric-sub">Stored in Dedicated Folders</span>
+              </div>
+              <div class="master-glass-card api-metric-card">
+                <span class="api-metric-label">Encryption</span>
+                <strong class="api-metric-val text-gradient-neon">AES-256-GCM</strong>
+                <span class="api-metric-sub">End-to-End Encrypted</span>
+              </div>
+            </div>
+
+            <!-- API Keys List -->
+            <section class="master-glass-card api-keys-panel">
+              <div class="master-card-title-row">
+                <h3>Your API Keys &amp; Dedicated Folders</h3>
+                <button class="button button-outline button-small" id="api-refresh-keys-btn" type="button">↻ Refresh</button>
+              </div>
+              <div class="api-keys-container" id="api-keys-container">
+                <div class="api-empty-state" id="api-empty-keys">
+                  <p>No API keys created yet. Click <strong>＋ Create API Key</strong> to generate an API key for your website or app.</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- API Quickstart & Code Snippets -->
+            <section class="master-glass-card api-docs-panel">
+              <div class="master-card-title-row">
+                <h3>Quickstart Integration (cURL, JS, Python)</h3>
+              </div>
+              <div class="api-code-tabs" role="tablist">
+                <button class="api-tab-btn is-active" data-tab="curl" type="button">cURL</button>
+                <button class="api-tab-btn" data-tab="js" type="button">JavaScript / Node.js</button>
+                <button class="api-tab-btn" data-tab="python" type="button">Python</button>
+              </div>
+              <div class="api-code-snippet-wrap">
+                <pre class="api-code-pre"><code id="api-code-snippet"># Upload a file via API
+curl -X POST "https://dgx-cloud-pmz8.onrender.com/api/v1/upload" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "X-File-Name: photo.jpg" \
+  --data-binary "@photo.jpg"
+
+# Stream or Download a file
+curl "https://dgx-cloud-pmz8.onrender.com/api/v1/stream/FILE_ID?api_key=YOUR_API_KEY"
+
+# List all files for this API key
+curl "https://dgx-cloud-pmz8.onrender.com/api/v1/files" \
+  -H "Authorization: Bearer YOUR_API_KEY"</code></pre>
+                <button class="button button-outline copy-snippet-btn" id="api-copy-snippet-btn" type="button">📋 Copy Snippet</button>
+              </div>
+            </section>
+          </section>
         </main>
       </div>
     </div>
@@ -746,6 +945,59 @@
       </div>
     </dialog>
 
+    <!-- Folder Action Sheet Dialog for 3-dots on Folders -->
+    <dialog class="action-sheet-dialog folder-action-sheet-dialog" id="folder-action-sheet-dialog" aria-labelledby="folder-action-sheet-name">
+      <div class="action-sheet-panel">
+        <div class="action-sheet-drag-handle"></div>
+        <div class="action-sheet-header">
+          <div class="action-sheet-thumb-wrap">
+            <span class="action-sheet-file-icon folder-icon-glow"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg></span>
+          </div>
+          <div class="action-sheet-details">
+            <strong class="action-sheet-name" id="folder-action-sheet-name">Folder Name</strong>
+            <span class="action-sheet-meta" id="folder-action-sheet-meta">Folder</span>
+          </div>
+          <button class="action-sheet-close-btn" id="folder-action-sheet-close-btn" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="action-sheet-actions" id="folder-action-sheet-actions"></div>
+      </div>
+    </dialog>
+
+    <!-- Developer API Key Creation Dialog -->
+    <dialog class="library-dialog api-create-dialog" id="api-create-dialog" aria-labelledby="api-create-title">
+      <form class="library-dialog-form" id="api-create-form" method="dialog">
+        <button class="dialog-close" id="api-create-close" type="button" aria-label="Close">×</button>
+        <span class="section-kicker">DEVELOPER API KEY</span>
+        <h2 id="api-create-title">Generate Project API Key</h2>
+        <p class="dialog-description">Create an end-to-end encrypted API key to store, download, and stream files directly in your applications.</p>
+        <label class="field-label" for="api-key-name-input">App / Project Name</label>
+        <input class="field-input" id="api-key-name-input" type="text" placeholder="e.g. Portfolio App, Mobile App Backend" required minlength="2" maxlength="40">
+        
+        <label class="field-label" for="api-quota-select">Storage Quota Limit</label>
+        <select class="field-select" id="api-quota-select">
+          <option value="0">Unlimited Storage (∞)</option>
+          <option value="1073741824">1 GB Storage</option>
+          <option value="5368709120">5 GB Storage</option>
+          <option value="21474836480">20 GB Storage</option>
+          <option value="53687091200">50 GB Storage</option>
+        </select>
+
+        <label class="field-label" for="api-expiry-select">Key Expiration</label>
+        <select class="field-select" id="api-expiry-select">
+          <option value="0">Never (Active indefinitely)</option>
+          <option value="30">Expires in 30 Days</option>
+          <option value="90">Expires in 90 Days</option>
+          <option value="365">Expires in 1 Year</option>
+        </select>
+
+        <p class="form-message" id="api-create-message"></p>
+        <div class="dialog-actions">
+          <button class="button button-quiet" id="api-create-cancel" type="button">Cancel</button>
+          <button class="button button-primary" id="api-create-submit" type="submit">Generate Key →</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="library-dialog site-popup-dialog" id="site-popup-dialog">
       <form method="dialog">
         <button class="dialog-close" type="submit" aria-label="Close">×</button>
@@ -773,6 +1025,10 @@
       <button class="dock-btn" id="dock-vault-btn" type="button" title="Vault">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
         <span class="dock-label">Vault</span>
+      </button>
+      <button class="dock-btn hidden" id="dock-api-btn" type="button" title="Developer API">
+        <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+        <span class="dock-label">API</span>
       </button>
       <button class="dock-btn" id="dock-profile-btn" type="button" title="Profile">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
