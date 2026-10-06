@@ -348,7 +348,6 @@ function showSignedOut() {
   document.querySelector("#mobile-bottom-dock")?.classList.remove("hidden");
   document.querySelector("#topbar-search-wrap")?.classList.remove("hidden");
   document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
-  document.querySelector("#live-synced-badge")?.classList.remove("hidden");
   document.querySelector("#theme-toggle")?.classList.remove("hidden");
 
   // Show New Upload and keep Alex Harper user pill visible in topbar matching mockups
@@ -368,7 +367,7 @@ function showSignedOut() {
   document.querySelector("#account-email").textContent = "Alex Harper";
   accountAvatarImage.removeAttribute("src");
   accountAvatarImage.classList.add("hidden");
-  accountAvatarFallback.textContent = "👤";
+  accountAvatarFallback.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
   accountAvatarFallback.classList.remove("hidden");
   adminBadge.classList.add("hidden");
   updateNavActive("dashboard");
@@ -414,7 +413,6 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   if (mobileDock) mobileDock.classList.remove("hidden");
   if (topUploadBtn) topUploadBtn.classList.remove("hidden");
   if (topLoginBtn) topLoginBtn.classList.add("hidden");
-  if (liveSyncedBadge) liveSyncedBadge.classList.remove("hidden");
   if (topbarSearchWrap) topbarSearchWrap.classList.remove("hidden");
   if (sidebarAdminBtn) sidebarAdminBtn.classList.toggle("hidden", !user.isAdmin);
 
@@ -459,6 +457,7 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
     return;
   }
   await showHomeDashboard();
+  await loadFiles();
   if (!user.hasPassword || user.credentialResetRequired || (justAuthenticatedWithTelegram && credentialResetAfterQr)) {
     credentialResetAfterQr = false;
     await openProfileDialog();
@@ -694,6 +693,8 @@ async function loadFiles() {
     allTrashItems = trash.items;
     updateVaultStats(vaultStatus);
     renderLibrary();
+    renderHomeDashboard();
+    renderCategories();
   } catch (error) {
     fileCount.textContent = error.message;
   }
@@ -1379,39 +1380,55 @@ function renderCategories() {
   }
 }
 
-function updateInspectorPane(file) {
-  if (!file) return;
+function resetInspectorPane() {
   const inspectorImg = document.querySelector("#inspector-preview-img");
   const inspectorVideo = document.querySelector("#inspector-preview-video");
   const inspectorPlay = document.querySelector("#inspector-play-overlay");
   const inspectorTitle = document.querySelector("#inspector-title");
   const inspectorMeta = document.querySelector("#inspector-meta");
-  const inspectorShareLink = document.querySelector("#inspector-share-link");
+  const inspectorShareBox = document.querySelector("#inspector-share-box");
   const inspectorDownloadBtn = document.querySelector("#inspector-download-btn");
+  const inspectorStreamBadge = document.querySelector("#inspector-stream-badge");
+  const emptyStateEl = document.querySelector("#inspector-empty-state");
 
-  if (file.img) {
-    if (inspectorImg) {
-      inspectorImg.src = file.img;
-      inspectorImg.classList.remove("hidden");
-    }
-    if (inspectorVideo) inspectorVideo.classList.add("hidden");
-    if (inspectorPlay) inspectorPlay.classList.toggle("hidden", !file.isVid);
-    if (inspectorTitle) inspectorTitle.textContent = `Selected: ${file.name}`;
-    if (inspectorMeta) inspectorMeta.textContent = `${file.isVid ? "4K UHD • " : ""}${formatSize(file.size)} • ${file.isVid ? "60fps" : file.type || "File"}`;
-    if (inspectorShareLink) inspectorShareLink.value = `https://www.linkpopthams.com/?selected/${encodeURIComponent(file.name)}`;
-    if (inspectorDownloadBtn) {
-      inspectorDownloadBtn.href = file.img;
-      inspectorDownloadBtn.setAttribute("download", file.name);
-    }
+  if (inspectorImg) inspectorImg.style.display = "none";
+  if (inspectorVideo) inspectorVideo.classList.add("hidden");
+  if (inspectorPlay) inspectorPlay.classList.add("hidden");
+  if (emptyStateEl) emptyStateEl.style.display = "flex";
+  if (inspectorTitle) inspectorTitle.textContent = "No file selected";
+  if (inspectorMeta) inspectorMeta.textContent = "Select a file to preview";
+  if (inspectorShareBox) inspectorShareBox.classList.add("hidden");
+  if (inspectorDownloadBtn) inspectorDownloadBtn.classList.add("hidden");
+  if (inspectorStreamBadge) inspectorStreamBadge.classList.add("hidden");
+}
+
+function updateInspectorPane(file) {
+  if (!file) {
+    resetInspectorPane();
     return;
   }
+  const inspectorImg = document.querySelector("#inspector-preview-img");
+  const inspectorVideo = document.querySelector("#inspector-preview-video");
+  const inspectorPlay = document.querySelector("#inspector-play-overlay");
+  const inspectorTitle = document.querySelector("#inspector-title");
+  const inspectorMeta = document.querySelector("#inspector-meta");
+  const inspectorShareBox = document.querySelector("#inspector-share-box");
+  const inspectorShareLink = document.querySelector("#inspector-share-link");
+  const inspectorDownloadBtn = document.querySelector("#inspector-download-btn");
+  const inspectorStreamBadge = document.querySelector("#inspector-stream-badge");
+  const emptyStateEl = document.querySelector("#inspector-empty-state");
+
+  if (emptyStateEl) emptyStateEl.style.display = "none";
+  if (inspectorShareBox) inspectorShareBox.classList.remove("hidden");
+  if (inspectorDownloadBtn) inspectorDownloadBtn.classList.remove("hidden");
 
   const category = fileCategory(file);
   const isVid = category === "videos";
   const isImg = category === "photos";
 
-  if (inspectorTitle) inspectorTitle.textContent = `Selected: ${file.name}`;
-  if (inspectorMeta) inspectorMeta.textContent = `${isVid ? "4K UHD • " : ""}${formatSize(file.size)} • ${isVid ? "60fps" : file.type || "File"}`;
+  if (inspectorStreamBadge) inspectorStreamBadge.classList.toggle("hidden", !isVid);
+  if (inspectorTitle) inspectorTitle.textContent = file.name;
+  if (inspectorMeta) inspectorMeta.textContent = `${isVid ? "Video • " : isImg ? "Photo • " : ""}${formatSize(file.size)} • ${formatDate(file.uploadedAt || new Date())}`;
 
   const shareUrl = `${window.location.origin}/api/files/${encodeURIComponent(file.id)}/download`;
   if (inspectorShareLink) inspectorShareLink.value = shareUrl;
@@ -1423,20 +1440,26 @@ function updateInspectorPane(file) {
   if (isVid) {
     if (inspectorImg) {
       inspectorImg.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
+      inspectorImg.style.display = "block";
       inspectorImg.classList.remove("hidden");
     }
     if (inspectorVideo) inspectorVideo.classList.add("hidden");
-    if (inspectorPlay) inspectorPlay.classList.remove("hidden");
+    if (inspectorPlay) {
+      inspectorPlay.classList.remove("hidden");
+      inspectorPlay.onclick = () => openPreview(file);
+    }
   } else if (isImg) {
     if (inspectorImg) {
       inspectorImg.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=high`;
+      inspectorImg.style.display = "block";
       inspectorImg.classList.remove("hidden");
     }
     if (inspectorVideo) inspectorVideo.classList.add("hidden");
     if (inspectorPlay) inspectorPlay.classList.add("hidden");
   } else {
-    if (inspectorImg) inspectorImg.src = "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=400&q=80";
+    if (inspectorImg) inspectorImg.style.display = "none";
     if (inspectorPlay) inspectorPlay.classList.add("hidden");
+    if (emptyStateEl) emptyStateEl.style.display = "flex";
   }
 }
 
@@ -1456,19 +1479,14 @@ function renderHomeDashboard() {
 
   const totalSize = totals.all.size + totals.vault.size;
 
-  // Storage Overview Donut Calculations (defaults to master mockup 71% / 14.2 GB when empty)
-  const pct = totalSize > 0 
-    ? Math.max(1, Math.min(100, Math.round((totalSize / (2 * 1024 * 1024 * 1024 * 1024)) * 100 * 100) / 100))
-    : 71;
-  const usedText = totalSize > 0 ? formatSize(totalSize) : "14.2 GB";
-  const availText = totalSize > 0 
-    ? formatSize(Math.max(0, (2 * 1024 * 1024 * 1024 * 1024) - totalSize)) + " Available"
-    : "5.8 GB Available";
+  // Storage Overview Donut Calculations (Unlimited space)
+  const usedText = totalSize > 0 ? formatSize(totalSize) : "0 B";
+  const availText = "Unlimited Available";
 
   const pctEl = document.querySelector("#donut-pct-text");
-  if (pctEl) pctEl.textContent = `${pct}%`;
+  if (pctEl) pctEl.textContent = "∞";
   const availTopEl = document.querySelector("#donut-avail-top-text");
-  if (availTopEl) availTopEl.textContent = availText;
+  if (availTopEl) availTopEl.textContent = "Unlimited Space";
   const totalEl = document.querySelector("#home-storage-total");
   if (totalEl) totalEl.textContent = usedText;
   const availBtmEl = document.querySelector("#donut-avail-bottom-text");
@@ -1477,26 +1495,26 @@ function renderHomeDashboard() {
   // SVG Glowing Donut Progress Circle (r=76, circumference = 2 * PI * 76 = 477.52)
   const progressCircle = document.querySelector("#rainbow-progress-circle");
   if (progressCircle) {
-    const circumference = 477.52;
-    const offset = circumference * (1 - (pct / 100));
-    progressCircle.style.strokeDashoffset = offset;
+    progressCircle.style.strokeDashoffset = totalSize > 0 ? "120" : "0";
   }
 
   // Sidebar storage bar & numbers
   const sidebarStorageUsed = document.querySelector("#sidebar-storage-used");
   const sidebarStorageBar = document.querySelector("#sidebar-storage-bar");
+  const sidebarStorageTotal = document.querySelector(".sidebar-storage-total");
   if (sidebarStorageUsed) sidebarStorageUsed.textContent = usedText;
-  if (sidebarStorageBar) sidebarStorageBar.style.width = `${pct}%`;
+  if (sidebarStorageTotal) sidebarStorageTotal.textContent = "· Unlimited";
+  if (sidebarStorageBar) sidebarStorageBar.style.width = totalSize > 0 ? "28%" : "6%";
 
-  // Update Media Categories 2x2 pill counts
+  // Update Media Categories 2x2 pill counts with REAL file counts
   const catPhotosVal = document.querySelector("#cat-photos-val");
-  if (catPhotosVal) catPhotosVal.textContent = totalSize > 0 ? `${totals.photos.count} Items` : "4,512 Items";
+  if (catPhotosVal) catPhotosVal.textContent = `${totals.photos.count} Items`;
   const catVideosVal = document.querySelector("#cat-videos-val");
-  if (catVideosVal) catVideosVal.textContent = totalSize > 0 ? `${totals.videos.count} items` : "1,289 items";
+  if (catVideosVal) catVideosVal.textContent = `${totals.videos.count} items`;
   const catDocsVal = document.querySelector("#cat-docs-val");
-  if (catDocsVal) catDocsVal.textContent = totalSize > 0 ? `${totals.other.count} Items` : "837 Items";
+  if (catDocsVal) catDocsVal.textContent = `${totals.other.count} Items`;
   const catVaultVal = document.querySelector("#cat-vault-val");
-  if (catVaultVal) catVaultVal.textContent = totalSize > 0 ? `${totals.vault.count} Items` : "0 Items";
+  if (catVaultVal) catVaultVal.textContent = `${totals.vault.count} Items`;
 
   // Category pill click handlers
   document.querySelectorAll(".category-pill-card").forEach((card) => {
@@ -1512,7 +1530,7 @@ function renderHomeDashboard() {
     };
   });
 
-  // Recent Uploads Grid (4 cards in a row matching master mockups)
+  // Recent Uploads Grid (Real files only, NO fake demo cards)
   if (homeRecentGrid) {
     homeRecentGrid.replaceChildren();
     const recents = allFiles.filter((f) => !f.trashed && !f.vault).slice(0, 4);
@@ -1535,12 +1553,10 @@ function renderHomeDashboard() {
         if (isImg || isVid) {
           img.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
           img.onerror = () => {
-            img.src = isVid
-              ? "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80"
-              : "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?auto=format&fit=crop&w=400&q=80";
+            img.style.display = "none";
           };
         } else {
-          img.src = "https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=400&q=80";
+          img.style.display = "none";
         }
         thumbWrap.append(img);
 
@@ -1558,55 +1574,17 @@ function renderHomeDashboard() {
 
         const type = document.createElement("span");
         type.className = "recent-card-type";
-        type.textContent = isVid ? "MP4" : isImg ? "Photo" : isPdf ? "PDF" : "Doc";
+        type.textContent = isVid ? "Video" : isImg ? "Photo" : isPdf ? "PDF" : "Doc";
 
         card.append(thumbWrap, title, type);
         card.addEventListener("click", () => openPreview(file));
         homeRecentGrid.append(card);
       }
     } else {
-      // 4 Realistic master mock cards matching the screenshots
-      const mockCards = [
-        { title: "Photo", type: "Photo", img: "/assets/coastline.svg", isVid: false },
-        { title: "Photo", type: "Photo", img: "/assets/dog.svg", isVid: false },
-        { title: "Mountain Hike", type: "MP4", img: "/assets/mountain.svg", isVid: true },
-        { title: "Q3 Report", type: "PDF", img: "/assets/q3_report.svg", isVid: false }
-      ];
-      for (const item of mockCards) {
-        const card = document.createElement("div");
-        card.className = "master-recent-card";
-
-        const thumbWrap = document.createElement("div");
-        thumbWrap.className = "recent-card-thumb-wrap";
-
-        const img = document.createElement("img");
-        img.className = "recent-card-thumb-img";
-        img.src = item.img;
-        img.alt = item.title;
-        thumbWrap.append(img);
-
-        if (item.isVid) {
-          const play = document.createElement("span");
-          play.className = "recent-card-play-overlay";
-          play.textContent = "▶";
-          thumbWrap.append(play);
-        }
-
-        const title = document.createElement("span");
-        title.className = "recent-card-title";
-        title.textContent = item.title;
-
-        const type = document.createElement("span");
-        type.className = "recent-card-type";
-        type.textContent = item.type;
-
-        card.append(thumbWrap, title, type);
-        card.addEventListener("click", () => {
-          if (!currentUser) openAuthModal();
-          else showLibrary();
-        });
-        homeRecentGrid.append(card);
-      }
+      const emptyBox = document.createElement("div");
+      emptyBox.className = "home-recents-empty";
+      emptyBox.innerHTML = '<span>No recent files yet. Click <strong>+ Upload</strong> to add files.</span>';
+      homeRecentGrid.append(emptyBox);
     }
   }
 }
@@ -1769,59 +1747,6 @@ function renderLibrary() {
     if (sortedVisibleFiles.length > 0) {
       for (const file of sortedVisibleFiles) fileList.append(createFileCard(file));
       updateInspectorPane(sortedVisibleFiles[0]);
-    } else if (!trashMode && !childFolders.length) {
-      // Master mockup sample cards matching dgx_cloud_master_lib & mobile views
-      const mockLibFiles = [
-        { id: "mock_1", name: "IMG_01.jpg", type: "image/jpeg", size: 4.2 * 1024 * 1024, img: "/assets/coastline.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
-        { id: "mock_2", name: "Project_Video.mp4", type: "video/mp4", size: 1.2 * 1024 * 1024 * 1024, img: "/assets/mountain.svg", isVid: true, tags: [{ text: "Photo", cls: "tag-photo" }, { text: "Tages", cls: "tag-purple" }] },
-        { id: "mock_3", name: "IMG_02.jpg", type: "video/mp4", size: 3.8 * 1024 * 1024, img: "/assets/mountain.svg", isVid: true, tags: [{ text: "Photo", cls: "tag-photo" }, { text: "Tages", cls: "tag-purple" }, { text: "Tages", cls: "tag-salmon" }] },
-        { id: "mock_4", name: "Project_Video_02.mp4", type: "video/mp4", size: 850 * 1024 * 1024, img: "/assets/mountain.svg", isVid: true, tags: [{ text: "Videos", cls: "tag-video" }, { text: "Tags", cls: "tag-green" }, { text: "Tages", cls: "tag-salmon" }] },
-        { id: "mock_5", name: "Dog_Park_Photo.jpg", type: "image/jpeg", size: 2.9 * 1024 * 1024, img: "/assets/dog.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
-        { id: "mock_6", name: "Pug_Portrait.jpg", type: "image/jpeg", size: 1.8 * 1024 * 1024, img: "/assets/pug.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
-        { id: "mock_7", name: "Sunset_Pier.jpg", type: "image/jpeg", size: 3.4 * 1024 * 1024, img: "/assets/pier.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
-        { id: "mock_8", name: "Dog_Park_Photo_02.jpg", type: "image/jpeg", size: 2.9 * 1024 * 1024, img: "/assets/dog.svg", tags: [{ text: "Photo", cls: "tag-photo" }] },
-        { id: "mock_9", name: "IMG_03.jpg", type: "image/jpeg", size: 4.5 * 1024 * 1024, img: "/assets/coastline.svg", tags: [{ text: "Photo", cls: "tag-photo" }] }
-      ];
-      for (const item of mockLibFiles) {
-        const card = document.createElement("article");
-        card.className = "library-file-card master-mock-card";
-        const previewBtn = document.createElement("div");
-        previewBtn.className = "file-preview";
-        const img = document.createElement("img");
-        img.className = "file-thumbnail";
-        img.src = item.img;
-        img.alt = item.name;
-        previewBtn.append(img);
-        if (item.isVid) {
-          const play = document.createElement("span");
-          play.className = "thumbnail-play";
-          play.textContent = "▶";
-          previewBtn.append(play);
-        }
-        if (Array.isArray(item.tags)) {
-          const tagsWrap = document.createElement("div");
-          tagsWrap.className = "master-card-tags";
-          for (const t of item.tags) {
-            const tag = document.createElement("span");
-            tag.className = `master-card-tag ${t.cls || "tag-photo"}`;
-            tag.textContent = t.text;
-            tagsWrap.append(tag);
-          }
-          previewBtn.append(tagsWrap);
-        }
-
-        const details = document.createElement("div");
-        details.className = "library-file-details";
-        const name = document.createElement("span");
-        name.className = "file-name";
-        name.textContent = item.name;
-        details.append(name);
-
-        card.append(previewBtn, details);
-        card.addEventListener("click", () => updateInspectorPane(item));
-        fileList.append(card);
-      }
-      updateInspectorPane(mockLibFiles[1]);
     }
   }
   const displayCount = trashMode ? trashFiles.length + trashFolders.length : visibleFiles.length;
@@ -1829,7 +1754,13 @@ function renderLibrary() {
     : visibleFiles.reduce((sum, file) => sum + file.size, 0);
   const countText = `${displayCount} ${displayCount === 1 ? "item" : "items"} · ${formatSize(displaySize)}`;
   fileCount.textContent = searching && !trashMode ? `${countText} found across your library` : countText;
-  emptyState.classList.add("hidden");
+  
+  if (displayCount === 0 && !childFolders.length) {
+    emptyState.classList.remove("hidden");
+    resetInspectorPane();
+  } else {
+    emptyState.classList.add("hidden");
+  }
   updateSelectionToolbar();
 }
 
@@ -1955,32 +1886,54 @@ function createFileCard(file) {
   icon.className = `file-icon ${category === "videos" ? "video-icon" : category === "photos" ? "image-icon" : "document-icon"}`;
   icon.textContent = category === "videos" ? "▶" : category === "photos" ? "▧" : "▤";
   icon.setAttribute("aria-hidden", "true");
-  const open = createButton("", "file-preview", () => openPreview(file), `Preview ${file.name}`);
+  const open = createButton("", "file-preview", () => {
+    if (!file._uploading) openPreview(file);
+  }, `Preview ${file.name}`);
   open.append(icon);
-  const thumbnail = document.createElement("img");
-  thumbnail.className = "file-thumbnail";
-  thumbnail.alt = "";
-  thumbnail.loading = "lazy";
-  thumbnail.decoding = "async";
-  thumbnail.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
-  thumbnail.addEventListener("error", () => {
-    if (category === "videos") {
-      createVideoThumbnail(file, thumbnail);
-    } else if (category === "photos") {
-      thumbnail.src = `/api/files/${encodeURIComponent(file.id)}`;
-      thumbnail.addEventListener("error", () => thumbnail.remove(), { once: true });
-    } else {
-      thumbnail.remove();
-    }
-  }, { once: true });
-  open.append(thumbnail);
-  if (category === "videos") {
+
+  if (!file._uploading) {
+    const thumbnail = document.createElement("img");
+    thumbnail.className = "file-thumbnail";
+    thumbnail.alt = "";
+    thumbnail.loading = "lazy";
+    thumbnail.decoding = "async";
+    thumbnail.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
+    thumbnail.addEventListener("error", () => {
+      if (category === "videos") {
+        createVideoThumbnail(file, thumbnail);
+      } else if (category === "photos") {
+        thumbnail.src = `/api/files/${encodeURIComponent(file.id)}`;
+        thumbnail.addEventListener("error", () => thumbnail.remove(), { once: true });
+      } else {
+        thumbnail.remove();
+      }
+    }, { once: true });
+    open.append(thumbnail);
+  }
+
+  if (category === "videos" && !file._uploading) {
     const play = document.createElement("span");
     play.className = "thumbnail-play";
     play.textContent = "▶";
     play.setAttribute("aria-hidden", "true");
     open.append(play);
   }
+
+  // Tags overlay matching screenshots
+  const tagsWrap = document.createElement("div");
+  tagsWrap.className = "master-card-tags";
+  if (file._uploading) {
+    const uploadTag = document.createElement("span");
+    uploadTag.className = "master-card-tag tag-salmon";
+    uploadTag.textContent = "Uploading...";
+    tagsWrap.append(uploadTag);
+  } else {
+    const tag = document.createElement("span");
+    tag.className = `master-card-tag ${category === "videos" ? "tag-video" : category === "photos" ? "tag-photo" : "tag-purple"}`;
+    tag.textContent = category === "videos" ? "Video" : category === "photos" ? "Photo" : "Doc";
+    tagsWrap.append(tag);
+  }
+  open.append(tagsWrap);
 
   const details = document.createElement("div");
   details.className = "library-file-details";
@@ -1991,15 +1944,18 @@ function createFileCard(file) {
   name.title = file.name;
   name.addEventListener("click", (event) => {
     event.preventDefault();
-    openPreview(file);
+    if (!file._uploading) openPreview(file);
   });
   details.append(name);
   const actions = document.createElement("div");
   actions.className = "file-actions";
-  const menuButton = createButton("⋮", "file-action-btn", (event) => {
-    event.stopPropagation();
-    openFileActionSheet(file);
-  }, `More actions for ${file.name}`);
+  if (!file._uploading) {
+    const menuButton = createButton("⋮", "file-action-btn", (event) => {
+      event.stopPropagation();
+      openFileActionSheet(file);
+    }, `More actions for ${file.name}`);
+    actions.append(menuButton);
+  }
   card.append(open, details, actions);
   card.addEventListener("click", () => updateInspectorPane(file));
   card.addEventListener("pointerenter", () => updateInspectorPane(file));
@@ -2542,6 +2498,8 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
         if (xhr.status >= 200 && xhr.status < 300) {
           item.remove();
           if (result.file) {
+            const optIdx = allFiles.findIndex((f) => f._uploading && f.name === file.name);
+            if (optIdx !== -1) allFiles.splice(optIdx, 1);
             allFiles.unshift(result.file);
             renderLibrary();
             renderHomeDashboard();
@@ -2666,6 +2624,8 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
                 onProgress(file.size);
                 status.textContent = "Complete!";
                 setTimeout(() => item.remove(), 400);
+                const optIdx = allFiles.findIndex((f) => f._uploading && f.name === file.name);
+                if (optIdx !== -1) allFiles.splice(optIdx, 1);
                 allFiles.unshift(res.file);
                 renderLibrary();
                 renderHomeDashboard();
@@ -2702,13 +2662,43 @@ async function uploadMany(files, relativePathForFile = () => "") {
   if (!checkCanUpload()) return;
   const queue = [...files];
   if (!queue.length) return;
+
+  // 1. Optimistic Instant UI: Prepend all files immediately so they appear in UI within milliseconds!
+  for (const f of queue) {
+    const tempId = `opt_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    allFiles.unshift({
+      id: tempId,
+      name: f.name,
+      size: f.size,
+      type: f.type || "application/octet-stream",
+      uploadedAt: new Date().toISOString(),
+      folderId: activeFolderId,
+      _uploading: true
+    });
+  }
+  renderLibrary();
+  renderHomeDashboard();
+
+  // 2. Topbar progress pill and popover setup
   const pill = document.querySelector("#upload-status-pill");
   const countSpan = document.querySelector("#upload-status-count");
-  if (pill && countSpan) {
-    pill.classList.remove("hidden");
-    countSpan.textContent = `Uploading ${queue.length} file${queue.length === 1 ? "" : "s"}...`;
-    pill.onclick = () => uploadQueue.classList.toggle("collapsed");
+  const popover = document.querySelector("#upload-popover");
+  const popoverBody = document.querySelector("#upload-popover-body");
+  const popoverClose = document.querySelector("#upload-popover-close");
+  if (popoverClose) {
+    popoverClose.onclick = (e) => {
+      e.stopPropagation();
+      popover?.classList.add("hidden");
+    };
   }
+  if (pill) {
+    pill.classList.remove("hidden");
+    pill.onclick = (e) => {
+      e.stopPropagation();
+      popover?.classList.toggle("hidden");
+    };
+  }
+
   const totalFiles = queue.length;
   const validTotal = queue.reduce((sum, file) => sum + (file.size <= maxFileSize ? file.size : 0), 0);
   const loadedBytes = new Map(queue.map((file) => [file, 0]));
@@ -2727,18 +2717,19 @@ async function uploadMany(files, relativePathForFile = () => "") {
   const batchItems = document.createElement("div");
   batchItems.className = "upload-batch-items";
   batch.append(summary, batchItems);
-  uploadQueue.append(batch);
+  
+  if (popoverBody) popoverBody.append(batch);
+  else uploadQueue.append(batch);
+
   const updateSummary = () => {
     const transferred = [...loadedBytes.values()].reduce((sum, value) => sum + value, 0);
     const percent = validTotal ? Math.min(100, Math.round(transferred / validTotal * 100)) : 0;
     summaryProgress.value = percent;
-    summaryText.textContent = `Progress ${percent}% · ${completed}/${totalFiles} uploaded · ${uploading} uploading · ${queue.length} waiting · ${failed} failed · ${formatSize(transferred)} / ${formatSize(validTotal)}`;
+    summaryText.textContent = `${percent}% · ${completed}/${totalFiles} uploaded`;
     if (pill && countSpan) {
       if (uploading > 0 || queue.length > 0) {
         pill.classList.remove("hidden");
-        countSpan.textContent = `${uploading} uploading (${percent}%)`;
-      } else {
-        pill.classList.add("hidden");
+        countSpan.textContent = `Uploading ${uploading} (${percent}%)`;
       }
     }
   };
@@ -2754,12 +2745,28 @@ async function uploadMany(files, relativePathForFile = () => "") {
         updateSummary();
       });
       uploading -= 1;
-      if (success) completed += 1;
-      else failed += 1;
+      if (success) {
+        completed += 1;
+      } else {
+        failed += 1;
+        const optIdx = allFiles.findIndex((f) => f._uploading && f.name === file.name);
+        if (optIdx !== -1) {
+          allFiles.splice(optIdx, 1);
+          renderLibrary();
+          renderHomeDashboard();
+        }
+      }
       updateSummary();
     }
   }));
-  if (pill) pill.classList.add("hidden");
+
+  if (pill && countSpan) {
+    countSpan.textContent = failed ? `${completed} done, ${failed} failed` : "All uploaded ✓";
+    setTimeout(() => {
+      pill.classList.add("hidden");
+      popover?.classList.add("hidden");
+    }, 2500);
+  }
   if (!failed) {
     batch.remove();
   } else {

@@ -2,15 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
     <meta name="theme-color" content="#dbeafe">
     <meta name="description" content="DGx Cloud — 100% Master Frosted Glassmorphism Telegram Cloud Storage.">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=8.0">
-    <script src="/app.js?v=8.0" defer></script>
+    <link rel="stylesheet" href="/style.css?v=9.0">
+    <script src="/app.js?v=9.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -81,7 +81,7 @@
         <button class="button button-outline vault-back-btn" id="vault-back-btn" type="button">← Back to Library</button>
         <button class="dialog-close" id="vault-close" type="button" aria-label="Close Vault">×</button>
         <span class="section-kicker">PRIVATE LIBRARY</span>
-        <h2 id="vault-title">🔒 Private Vault</h2>
+        <h2 id="vault-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22" style="display:inline-block;vertical-align:middle;margin-right:8px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Private Vault</h2>
         <p class="vault-notice">Vault files are hidden from the normal library and admin account view, protected by your personal passcode.</p>
         <section class="vault-setup hidden" id="vault-setup">
           <h3 id="vault-setup-title">Set a Vault passcode</h3>
@@ -182,35 +182,35 @@
 
           <nav class="sidebar-nav">
             <button class="sidebar-item is-active" id="sidebar-dash-btn" type="button">
-              <span class="sidebar-icon">🏠</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"/></svg></span>
               <span class="sidebar-label">Dashboard</span>
             </button>
             <button class="sidebar-item" id="sidebar-files-btn" type="button">
-              <span class="sidebar-icon">📁</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span>
               <span class="sidebar-label">All Files</span>
             </button>
             <button class="sidebar-item" id="sidebar-recents-btn" type="button">
-              <span class="sidebar-icon">🕒</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></span>
               <span class="sidebar-label">Recents</span>
             </button>
             <button class="sidebar-item" id="sidebar-starred-btn" type="button">
-              <span class="sidebar-icon">⭐</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12,2 15,9 22,9 17,14 19,21 12,16 5,21 7,14 2,9 9,9"/></svg></span>
               <span class="sidebar-label">Starred</span>
             </button>
             <button class="sidebar-item" id="sidebar-shared-btn" type="button">
-              <span class="sidebar-icon">🔗</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg></span>
               <span class="sidebar-label">Shared Links</span>
             </button>
             <button class="sidebar-item" id="sidebar-vault-btn" type="button">
-              <span class="sidebar-icon">🔒</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
               <span class="sidebar-label">Private Vault</span>
             </button>
             <button class="sidebar-item sidebar-admin-item hidden" id="sidebar-admin-btn" type="button">
-              <span class="sidebar-icon">👑</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg></span>
               <span class="sidebar-label">Admin Console</span>
             </button>
             <button class="sidebar-item" id="sidebar-trash-btn" type="button">
-              <span class="sidebar-icon">🗑</span>
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></span>
               <span class="sidebar-label">Trash</span>
             </button>
           </nav>
@@ -221,7 +221,7 @@
             <div class="sidebar-storage-fill" id="sidebar-storage-bar" style="width: 14%;"></div>
           </div>
           <div class="sidebar-storage-text">
-            <strong id="sidebar-storage-used">14.2 GB</strong> <span class="sidebar-storage-total">of 2 TB</span>
+          <strong id="sidebar-storage-used">0 B</strong> <span class="sidebar-storage-total">· Unlimited</span>
           </div>
         </div>
       </aside>
@@ -255,36 +255,42 @@
           </div>
 
           <div class="topbar-right-zone">
-            <!-- Live Synced Badge -->
-            <div class="live-synced-badge" id="live-synced-badge">
-              <span class="sync-dot"></span>
-              <span>Live Synced</span>
-              <span class="tg-plane">✈</span>
-            </div>
-
             <!-- Upload progress pill -->
-            <button class="upload-status-pill hidden" id="upload-status-pill" type="button" title="View uploading progress"><span class="upload-spinner">⏳</span> <span id="upload-status-count">Uploading...</span></button>
+            <button class="upload-status-pill hidden" id="upload-status-pill" type="button" title="View uploading progress">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="16,16 12,12 8,16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+              <span id="upload-status-count">Uploading...</span>
+            </button>
             
             <!-- Admin quick button -->
-            <button class="admin-header-btn hidden" id="admin-header-btn" type="button" title="Open Admin Control Room"><span class="admin-crown-icon">👑</span> <span class="admin-btn-text">Admin</span></button>
-
-            <!-- Notifications Bell -->
-            <button class="icon-round-btn notif-bell-btn" id="notif-bell-btn" type="button" title="Notifications">🔔</button>
+            <button class="admin-header-btn hidden" id="admin-header-btn" type="button" title="Open Admin Control Room">
+              <svg class="admin-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+              <span class="admin-btn-text">Admin</span>
+            </button>
 
             <!-- Dark / Light theme toggle -->
-            <button class="icon-round-btn theme-toggle-btn" id="theme-toggle" type="button" title="Switch theme">🌓</button>
+            <button class="icon-round-btn theme-toggle-btn" id="theme-toggle" type="button" title="Switch theme">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+            </button>
+
+            <div class="upload-popover hidden" id="upload-popover">
+              <div class="upload-popover-head">
+                <span>Upload Progress</span>
+                <button type="button" class="upload-popover-close" id="upload-popover-close">✕</button>
+              </div>
+              <div class="upload-popover-body" id="upload-popover-body"></div>
+            </div>
 
             <!-- User Menu container -->
             <div class="user-menu-container">
               <button class="account-badge" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false">
-                <span class="account-avatar"><span class="account-avatar-fallback">👤</span><img id="account-avatar-image" alt="Telegram profile photo" class="hidden"></span>
+                <span class="account-avatar"><span class="account-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><img id="account-avatar-image" alt="Telegram profile photo" class="hidden"></span>
                 <strong id="account-email">Alex Harper</strong>
                 <span class="vip-badge hidden" id="vip-badge">VIP</span>
                 <span class="admin-badge hidden" id="admin-badge">ADMIN</span>
                 <span class="menu-arrow">▾</span>
               </button>
-              <button class="button button-primary upload-gradient-btn hidden" id="top-login-btn" type="button"><span class="upload-plus">⚡</span> Login</button>
-              <button class="button button-primary upload-gradient-btn hidden" id="start-login-button" type="button"><span class="upload-plus">⚡</span> Login with Telegram</button>
+              <button class="button button-primary upload-gradient-btn hidden" id="top-login-btn" type="button">Login</button>
+              <button class="button button-primary upload-gradient-btn hidden" id="start-login-button" type="button">Login with Telegram</button>
 
               <div class="user-menu-popover hidden" id="user-menu-popover" role="menu">
                 <div class="user-menu-header">
@@ -292,13 +298,13 @@
                   <span id="user-menu-sub">@user</span>
                 </div>
                 <hr class="user-menu-divider">
-                <button class="user-menu-item" id="menu-profile-btn" type="button">⚙ Profile & Passwords</button>
-                <button class="user-menu-item" id="menu-vault-btn" type="button">🔒 Private Vault</button>
-                <button class="user-menu-item hidden" id="menu-admin-btn" type="button">👑 Admin Console</button>
-                <button class="user-menu-item" id="menu-devices-btn" type="button">📱 Active Devices</button>
-                <button class="user-menu-item" id="menu-theme-btn" type="button">🌓 Switch Theme</button>
+                <button class="user-menu-item" id="menu-profile-btn" type="button">Profile &amp; Passwords</button>
+                <button class="user-menu-item" id="menu-vault-btn" type="button">Private Vault</button>
+                <button class="user-menu-item hidden" id="menu-admin-btn" type="button">Admin Console</button>
+                <button class="user-menu-item" id="menu-devices-btn" type="button">Active Devices</button>
+                <button class="user-menu-item" id="menu-theme-btn" type="button">Switch Theme</button>
                 <hr class="user-menu-divider">
-                <button class="user-menu-item is-destructive" id="logout-button" type="button">🚪 Sign out</button>
+                <button class="user-menu-item is-destructive" id="logout-button" type="button">Sign out</button>
               </div>
             </div>
           </div>
@@ -396,21 +402,21 @@
                     <circle cx="100" cy="100" r="76" class="donut-rainbow-stroke" id="rainbow-progress-circle" filter="url(#donut-neon-glow)" />
                   </svg>
                   <div class="master-donut-center-info">
-                    <span class="donut-pct" id="donut-pct-text">71%</span>
-                    <span class="donut-avail-top" id="donut-avail-top-text">5.8 GB Available</span>
-                    <strong class="donut-used-main" id="home-storage-total">14.2 GB</strong>
+                    <span class="donut-pct" id="donut-pct-text">∞</span>
+                    <span class="donut-avail-top" id="donut-avail-top-text">Unlimited Space</span>
+                    <strong class="donut-used-main" id="home-storage-total">0 B</strong>
                     <span class="donut-used-sub">Total Used</span>
-                    <span class="donut-avail-bottom" id="donut-avail-bottom-text">5.8 GB Available</span>
+                    <span class="donut-avail-bottom" id="donut-avail-bottom-text">Unlimited Available</span>
                   </div>
                 </div>
                 <div class="master-storage-legend-box" id="home-storage-breakdown">
                   <div class="master-legend-item">
                     <span class="legend-dot dot-cyan"></span>
-                    <span class="legend-text">Photos Videos (5.1 GB, 25%)</span>
+                    <span class="legend-text">Photos &amp; Videos</span>
                   </div>
                   <div class="master-legend-item">
                     <span class="legend-dot dot-purple"></span>
-                    <span class="legend-text">Private Vault (1.0 GB, 0%)</span>
+                    <span class="legend-text">Private Vault</span>
                   </div>
                 </div>
               </section>
@@ -424,28 +430,36 @@
                   </div>
                   <div class="master-category-tiles-2x2" id="home-category-tiles">
                     <div class="category-pill-card" data-category="photos">
-                      <div class="category-icon-box box-blue">🖼</div>
+                      <div class="category-icon-box box-blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      </div>
                       <div class="category-text-box">
                         <strong>Photos</strong>
-                        <span id="cat-photos-val">4,512 Items</span>
+                        <span id="cat-photos-val">0 Items</span>
                       </div>
                     </div>
                     <div class="category-pill-card" data-category="videos">
-                      <div class="category-icon-box box-coral">🎬</div>
+                      <div class="category-icon-box box-coral">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                      </div>
                       <div class="category-text-box">
                         <strong>Videos</strong>
-                        <span id="cat-videos-val">1,289 items</span>
+                        <span id="cat-videos-val">0 Items</span>
                       </div>
                     </div>
                     <div class="category-pill-card" data-category="other">
-                      <div class="category-icon-box box-teal">📄</div>
+                      <div class="category-icon-box box-teal">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+                      </div>
                       <div class="category-text-box">
                         <strong>Documents</strong>
-                        <span id="cat-docs-val">837 Items</span>
+                        <span id="cat-docs-val">0 Items</span>
                       </div>
                     </div>
                     <div class="category-pill-card" data-category="vault">
-                      <div class="category-icon-box box-purple">🔒</div>
+                      <div class="category-icon-box box-purple">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      </div>
                       <div class="category-text-box">
                         <strong>Private Vault</strong>
                         <span id="cat-vault-val">0 Items</span>
@@ -460,35 +474,7 @@
                     <h3>Recent Uploads</h3>
                   </div>
                   <div class="master-recents-grid-4col" id="home-recent-grid">
-                    <div class="master-recent-card" data-recent-mock="1">
-                      <div class="recent-card-thumb-wrap">
-                        <img class="recent-card-thumb-img" src="/assets/coastline.svg" alt="Photo" loading="lazy">
-                      </div>
-                      <span class="recent-card-title">Photo</span>
-                      <span class="recent-card-type">Photo</span>
-                    </div>
-                    <div class="master-recent-card" data-recent-mock="2">
-                      <div class="recent-card-thumb-wrap">
-                        <img class="recent-card-thumb-img" src="/assets/dog.svg" alt="Photo" loading="lazy">
-                      </div>
-                      <span class="recent-card-title">Photo</span>
-                      <span class="recent-card-type">Photo</span>
-                    </div>
-                    <div class="master-recent-card" data-recent-mock="3">
-                      <div class="recent-card-thumb-wrap">
-                        <img class="recent-card-thumb-img" src="/assets/mountain.svg" alt="Mountain Hike" loading="lazy">
-                        <span class="recent-card-play-overlay">▶</span>
-                      </div>
-                      <span class="recent-card-title">Mountain Hike</span>
-                      <span class="recent-card-type">MP4</span>
-                    </div>
-                    <div class="master-recent-card" data-recent-mock="4">
-                      <div class="recent-card-thumb-wrap">
-                        <img class="recent-card-thumb-img" src="/assets/q3_report.svg" alt="Q3 Report" loading="lazy">
-                      </div>
-                      <span class="recent-card-title">Q3 Report</span>
-                      <span class="recent-card-type">PDF</span>
-                    </div>
+                    <!-- Real files will appear here after upload -->
                   </div>
                 </section>
               </div>
@@ -500,7 +486,7 @@
             <!-- Breadcrumbs Toolbar -->
             <div class="master-library-header-row">
               <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path">
-                <span>Root</span> <span class="breadcrumb-separator">/</span> <span>Projects</span> <span class="breadcrumb-separator">/</span> <strong class="breadcrumb-current">2026_Media</strong>
+                <span>Root</span>
               </nav>
               <div class="hidden">
                 <input id="file-search" type="search" placeholder="Search files…">
@@ -513,25 +499,25 @@
             <div class="master-library-actions-bar" id="drive-sticky-toolbar">
               <div class="actions-pills-cluster">
                 <button class="toolbar-pill-btn pill-btn-gradient" id="upload-files-button" type="button" title="Upload files">
-                  <span class="pill-btn-icon">＋</span> Upload
+                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Upload
                 </button>
                 <button class="toolbar-pill-btn" id="new-folder-button" type="button" title="Create folder">
-                  <span class="pill-btn-icon">📁</span> New Folder
+                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> New Folder
                 </button>
                 <button class="toolbar-pill-btn" id="upload-folder-button" type="button" title="Upload folder">
-                  <span class="pill-btn-icon">📂</span> Folder
+                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><polyline points="12 11 12 17"/><polyline points="9 14 12 11 15 14"/></svg></span> Folder
                 </button>
                 <button class="toolbar-pill-btn" id="trash-toggle" type="button" title="Trash bin">
-                  <span class="pill-btn-icon">🗑</span> Trash
+                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span> Trash
                 </button>
                 <button class="toolbar-pill-btn pill-btn-danger hidden" id="empty-trash" type="button" title="Empty trash">
                   <span class="pill-btn-icon">✕</span> Delete all
                 </button>
                 <button class="toolbar-pill-btn" id="view-mode-toggle" type="button" title="View mode">
-                  <span class="pill-btn-icon" id="view-mode-icon">⊞</span> <span id="view-mode-label">Large View (3 in row)</span>
+                  <span class="pill-btn-icon" id="view-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> <span id="view-mode-label">Large View (3 in row)</span>
                 </button>
                 <button class="toolbar-pill-btn" id="sort-mode-toggle" type="button" title="Sort files">
-                  <span class="pill-btn-icon">⇅</span> <span id="sort-mode-label">Sort: Newest ▾</span>
+                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/></svg></span> <span id="sort-mode-label">Sort: Newest ▾</span>
                 </button>
               </div>
               <div class="actions-meta-cluster">
@@ -551,12 +537,12 @@
               <div class="selection-actions">
                 <button class="drive-pill-btn" id="select-all-items" type="button">Select all</button>
                 <button class="drive-pill-btn hidden" id="download-selected" type="button">↓ Download</button>
-                <button class="drive-pill-btn" id="move-selected" type="button">📁 Move</button>
-                <button class="drive-pill-btn" id="copy-selected" type="button">📄 Copy</button>
-                <button class="drive-pill-btn hidden" id="vault-selected" type="button">🔒 Move to Vault</button>
-                <button class="drive-pill-btn drive-pill-danger" id="trash-selected" type="button">🗑 Move to Trash</button>
-                <button class="drive-pill-btn hidden" id="paste-selected" type="button">📋 Paste</button>
-                <button class="drive-pill-btn hidden" id="restore-selected" type="button">↺ Restore</button>
+                <button class="drive-pill-btn" id="move-selected" type="button">Move</button>
+                <button class="drive-pill-btn" id="copy-selected" type="button">Copy</button>
+                <button class="drive-pill-btn hidden" id="vault-selected" type="button">Move to Vault</button>
+                <button class="drive-pill-btn drive-pill-danger" id="trash-selected" type="button">Move to Trash</button>
+                <button class="drive-pill-btn hidden" id="paste-selected" type="button">Paste</button>
+                <button class="drive-pill-btn hidden" id="restore-selected" type="button">Restore</button>
                 <button class="drive-pill-btn drive-pill-danger hidden" id="delete-selected" type="button">Delete</button>
               </div>
               <span class="selection-download-status" id="selection-download-status" role="status"></span>
@@ -567,150 +553,42 @@
               <div class="master-files-container">
                 <div class="folder-grid" id="folder-list"></div>
                 <div class="library-file-grid master-3col-file-grid" id="file-list" data-view="large">
-                  <article class="library-file-card master-mock-card" data-mock-name="IMG_01.jpg" data-mock-src="/assets/coastline.svg" data-mock-type="photo">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/coastline.svg" alt="IMG_01.jpg" loading="lazy">
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">IMG_01.jpg</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="Project_Video.mp4" data-mock-src="/assets/mountain.svg" data-mock-type="video">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/mountain.svg" alt="Project_Video.mp4" loading="lazy">
-                      <span class="thumbnail-play">▶</span>
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                        <span class="master-card-tag tag-purple">Tages</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">Project_Video.mp4</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="IMG_02.jpg" data-mock-src="/assets/mountain.svg" data-mock-type="video">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/mountain.svg" alt="IMG_02.jpg" loading="lazy">
-                      <span class="thumbnail-play">▶</span>
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                        <span class="master-card-tag tag-purple">Tages</span>
-                        <span class="master-card-tag tag-salmon">Tages</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">IMG_02.jpg</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="Project_Video_02.mp4" data-mock-src="/assets/mountain.svg" data-mock-type="video">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/mountain.svg" alt="Project_Video_02.mp4" loading="lazy">
-                      <span class="thumbnail-play">▶</span>
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-video">Videos</span>
-                        <span class="master-card-tag tag-green">Tags</span>
-                        <span class="master-card-tag tag-salmon">Tages</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">Project_Video_02.mp4</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="Dog_Park_Photo.jpg" data-mock-src="/assets/dog.svg" data-mock-type="photo">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/dog.svg" alt="Dog_Park_Photo.jpg" loading="lazy">
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">Dog_Park_Photo.jpg</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="Pug_Portrait.jpg" data-mock-src="/assets/pug.svg" data-mock-type="photo">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/pug.svg" alt="Pug_Portrait.jpg" loading="lazy">
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">Pug_Portrait.jpg</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="Sunset_Pier.jpg" data-mock-src="/assets/pier.svg" data-mock-type="photo">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/pier.svg" alt="Sunset_Pier.jpg" loading="lazy">
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">Sunset_Pier.jpg</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="Dog_Park_Photo_02.jpg" data-mock-src="/assets/dog.svg" data-mock-type="photo">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/dog.svg" alt="Dog_Park_Photo_02.jpg" loading="lazy">
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">Dog_Park_Photo_02.jpg</span>
-                    </div>
-                  </article>
-
-                  <article class="library-file-card master-mock-card" data-mock-name="IMG_03.jpg" data-mock-src="/assets/coastline.svg" data-mock-type="photo">
-                    <div class="file-preview">
-                      <img class="file-thumbnail" src="/assets/coastline.svg" alt="IMG_03.jpg" loading="lazy">
-                      <div class="master-card-tags">
-                        <span class="master-card-tag tag-photo">Photo</span>
-                      </div>
-                    </div>
-                    <div class="library-file-details">
-                      <span class="file-name">IMG_03.jpg</span>
-                    </div>
-                  </article>
+                  <!-- Files will load here after login -->
                 </div>
                 <div class="empty-state hidden" id="empty-state">
-                  <span class="empty-icon" aria-hidden="true">▱</span>
+                  <span class="empty-icon" aria-hidden="true">
+                    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" opacity="0.4"><rect x="8" y="16" width="48" height="36" rx="4"/><path d="M8 24h48"/><path d="M20 12h24"/></svg>
+                  </span>
                   <strong>Your cloud is ready</strong>
-                  <span>Files you upload will appear here.</span>
+                  <span>Upload files to get started.</span>
                 </div>
               </div>
 
-              <!-- Right Inspector Pane (Matching dgx_cloud_master_lib) -->
+              <!-- Right Inspector Pane -->
               <aside class="master-inspector-pane" id="library-inspector-pane">
                 <div class="inspector-media-box" id="inspector-preview-wrap">
-                  <img id="inspector-preview-img" class="inspector-media-element" src="/assets/mountain.svg" alt="Selected preview">
-                  <video id="inspector-preview-video" class="inspector-media-element hidden" playsinline></video>
-                  <div class="inspector-play-btn" id="inspector-play-overlay">▶</div>
+                  <img id="inspector-preview-img" class="inspector-media-element" src="" alt="Selected preview" style="display:none">
+                  <video id="inspector-preview-video" class="inspector-media-element hidden" playsinline preload="metadata"></video>
+                  <div class="inspector-play-btn hidden" id="inspector-play-overlay">▶</div>
+                  <div class="inspector-empty-state" id="inspector-empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36" opacity="0.3"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+                    <span>Select a file to preview</span>
+                  </div>
                 </div>
                 <div class="inspector-info-group">
-                  <strong class="inspector-file-title" id="inspector-title">Selected: Video_01.mp4</strong>
-                  <p class="inspector-file-meta" id="inspector-meta">4K UHD • 1.2 GB • 60fps</p>
-                  <div class="inspector-stream-badge" id="inspector-stream-badge">
+                  <strong class="inspector-file-title" id="inspector-title">No file selected</strong>
+                  <p class="inspector-file-meta" id="inspector-meta">Select a file to see details</p>
+                  <div class="inspector-stream-badge hidden" id="inspector-stream-badge">
                     <span class="stream-check">✔</span> Instant Stream Ready
                   </div>
-                  <div class="inspector-share-box">
+                  <div class="inspector-share-box hidden" id="inspector-share-box">
                     <span class="share-box-label">Shareable Link:</span>
                     <div class="share-box-row">
-                      <input type="text" id="inspector-share-link" readonly value="https://www.linkpopthams.com/?selected/Video_03=02601.mp4">
+                      <input type="text" id="inspector-share-link" readonly value="">
                       <button type="button" class="inspector-copy-btn" id="inspector-copy-btn" title="Copy Link">⧉</button>
                     </div>
                   </div>
-                  <a class="inspector-download-button" id="inspector-download-btn" href="#" download>Download</a>
+                  <a class="inspector-download-button hidden" id="inspector-download-btn" href="#" download>Download</a>
                 </div>
               </aside>
             </div>
@@ -881,23 +759,23 @@
     <!-- Mobile Bottom Dock (Matching mobile view mockup) -->
     <nav class="mobile-bottom-dock" id="mobile-bottom-dock">
       <button class="dock-btn is-active" id="dock-dash-btn" type="button" title="Dashboard">
-        <span class="dock-icon">🏠</span>
+        <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"/></svg></span>
         <span class="dock-label">Dashboard</span>
       </button>
       <button class="dock-btn" id="dock-files-btn" type="button" title="Files">
-        <span class="dock-icon">📁</span>
+        <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span>
         <span class="dock-label">Files</span>
       </button>
       <button class="dock-btn dock-btn-upload" id="dock-upload-btn" type="button" title="Upload file">
-        <span class="dock-icon-plus">＋</span>
+        <span class="dock-icon-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
         <span class="dock-label">Upload</span>
       </button>
       <button class="dock-btn" id="dock-vault-btn" type="button" title="Vault">
-        <span class="dock-icon">🔒</span>
+        <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
         <span class="dock-label">Vault</span>
       </button>
       <button class="dock-btn" id="dock-profile-btn" type="button" title="Profile">
-        <span class="dock-icon">👤</span>
+        <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
         <span class="dock-label">Profil</span>
       </button>
     </nav>
