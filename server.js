@@ -1085,7 +1085,7 @@ function publicUser(user) {
     isAdmin: isAdminUser(user),
     hasPassword: Boolean(user.passwordHash && !user.passwordResetRequired),
     credentialResetRequired: Boolean(user.passwordResetRequired),
-    apiEnabled: user.apiEnabled !== false,
+    apiEnabled: user.apiEnabled === true,
   };
 }
 
@@ -2774,7 +2774,7 @@ async function handleApi(req, res, url) {
       k.bytesUsed = kFiles.reduce((sum, f) => sum + f.size, 0);
     }
     return sendJson(res, 200, {
-      apiEnabled: user.apiEnabled !== false,
+      apiEnabled: user.apiEnabled === true,
       keys: keys.map((k) => ({
         id: k.id,
         name: k.name,

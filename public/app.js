@@ -267,6 +267,12 @@ function updateNavActive(activeTab) {
   } else if (activeTab === "vault") {
     document.querySelector("#sidebar-vault-btn")?.classList.add("is-active");
     document.querySelector("#dock-vault-btn")?.classList.add("is-active");
+  } else if (activeTab === "profile") {
+    document.querySelector("#sidebar-profile-btn")?.classList.add("is-active");
+    document.querySelector("#dock-profile-btn")?.classList.add("is-active");
+  } else if (activeTab === "api") {
+    document.querySelector("#sidebar-api-btn")?.classList.add("is-active");
+    document.querySelector("#dock-api-btn")?.classList.add("is-active");
   } else if (activeTab === "admin") {
     document.querySelector("#sidebar-admin-btn")?.classList.add("is-active");
   } else if (activeTab === "trash") {
@@ -274,19 +280,26 @@ function updateNavActive(activeTab) {
   }
 }
 
+function hideAllMainViews() {
+  welcomeView?.classList.add("hidden");
+  authView?.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
+  dashboardView?.classList.add("hidden");
+  adminView?.classList.add("hidden");
+  accountLockView?.classList.add("hidden");
+  document.querySelector("#profile-view")?.classList.add("hidden");
+  document.querySelector("#api-view")?.classList.add("hidden");
+}
+
 function openAuthModal() {
   if (currentUser) return;
+  hideAllMainViews();
   authView.classList.remove("hidden");
-  if (homeDashboardView) homeDashboardView.classList.add("hidden");
-  if (dashboardView) dashboardView.classList.add("hidden");
   startQrLogin();
 }
 
 function showHome() {
-  welcomeView.classList.add("hidden");
-  authView.classList.add("hidden");
-  dashboardView.classList.add("hidden");
-  adminView.classList.add("hidden");
+  hideAllMainViews();
   if (homeDashboardView) homeDashboardView.classList.remove("hidden");
   document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
   document.querySelector("#topbar-search-wrap")?.classList.remove("hidden");
@@ -308,15 +321,13 @@ async function showHomeDashboard() {
 
 async function showLibrary() {
   if (accountLocked) {
+    hideAllMainViews();
     accountLockView.classList.remove("hidden");
     document.querySelector("#account-lock-pin")?.focus();
     return;
   }
-  welcomeView.classList.add("hidden");
-  authView.classList.add("hidden");
-  if (homeDashboardView) homeDashboardView.classList.add("hidden");
-  adminView.classList.add("hidden");
-  dashboardView.classList.remove("hidden");
+  hideAllMainViews();
+  dashboardView?.classList.remove("hidden");
   document.querySelector("#topbar-breadcrumb-pill")?.classList.remove("hidden");
   document.querySelector("#topbar-search-wrap")?.classList.add("hidden");
   updateNavActive("files");
@@ -335,12 +346,10 @@ function showSignedOut() {
   accountLockView.classList.add("hidden");
   credentialResetAfterQr = false;
   startLoginButton.textContent = "Login with Telegram →";
-  welcomeView.classList.add("hidden");
-  authView.classList.add("hidden");
-  dashboardView.classList.add("hidden");
+  hideAllMainViews();
   if (homeDashboardView) homeDashboardView.classList.remove("hidden");
-  adminView.classList.add("hidden");
   logoutButton.classList.add("hidden");
+  updateApiToggleUI(false);
 
   // Keep master frosted app shell active and visible so visitor always sees the new UI
   document.body.classList.add("is-signed-in");
@@ -386,12 +395,9 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   window.clearTimeout(pollTimer);
   currentUser = user;
   document.body.classList.add("is-signed-in");
-  welcomeView.classList.add("hidden");
-  authView.classList.add("hidden");
-  dashboardView.classList.add("hidden");
-  if (homeDashboardView) homeDashboardView.classList.add("hidden");
-  accountLockView.classList.add("hidden");
-  adminView.classList.add("hidden");
+  hideAllMainViews();
+  const isApiOn = user.apiEnabled === true || window.localStorage.getItem("dgcloud-api-enabled") === "true";
+  updateApiToggleUI(isApiOn);
   logoutButton.classList.remove("hidden");
   themeToggle.classList.remove("hidden");
   accountBadge.classList.remove("hidden");
@@ -1178,10 +1184,7 @@ async function enterAdminConsole() {
     return;
   }
   window.clearTimeout(pollTimer);
-  welcomeView.classList.add("hidden");
-  authView.classList.add("hidden");
-  dashboardView.classList.add("hidden");
-  if (homeDashboardView) homeDashboardView.classList.add("hidden");
+  hideAllMainViews();
   featureStrip?.classList.add("hidden");
   adminView.classList.remove("hidden");
   adminAccountView.classList.add("hidden");
@@ -1525,13 +1528,17 @@ function renderHomeDashboard() {
   // Connect Developer API Suite toggle switch
   const apiToggle = document.querySelector("#api-feature-toggle");
   if (apiToggle) {
-    const isApiOn = currentUser?.apiEnabled !== false && window.localStorage.getItem("dgcloud-api-enabled") !== "false";
+    const isApiOn = currentUser?.apiEnabled === true || window.localStorage.getItem("dgcloud-api-enabled") === "true";
     apiToggle.checked = isApiOn;
     updateApiToggleUI(isApiOn);
     apiToggle.onchange = async () => {
       const enabled = apiToggle.checked;
       window.localStorage.setItem("dgcloud-api-enabled", enabled ? "true" : "false");
+      if (currentUser) currentUser.apiEnabled = enabled;
       updateApiToggleUI(enabled);
+      if (!enabled && !document.querySelector("#api-view")?.classList.contains("hidden")) {
+        showHome();
+      }
       try {
         await api("/api/developer/toggle", { method: "POST", body: JSON.stringify({ enabled }) });
       } catch {}
@@ -4223,12 +4230,7 @@ function showProfile() {
     openAuthModal();
     return;
   }
-  welcomeView.classList.add("hidden");
-  authView.classList.add("hidden");
-  dashboardView.classList.add("hidden");
-  adminView.classList.add("hidden");
-  if (homeDashboardView) homeDashboardView.classList.add("hidden");
-  document.querySelector("#api-view")?.classList.add("hidden");
+  hideAllMainViews();
   const profileView = document.querySelector("#profile-view");
   if (profileView) profileView.classList.remove("hidden");
   document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
@@ -4242,12 +4244,7 @@ function showApi() {
     openAuthModal();
     return;
   }
-  welcomeView.classList.add("hidden");
-  authView.classList.add("hidden");
-  dashboardView.classList.add("hidden");
-  adminView.classList.add("hidden");
-  if (homeDashboardView) homeDashboardView.classList.add("hidden");
-  document.querySelector("#profile-view")?.classList.add("hidden");
+  hideAllMainViews();
   const apiView = document.querySelector("#api-view");
   if (apiView) apiView.classList.remove("hidden");
   document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
