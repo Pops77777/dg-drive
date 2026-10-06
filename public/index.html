@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#f5f8ff">
     <meta name="description" content="DGx Cloud — a premium personal file library, securely organised with Telegram Saved Messages.">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css">
-    <script src="/app.js" defer></script>
+    <link rel="stylesheet" href="/style.css?v=2.5">
+    <script src="/app.js?v=2.5" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -16,13 +16,13 @@
         <span>DGx <span class="brand-accent">Cloud</span></span>
       </a>
       <nav class="topnav" aria-label="Main navigation">
-        <a href="#welcome-view" id="home-nav-link">Home</a>
+        <a href="#home-dashboard-view" id="home-nav-link">Home Library</a>
         <a href="#dashboard-view" id="library-nav-link">Library</a>
         <a href="#upload-files-button" id="upload-nav-link">Upload</a>
       </nav>
       <div class="header-actions">
         <button class="upload-status-pill hidden" id="upload-status-pill" type="button" title="View uploading progress"><span class="upload-spinner">⏳</span> <span id="upload-status-count">Uploading...</span></button>
-        <button class="admin-header-btn hidden" id="admin-header-btn" type="button" title="Open Admin Control Room"><span class="admin-crown-icon">👑</span> <span class="admin-btn-text">Admin</span></button>
+        <button class="admin-header-btn hidden" id="admin-header-btn" type="button" title="Open Admin Control Room" hidden aria-hidden="true"><span class="admin-crown-icon">👑</span> <span class="admin-btn-text">Admin</span></button>
         <div class="user-menu-container">
           <button class="account-badge hidden" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false"><span class="account-avatar"><span class="account-avatar-fallback" aria-hidden="true">☁</span><img id="account-avatar-image" alt="Telegram profile photo"></span><strong id="account-email"></strong><span class="vip-badge hidden" id="vip-badge">VIP</span><span class="admin-badge hidden" id="admin-badge">ADMIN</span><span class="menu-arrow">▾</span></button>
           <div class="user-menu-popover hidden" id="user-menu-popover" role="menu">
@@ -161,16 +161,16 @@
             <label class="account-lock-toggle"><input id="account-lock-enabled" type="checkbox"> Ask for a PIN when this website opens</label>
             <label class="field-label" for="account-lock-current-pin">Current lock PIN</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="account-lock-current-pin" type="password" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Current PIN (min 4 digits)">
+              <input class="field-input" id="account-lock-current-pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Current PIN (min 4 digits)">
               <button class="password-toggle" type="button" data-password-toggle="account-lock-current-pin" aria-label="Show current lock PIN" aria-pressed="false">Show</button>
             </div>
             <label class="field-label" for="account-lock-new-pin">New lock PIN <span>(optional to keep existing PIN)</span></label>
             <div class="password-input-wrap">
-              <input class="field-input" id="account-lock-new-pin" type="password" autocomplete="new-password" minlength="4" maxlength="128" placeholder="4-digit PIN (min 4 digits)">
+              <input class="field-input" id="account-lock-new-pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="128" placeholder="4-digit PIN (min 4 digits)">
               <button class="password-toggle" type="button" data-password-toggle="account-lock-new-pin" aria-label="Show new lock PIN" aria-pressed="false">Show</button>
             </div>
             <label class="field-label" for="account-lock-confirm-pin">Confirm new lock PIN</label>
-            <input class="field-input" id="account-lock-confirm-pin" type="password" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Confirm 4-digit PIN">
+            <input class="field-input" id="account-lock-confirm-pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Confirm 4-digit PIN">
             <div class="dialog-actions">
               <button class="button button-outline" id="account-lock-save" type="button">Save lock settings</button>
             </div>
@@ -195,14 +195,14 @@
               <input class="field-input" id="vault-account-password" type="password" autocomplete="current-password" maxlength="128">
               <button class="password-toggle" type="button" data-password-toggle="vault-account-password" aria-label="Show account password" aria-pressed="false">Show</button>
             </div>
-            <label class="field-label" for="vault-new-passcode">New passcode (4+ characters)</label>
+            <label class="field-label" for="vault-new-passcode">New passcode (4+ digits)</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="vault-new-passcode" type="password" autocomplete="new-password" minlength="4" maxlength="128">
+              <input class="field-input" id="vault-new-passcode" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="128">
               <button class="password-toggle" type="button" data-password-toggle="vault-new-passcode" aria-label="Show new Vault passcode" aria-pressed="false">Show</button>
             </div>
             <label class="field-label" for="vault-confirm-passcode">Confirm passcode</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="vault-confirm-passcode" type="password" autocomplete="new-password" minlength="4" maxlength="128">
+              <input class="field-input" id="vault-confirm-passcode" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" minlength="4" maxlength="128">
               <button class="password-toggle" type="button" data-password-toggle="vault-confirm-passcode" aria-label="Show passcode confirmation" aria-pressed="false">Show</button>
             </div>
             <button class="button button-primary" id="vault-create-button" type="submit">Create passcode</button>
@@ -210,7 +210,7 @@
           <section class="vault-unlock hidden" id="vault-unlock">
             <label class="field-label" for="vault-passcode">Vault passcode</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="vault-passcode" type="password" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Enter 4-digit passcode">
+              <input class="field-input" id="vault-passcode" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Enter 4-digit passcode">
               <button class="password-toggle" type="button" data-password-toggle="vault-passcode" aria-label="Show Vault passcode" aria-pressed="false">Show</button>
             </div>
             <button class="button button-primary" id="vault-unlock-button" type="button">Unlock Vault</button>
@@ -262,7 +262,7 @@
           <form id="account-lock-form">
             <label class="field-label" for="account-lock-pin">Account lock PIN</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="account-lock-pin" type="password" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Enter 4-digit PIN" required>
+              <input class="field-input" id="account-lock-pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Enter 4-digit PIN" required>
               <button class="password-toggle" type="button" data-password-toggle="account-lock-pin" aria-label="Show account lock PIN" aria-pressed="false">Show</button>
             </div>
             <button class="button button-primary" id="account-lock-submit" type="submit">Unlock account</button>
@@ -271,6 +271,54 @@
           <button class="text-button" id="account-lock-signout" type="button">Sign out instead</button>
           <button class="text-button" id="account-lock-forgot" type="button">Forgot PIN? Verify with Telegram QR</button>
         </div>
+      </section>
+
+      <section class="home-dashboard hidden" id="home-dashboard-view">
+        <div class="home-dashboard-header">
+          <div>
+            <span class="section-kicker">PERSONAL CLOUD OVERVIEW</span>
+            <h2>🏠 Home Library</h2>
+            <p class="account-line">Overview of your storage, media categories, and recent uploads</p>
+          </div>
+          <div class="home-dashboard-actions">
+            <button class="button button-primary" id="home-open-library-btn" type="button">Open Library →</button>
+            <button class="button button-outline" id="home-upload-trigger" type="button">↑ Upload</button>
+            <button class="button button-outline" id="home-refresh-trigger" type="button">↻ Refresh</button>
+          </div>
+        </div>
+
+        <div class="home-overview-grid">
+          <section class="storage-card home-storage-card" aria-label="Storage summary">
+            <div class="home-card-title">
+              <h3>Storage Overview</h3>
+              <span class="storage-pill" id="home-storage-pill">Total Used</span>
+            </div>
+            <div class="storage-total">
+              <img class="storage-ring" id="home-storage-ring" alt="" aria-hidden="true">
+              <span><strong id="home-storage-total">0 B</strong><small>Total used</small></span>
+            </div>
+            <div class="storage-breakdown" id="home-storage-breakdown"></div>
+          </section>
+
+          <section class="home-categories-card" aria-label="Media Categories">
+            <div class="home-card-title">
+              <h3>Media Categories</h3>
+              <span class="home-sub-text">Click a category to browse in Library</span>
+            </div>
+            <div class="home-category-tiles" id="home-category-tiles"></div>
+          </section>
+        </div>
+
+        <section class="home-recent-section" aria-label="Recent uploads">
+          <div class="home-recent-header">
+            <div>
+              <h3>Recent Uploads</h3>
+              <p>Quick access to your latest photos, videos, and files</p>
+            </div>
+            <button class="button button-quiet" id="home-view-all-btn" type="button">View all in Library →</button>
+          </div>
+          <div class="home-recent-grid" id="home-recent-grid"></div>
+        </section>
       </section>
 
       <section class="dashboard hidden" id="dashboard-view">
@@ -377,8 +425,9 @@
               <span class="file-size-limit" id="upload-limit"></span>
             </div>
             <div class="drive-controls-right">
-              <button class="drive-icon-btn" id="view-mode-toggle" type="button" title="Switch view (Grid / List)" aria-label="Switch view mode">
+              <button class="drive-icon-btn" id="view-mode-toggle" type="button" title="Switch view (Grid / Large / List)" aria-label="Switch view mode">
                 <span class="drive-icon" id="view-mode-icon">⊞</span>
+                <span class="drive-view-label" id="view-mode-label">Grid</span>
               </button>
               <button class="drive-icon-btn" id="sort-mode-toggle" type="button" title="Sort files" aria-label="Sort files">
                 <span class="drive-icon">⇅</span> <span class="drive-sort-label" id="sort-mode-label">Name</span>

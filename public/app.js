@@ -44,6 +44,17 @@ const adminBadge = document.querySelector("#admin-badge");
 const homeNavLink = document.querySelector("#home-nav-link");
 const libraryNavLink = document.querySelector("#library-nav-link");
 const uploadNavLink = document.querySelector("#upload-nav-link");
+const homeDashboardView = document.querySelector("#home-dashboard-view");
+const homeOpenLibraryBtn = document.querySelector("#home-open-library-btn");
+const homeUploadTrigger = document.querySelector("#home-upload-trigger");
+const homeRefreshTrigger = document.querySelector("#home-refresh-trigger");
+const homeStorageRing = document.querySelector("#home-storage-ring");
+const homeStorageTotal = document.querySelector("#home-storage-total");
+const homeStorageBreakdown = document.querySelector("#home-storage-breakdown");
+const homeCategoryTiles = document.querySelector("#home-category-tiles");
+const homeRecentGrid = document.querySelector("#home-recent-grid");
+const homeViewAllBtn = document.querySelector("#home-view-all-btn");
+const viewModeLabel = document.querySelector("#view-mode-label");
 const adminView = document.querySelector("#admin-view");
 const featureStrip = document.querySelector("#feature-strip");
 const adminSettingsForm = document.querySelector("#admin-settings-form");
@@ -212,16 +223,66 @@ function setAuthButton(text, disabled = false) {
   authSubmit.append(arrow);
 }
 
+function checkCanUpload() {
+  if (!currentUser) {
+    showHome();
+    return false;
+  }
+  if (accountLocked) {
+    if (homeDashboardView) homeDashboardView.classList.add("hidden");
+    if (dashboardView) dashboardView.classList.add("hidden");
+    accountLockView.classList.remove("hidden");
+    const pin = document.querySelector("#account-lock-pin");
+    if (pin) {
+      pin.focus();
+      setMessage(accountLockMessage, "Enter your PIN to unlock before uploading.", true);
+    }
+    return false;
+  }
+  return true;
+}
+
 function showHome() {
+  if (currentUser) {
+    showHomeDashboard();
+    return;
+  }
   welcomeView.classList.remove("hidden");
   authView.classList.add("hidden");
-  startLoginButton.textContent = currentUser ? "Open My Library →" : "Login with Telegram →";
+  startLoginButton.textContent = "Login with Telegram →";
   dashboardView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
   adminView.classList.add("hidden");
   featureStrip.classList.remove("hidden");
   homeNavLink.classList.add("is-active");
   libraryNavLink.classList.remove("is-active");
   uploadNavLink.classList.remove("is-active");
+}
+
+async function showHomeDashboard() {
+  if (!currentUser) {
+    showHome();
+    return;
+  }
+  if (accountLocked) {
+    accountLockView.classList.remove("hidden");
+    document.querySelector("#account-lock-pin")?.focus();
+    return;
+  }
+  welcomeView.classList.add("hidden");
+  authView.classList.add("hidden");
+  dashboardView.classList.add("hidden");
+  adminView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.remove("hidden");
+  featureStrip.classList.remove("hidden");
+  homeNavLink.classList.add("is-active");
+  libraryNavLink.classList.remove("is-active");
+  uploadNavLink.classList.remove("is-active");
+  if (allFiles.length === 0) {
+    await loadFiles();
+  }
+  renderCategories();
+  renderHomeDashboard();
 }
 
 async function showLibrary() {
@@ -237,7 +298,7 @@ async function showLibrary() {
   }
   welcomeView.classList.add("hidden");
   authView.classList.add("hidden");
-  authView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
   adminView.classList.add("hidden");
   dashboardView.classList.remove("hidden");
   featureStrip.classList.remove("hidden");
@@ -258,11 +319,18 @@ function showSignedOut() {
   welcomeView.classList.remove("hidden");
   authView.classList.add("hidden");
   dashboardView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
   adminView.classList.add("hidden");
   featureStrip.classList.remove("hidden");
   logoutButton.classList.add("hidden");
   themeToggle.classList.add("hidden");
-  document.querySelector("#admin-header-btn")?.classList.add("hidden");
+  const adminHeaderBtn = document.querySelector("#admin-header-btn");
+  if (adminHeaderBtn) {
+    adminHeaderBtn.classList.add("hidden");
+    adminHeaderBtn.setAttribute("hidden", "");
+    adminHeaderBtn.setAttribute("aria-hidden", "true");
+  }
+  document.querySelector("#menu-admin-btn")?.classList.add("hidden");
   document.querySelector("#user-menu-popover")?.classList.add("hidden");
   accountBadge.classList.add("hidden");
   accountBadge.disabled = true;
@@ -287,6 +355,7 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   welcomeView.classList.add("hidden");
   authView.classList.add("hidden");
   dashboardView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
   accountLockView.classList.add("hidden");
   adminView.classList.add("hidden");
   featureStrip.classList.remove("hidden");
@@ -298,15 +367,26 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   accountAvatarImage.src = `/api/profile-photo?v=${Date.now()}`;
   accountBadge.disabled = false;
   accountBadge.title = "Open account profile";
-  libraryNavLink.classList.add("is-active");
-  homeNavLink.classList.remove("is-active");
+  homeNavLink.classList.add("is-active");
+  libraryNavLink.classList.remove("is-active");
   uploadNavLink.classList.remove("is-active");
   document.querySelector("#account-email").textContent = user.username ? `@${user.username}` : user.name;
   const userMenuName = document.querySelector("#user-menu-name");
   const userMenuSub = document.querySelector("#user-menu-sub");
   if (userMenuName) userMenuName.textContent = user.name || "User";
   if (userMenuSub) userMenuSub.textContent = user.username ? `@${user.username}` : user.loginId || "";
-  document.querySelector("#admin-header-btn")?.classList.toggle("hidden", !user.isAdmin);
+
+  const adminHeaderBtn = document.querySelector("#admin-header-btn");
+  if (adminHeaderBtn) {
+    adminHeaderBtn.classList.toggle("hidden", !user.isAdmin);
+    if (!user.isAdmin) {
+      adminHeaderBtn.setAttribute("hidden", "");
+      adminHeaderBtn.setAttribute("aria-hidden", "true");
+    } else {
+      adminHeaderBtn.removeAttribute("hidden");
+      adminHeaderBtn.removeAttribute("aria-hidden");
+    }
+  }
   document.querySelector("#menu-admin-btn")?.classList.toggle("hidden", !user.isAdmin);
   vipBadge.classList.toggle("hidden", !user.vip);
   adminBadge.classList.toggle("hidden", !user.isAdmin);
@@ -329,8 +409,7 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
     setMessage(accountLockMessage, error.message, true);
     return;
   }
-  dashboardView.classList.remove("hidden");
-  await loadFiles();
+  await showHomeDashboard();
   if (!user.hasPassword || user.credentialResetRequired || (justAuthenticatedWithTelegram && credentialResetAfterQr)) {
     credentialResetAfterQr = false;
     await openProfileDialog();
@@ -1252,6 +1331,116 @@ function renderCategories() {
   }
 }
 
+function renderHomeDashboard() {
+  if (!homeDashboardView || homeDashboardView.classList.contains("hidden")) return;
+  const specs = [
+    { id: "photos", name: "Photos", icon: "🖼", color: "green" },
+    { id: "videos", name: "Videos", icon: "🎬", color: "navy" },
+    { id: "other", name: "Documents & Others", icon: "📄", color: "yellow" },
+    { id: "vault", name: "Private Vault", icon: "🔒", color: "vault" },
+    { id: "all", name: "All Files", icon: "▤", color: "purple" },
+  ];
+  const totals = Object.fromEntries(Object.keys(categoryNames).map((id) => [id, { count: 0, size: 0 }]));
+  for (const file of allFiles) {
+    const category = fileCategory(file);
+    if (totals[category]) {
+      totals[category].count += 1;
+      totals[category].size += file.size;
+    }
+    totals.all.count += 1;
+    totals.all.size += file.size;
+  }
+  totals.vault = { count: vaultStats.fileCount, size: vaultStats.totalBytes };
+
+  const totalSize = totals.all.size + totals.vault.size;
+  if (homeStorageTotal) homeStorageTotal.textContent = formatSize(totalSize);
+  if (homeStorageRing && storageRing) homeStorageRing.src = storageRing.src;
+  if (homeStorageBreakdown && storageBreakdown) homeStorageBreakdown.innerHTML = storageBreakdown.innerHTML;
+
+  if (homeCategoryTiles) {
+    homeCategoryTiles.replaceChildren();
+    for (const spec of specs) {
+      const total = totals[spec.id] || { count: 0, size: 0 };
+      const tile = document.createElement("div");
+      tile.className = "home-category-tile";
+      tile.innerHTML = `
+        <span class="home-cat-icon">${spec.icon}</span>
+        <span class="home-cat-name">${spec.name}</span>
+        <span class="home-cat-meta">${total.count} files · ${formatSize(total.size)}</span>
+      `;
+      tile.addEventListener("click", () => {
+        if (spec.id === "vault") {
+          openVaultDialog();
+          return;
+        }
+        activeCategory = spec.id;
+        showLibrary();
+      });
+      homeCategoryTiles.append(tile);
+    }
+  }
+
+  if (homeRecentGrid) {
+    homeRecentGrid.replaceChildren();
+    const recents = allFiles.filter((f) => !f.trashed && !f.vault).slice(0, 12);
+    if (!recents.length) {
+      const emptyMsg = document.createElement("div");
+      emptyMsg.style.cssText = "padding:20px; color:#8391a8; grid-column:1/-1; text-align:center; font-size:13px;";
+      emptyMsg.textContent = "No recent files uploaded yet. Files you upload will show up here!";
+      homeRecentGrid.append(emptyMsg);
+    } else {
+      for (const file of recents) {
+        const card = document.createElement("div");
+        card.className = "home-recent-card";
+        const isVid = file.type?.startsWith("video/");
+        const isImg = file.type?.startsWith("image/");
+        const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+
+        const thumb = document.createElement("div");
+        thumb.className = "home-recent-thumb";
+
+        if (isImg) {
+          const img = document.createElement("img");
+          img.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=low`;
+          img.alt = file.name;
+          img.loading = "lazy";
+          img.onerror = () => { img.remove(); thumb.innerHTML = '<span class="thumb-fallback-icon">🖼</span>'; };
+          thumb.append(img);
+        } else if (isVid) {
+          const img = document.createElement("img");
+          img.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
+          img.alt = file.name;
+          img.loading = "lazy";
+          img.onerror = () => { img.remove(); thumb.innerHTML = '<span class="thumb-fallback-icon">🎬</span>'; };
+          const playOverlay = document.createElement("span");
+          playOverlay.className = "thumbnail-play";
+          playOverlay.textContent = "▶";
+          thumb.append(img, playOverlay);
+        } else if (isPdf) {
+          thumb.innerHTML = '<span class="thumb-fallback-icon" style="color:#ef4444;">📕</span>';
+        } else {
+          thumb.innerHTML = '<span class="thumb-fallback-icon">📄</span>';
+        }
+
+        const info = document.createElement("div");
+        info.className = "home-recent-info";
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "home-recent-name";
+        nameSpan.textContent = file.name;
+        nameSpan.title = file.name;
+        const metaSpan = document.createElement("span");
+        metaSpan.className = "home-recent-meta";
+        metaSpan.textContent = `${formatSize(file.size)} · ${formatDate(file.uploadedAt)}`;
+        info.append(nameSpan, metaSpan);
+
+        card.append(thumb, info);
+        card.addEventListener("click", () => openPreview(file));
+        homeRecentGrid.append(card);
+      }
+    }
+  }
+}
+
 function renderBreadcrumbs() {
   breadcrumbs.replaceChildren();
   if (trashMode) {
@@ -1921,6 +2110,67 @@ async function createNewFolder() {
   });
 }
 
+function isTextDocument(file) {
+  const name = (file.name || "").toLowerCase();
+  const type = (file.type || "").toLowerCase();
+  if (type.startsWith("text/")) return true;
+  if (["application/json", "application/xml", "application/javascript"].includes(type)) return true;
+  return /\.(txt|md|log|json|csv|xml|html|htm|css|js|ts|py|sh|bat|c|cpp|h|java|sql|yml|yaml|ini|env|conf|properties)$/i.test(name);
+}
+
+async function renderTextDocumentPreview(file, previewUrl, container) {
+  const loading = document.createElement("div");
+  loading.className = "preview-text-loading";
+  loading.textContent = "Loading document content…";
+  container.append(loading);
+  try {
+    const res = await fetch(previewUrl);
+    if (!res.ok) throw new Error("Could not load document text.");
+    const text = await res.text();
+    loading.remove();
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "preview-text-wrapper";
+
+    const header = document.createElement("div");
+    header.className = "preview-text-header";
+    const lineCount = text.split("\n").length;
+    const info = document.createElement("span");
+    info.textContent = `${formatSize(file.size)} • ${lineCount} lines`;
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "button button-outline text-copy-btn";
+    copyBtn.type = "button";
+    copyBtn.textContent = "📋 Copy text";
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = "✓ Copied!";
+        setTimeout(() => { copyBtn.textContent = "📋 Copy text"; }, 2000);
+      } catch {}
+    };
+    header.append(info, copyBtn);
+
+    const pre = document.createElement("pre");
+    pre.className = "preview-text-body";
+    const code = document.createElement("code");
+    code.textContent = text.slice(0, 500000);
+    pre.append(code);
+
+    if (text.length > 500000) {
+      const trunc = document.createElement("div");
+      trunc.className = "preview-text-truncated";
+      trunc.textContent = "(Document truncated for performance. Download full file to view complete text.)";
+      pre.append(trunc);
+    }
+
+    wrapper.append(header, pre);
+    container.append(wrapper);
+  } catch (err) {
+    loading.textContent = "Failed to load document: " + err.message;
+  }
+}
+
 function openPreview(file) {
   previewTitle.textContent = file.name;
   previewDownload.href = `/api/files/${encodeURIComponent(file.id)}?download=1`;
@@ -1936,23 +2186,25 @@ function openPreview(file) {
     const video = document.createElement("video");
     video.className = "preview-video";
     video.controls = true;
-    video.preload = "metadata";
+    video.preload = "auto";
+    video.playsInline = true;
     video.poster = `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
     video.src = previewUrl;
     previewContent.append(video);
   } else if (file.type.startsWith("audio/")) {
     const audio = document.createElement("audio");
     audio.controls = true;
-    audio.preload = "metadata";
+    audio.preload = "auto";
     audio.src = previewUrl;
     previewContent.append(audio);
-  } else if (file.type === "application/pdf" || file.type === "text/plain") {
+  } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
     const frame = document.createElement("iframe");
-    frame.className = "preview-frame";
+    frame.className = "preview-pdf-frame";
     frame.src = previewUrl;
     frame.title = `Preview of ${file.name}`;
-    frame.setAttribute("sandbox", "");
     previewContent.append(frame);
+  } else if (isTextDocument(file)) {
+    renderTextDocumentPreview(file, previewUrl, previewContent);
   } else {
     const message = document.createElement("p");
     message.className = "preview-unavailable";
@@ -1965,6 +2217,11 @@ function openPreview(file) {
 
 function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
   return new Promise((resolve) => {
+    if (!checkCanUpload()) {
+      resolve(false);
+      return;
+    }
+
     const item = document.createElement("div");
     item.className = "queue-item";
     const label = document.createElement("span");
@@ -1972,89 +2229,242 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
     label.textContent = file.name;
     const status = document.createElement("span");
     status.className = "queue-status";
-    status.textContent = "Waiting";
+    status.textContent = "Waiting…";
     const progress = document.createElement("progress");
     progress.max = 100;
     progress.value = 0;
-    const cancel = createButton("Cancel", "queue-cancel", () => request.abort(), `Cancel upload of ${file.name}`);
-    item.append(label, status, cancel, progress);
+
+    let aborted = false;
+    let resumeFn = null;
+    let currentXhr = null;
+
+    const cancelBtn = createButton("Cancel", "queue-cancel", () => {
+      aborted = true;
+      if (currentXhr) currentXhr.abort();
+      status.textContent = "Cancelled";
+      status.classList.add("queue-error");
+      finish(false);
+    }, `Cancel upload of ${file.name}`);
+
+    const resumeBtn = document.createElement("button");
+    resumeBtn.className = "queue-resume-btn hidden";
+    resumeBtn.type = "button";
+    resumeBtn.textContent = "↺ Resume";
+    resumeBtn.title = `Resume upload of ${file.name}`;
+    resumeBtn.onclick = () => {
+      resumeBtn.classList.add("hidden");
+      status.classList.remove("queue-error");
+      status.textContent = "Resuming…";
+      if (resumeFn) resumeFn();
+    };
+
+    item.append(label, status, cancelBtn, resumeBtn, progress);
     batchItems.append(item);
 
     if (file.size > maxFileSize) {
       status.textContent = "Too large";
       status.classList.add("queue-error");
-      cancel.remove();
+      cancelBtn.remove();
+      resumeBtn.remove();
       progress.remove();
       onProgress(0);
       resolve(false);
       return;
     }
 
-    const request = new XMLHttpRequest();
     let settled = false;
     const finish = (success) => {
       if (settled) return;
       settled = true;
-      cancel.disabled = true;
+      cancelBtn.disabled = true;
+      resumeBtn.classList.add("hidden");
       resolve(success);
     };
-    const params = new URLSearchParams();
-    if (activeFolderId) params.set("folderId", activeFolderId);
-    request.open("POST", `/api/upload${params.size ? `?${params}` : ""}`);
-    request.setRequestHeader("Content-Type", file.type || "application/octet-stream");
-    request.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
-    if (relativePath) request.setRequestHeader("X-Folder-Path", encodeURIComponent(relativePath));
-    status.textContent = `Uploading 0% · 0 B / ${formatSize(file.size)}`;
-    request.upload.addEventListener("progress", (event) => {
-      if (!event.lengthComputable) return;
-      const percent = Math.round((event.loaded / event.total) * 100);
-      progress.value = percent;
-      status.textContent = `Uploading ${percent}% · ${formatSize(event.loaded)} / ${formatSize(file.size)}`;
-      onProgress(event.loaded);
-    });
-    request.upload.addEventListener("load", () => {
-      progress.value = 100;
-      onProgress(file.size);
-      status.textContent = "Saving to Telegram…";
-      cancel.disabled = true;
-      cancel.title = "Upload received; Telegram is saving it.";
-    });
-    request.addEventListener("load", () => {
-      let result = {};
-      try {
-        result = JSON.parse(request.responseText);
-      } catch {
-        result = {};
-      }
-      if (request.status >= 200 && request.status < 300) {
-        item.remove();
-        if (result.file) {
-          allFiles.unshift(result.file);
-          renderLibrary();
+
+    // Fast direct upload for small files (<= 2MB)
+    if (file.size <= 2 * 1024 * 1024) {
+      const xhr = new XMLHttpRequest();
+      currentXhr = xhr;
+      const params = new URLSearchParams();
+      if (activeFolderId) params.set("folderId", activeFolderId);
+      xhr.open("POST", `/api/upload${params.size ? `?${params}` : ""}`);
+      xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
+      xhr.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
+      if (relativePath) xhr.setRequestHeader("X-Folder-Path", encodeURIComponent(relativePath));
+
+      xhr.upload.addEventListener("progress", (event) => {
+        if (!event.lengthComputable) return;
+        const percent = Math.round((event.loaded / event.total) * 100);
+        progress.value = percent;
+        status.textContent = `Uploading ${percent}% · ${formatSize(event.loaded)} / ${formatSize(file.size)}`;
+        onProgress(event.loaded);
+      });
+
+      xhr.addEventListener("load", () => {
+        currentXhr = null;
+        let result = {};
+        try { result = JSON.parse(xhr.responseText); } catch {}
+        if (xhr.status >= 200 && xhr.status < 300) {
+          item.remove();
+          if (result.file) {
+            allFiles.unshift(result.file);
+            renderLibrary();
+            renderHomeDashboard();
+          }
+          finish(true);
+        } else {
+          status.textContent = result.error || "Upload failed";
+          status.classList.add("queue-error");
+          finish(false);
         }
-        finish(true);
-      } else {
-        status.textContent = result.error || "Upload failed";
+      });
+
+      xhr.addEventListener("error", () => {
+        currentXhr = null;
+        status.textContent = "Network error";
         status.classList.add("queue-error");
         finish(false);
+      });
+
+      xhr.addEventListener("abort", () => {
+        currentXhr = null;
+        status.textContent = "Cancelled";
+        status.classList.add("queue-error");
+        progress.remove();
+        finish(false);
+      });
+
+      xhr.send(file);
+      return;
+    }
+
+    // Chunked Resumable Upload for files > 2MB
+    const CHUNK_SIZE = 4 * 1024 * 1024;
+    let uploadId = null;
+    let offset = 0;
+
+    const startOrResumeUpload = async () => {
+      if (aborted) return;
+      try {
+        if (!uploadId) {
+          status.textContent = "Preparing upload…";
+          const initRes = await fetch("/api/upload/resumable/init", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: file.name,
+              size: file.size,
+              type: file.type || "application/octet-stream",
+              folderId: activeFolderId || null,
+              relativePath,
+            }),
+          });
+          if (!initRes.ok) {
+            const err = await initRes.json().catch(() => ({}));
+            throw new Error(err.error || "Failed to initialize upload.");
+          }
+          const initData = await initRes.json();
+          uploadId = initData.uploadId;
+          offset = initData.offset || 0;
+        } else {
+          const statusRes = await fetch(`/api/upload/resumable/status?uploadId=${uploadId}`);
+          if (statusRes.ok) {
+            const statusData = await statusRes.json();
+            offset = statusData.offset || 0;
+          }
+        }
+
+        while (offset < file.size) {
+          if (aborted) return;
+          const chunkEnd = Math.min(offset + CHUNK_SIZE, file.size);
+          const chunk = file.slice(offset, chunkEnd);
+
+          const uploadChunk = () => new Promise((resolveChunk, rejectChunk) => {
+            const xhr = new XMLHttpRequest();
+            currentXhr = xhr;
+            xhr.open("POST", `/api/upload/resumable/chunk?uploadId=${uploadId}`);
+            xhr.setRequestHeader("X-Chunk-Offset", String(offset));
+            xhr.setRequestHeader("Content-Type", "application/octet-stream");
+
+            xhr.upload.addEventListener("progress", (e) => {
+              if (aborted) { xhr.abort(); return; }
+              const transferred = offset + (e.lengthComputable ? e.loaded : 0);
+              const pct = Math.min(99, Math.round((transferred / file.size) * 100));
+              progress.value = pct;
+              status.textContent = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
+              onProgress(transferred);
+            });
+
+            xhr.addEventListener("load", () => {
+              currentXhr = null;
+              let res = {};
+              try { res = JSON.parse(xhr.responseText); } catch {}
+              if (xhr.status >= 200 && xhr.status < 300) {
+                resolveChunk(res);
+              } else {
+                rejectChunk(new Error(res.error || `Server returned HTTP ${xhr.status}`));
+              }
+            });
+
+            xhr.addEventListener("error", () => {
+              currentXhr = null;
+              rejectChunk(new Error("Network connection dropped"));
+            });
+
+            xhr.addEventListener("abort", () => {
+              currentXhr = null;
+              rejectChunk(new Error("Upload aborted"));
+            });
+
+            xhr.send(chunk);
+          });
+
+          let chunkSuccess = false;
+          let retryCount = 0;
+          while (!chunkSuccess && retryCount < 3 && !aborted) {
+            try {
+              const res = await uploadChunk();
+              offset = chunkEnd;
+              chunkSuccess = true;
+              if (res.completed && res.file) {
+                progress.value = 100;
+                onProgress(file.size);
+                status.textContent = "Complete!";
+                setTimeout(() => item.remove(), 400);
+                allFiles.unshift(res.file);
+                renderLibrary();
+                renderHomeDashboard();
+                finish(true);
+                return;
+              }
+            } catch (err) {
+              if (aborted) return;
+              retryCount += 1;
+              if (retryCount < 3) {
+                status.textContent = `Retrying (${retryCount}/3)…`;
+                await new Promise((r) => setTimeout(r, 1500));
+              } else {
+                throw err;
+              }
+            }
+          }
+        }
+      } catch (uploadError) {
+        if (aborted) return;
+        status.textContent = `Error: ${uploadError.message || "Upload paused"}`;
+        status.classList.add("queue-error");
+        resumeBtn.classList.remove("hidden");
+        resumeFn = () => startOrResumeUpload();
       }
-    });
-    request.addEventListener("error", () => {
-      status.textContent = "Network error";
-      status.classList.add("queue-error");
-      finish(false);
-    });
-    request.addEventListener("abort", () => {
-      status.textContent = "Cancelled";
-      status.classList.add("queue-error");
-      progress.remove();
-      finish(false);
-    });
-    request.send(file);
+    };
+
+    resumeFn = () => startOrResumeUpload();
+    startOrResumeUpload();
   });
 }
 
 async function uploadMany(files, relativePathForFile = () => "") {
+  if (!checkCanUpload()) return;
   const queue = [...files];
   if (!queue.length) return;
   const pill = document.querySelector("#upload-status-pill");
@@ -2624,8 +3034,14 @@ vaultSelectedButton.addEventListener("click", async () => {
   }
 });
 
-document.querySelector("#upload-files-button").addEventListener("click", () => filePicker.click());
-document.querySelector("#upload-folder-button").addEventListener("click", () => folderPicker.click());
+document.querySelector("#upload-files-button").addEventListener("click", () => {
+  if (!checkCanUpload()) return;
+  filePicker.click();
+});
+document.querySelector("#upload-folder-button").addEventListener("click", () => {
+  if (!checkCanUpload()) return;
+  folderPicker.click();
+});
 document.querySelector("#new-folder-button").addEventListener("click", createNewFolder);
 document.querySelector("#refresh-button").addEventListener("click", loadFiles);
 trashToggle.addEventListener("click", async () => {
@@ -2762,8 +3178,19 @@ const dataSaverStatus = document.querySelector("#data-saver-status");
 
 function updateControlsUI() {
   if (libraryViewSelect) libraryViewSelect.value = ["small", "medium", "large", "details"].includes(libraryViewMode) ? libraryViewMode : "medium";
-  if (viewModeIcon) viewModeIcon.textContent = libraryViewMode === "details" ? "☰" : "⊞";
-  if (viewModeToggle) viewModeToggle.title = libraryViewMode === "details" ? "List view (click for Grid)" : "Grid view (click for List)";
+  if (viewModeIcon) {
+    viewModeIcon.textContent = libraryViewMode === "details" ? "☰" : libraryViewMode === "large" ? "🔲" : "⊞";
+  }
+  if (viewModeLabel) {
+    viewModeLabel.textContent = libraryViewMode === "details" ? "List" : libraryViewMode === "large" ? "Large" : "Grid";
+  }
+  if (viewModeToggle) {
+    viewModeToggle.title = libraryViewMode === "details"
+      ? "List view (click for Grid)"
+      : libraryViewMode === "large"
+        ? "Large view (click for List)"
+        : "Grid view (click for Large)";
+  }
 
   if (librarySortSelect) librarySortSelect.value = ["name", "date-desc", "date-asc"].includes(librarySortMode) ? librarySortMode : "name";
   if (sortModeLabel) {
@@ -2780,7 +3207,13 @@ function updateControlsUI() {
 updateControlsUI();
 
 viewModeToggle?.addEventListener("click", () => {
-  libraryViewMode = libraryViewMode === "details" ? "medium" : "details";
+  if (libraryViewMode === "medium") {
+    libraryViewMode = "large";
+  } else if (libraryViewMode === "large") {
+    libraryViewMode = "details";
+  } else {
+    libraryViewMode = "medium";
+  }
   window.localStorage.setItem("dgcloud-library-view", libraryViewMode);
   updateControlsUI();
   renderLibrary();
@@ -2823,12 +3256,20 @@ dataSaverToggle?.addEventListener("change", () => {
 });
 
 filePicker.addEventListener("change", async () => {
+  if (!checkCanUpload()) {
+    filePicker.value = "";
+    return;
+  }
   const files = Array.from(filePicker.files || []);
   filePicker.value = "";
   await uploadMany(files);
 });
 
 folderPicker.addEventListener("change", async () => {
+  if (!checkCanUpload()) {
+    folderPicker.value = "";
+    return;
+  }
   const files = Array.from(folderPicker.files || []);
   folderPicker.value = "";
   await uploadMany(files, (file) => {
@@ -2935,9 +3376,60 @@ uploadNavLink.addEventListener("click", async (event) => {
     startLoginButton.click();
     return;
   }
+  if (!checkCanUpload()) return;
   await showLibrary();
   uploadNavLink.classList.add("is-active");
   filePicker.click();
+});
+
+// Home Dashboard action triggers
+document.querySelector("#home-open-library-btn")?.addEventListener("click", () => showLibrary());
+document.querySelector("#home-view-all-btn")?.addEventListener("click", () => showLibrary());
+document.querySelector("#home-upload-trigger")?.addEventListener("click", () => {
+  if (!checkCanUpload()) return;
+  filePicker.click();
+});
+document.querySelector("#home-refresh-trigger")?.addEventListener("click", () => loadFiles());
+
+// Numeric PIN input sanitizer (keeps strictly 0-9 digits)
+[
+  "account-lock-pin",
+  "account-lock-current-pin",
+  "account-lock-new-pin",
+  "account-lock-confirm-pin",
+  "vault-passcode",
+  "vault-new-passcode",
+  "vault-confirm-passcode"
+].forEach((id) => {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener("input", (e) => {
+      e.target.value = e.target.value.replace(/\D/g, "");
+    });
+  }
+});
+
+// Drag and drop upload support with upload lock guard
+window.addEventListener("dragover", (event) => {
+  event.preventDefault();
+});
+window.addEventListener("drop", async (event) => {
+  event.preventDefault();
+  if (!event.dataTransfer || !event.dataTransfer.files || !event.dataTransfer.files.length) return;
+  if (!currentUser) return;
+  if (!checkCanUpload()) return;
+  const files = Array.from(event.dataTransfer.files);
+  await uploadMany(files);
+});
+
+// Re-activate paused/errored uploads automatically when window regains visibility or comes online
+window.addEventListener("online", () => {
+  document.querySelectorAll(".queue-resume-btn:not(.hidden)").forEach((btn) => btn.click());
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    document.querySelectorAll(".queue-resume-btn:not(.hidden)").forEach((btn) => btn.click());
+  }
 });
 const userMenuPopover = document.querySelector("#user-menu-popover");
 const adminHeaderBtn = document.querySelector("#admin-header-btn");

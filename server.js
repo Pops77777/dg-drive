@@ -36,6 +36,8 @@ function loadLocalEnv() {
 loadLocalEnv();
 
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, "data"));
+const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
+const CACHE_DIR = path.join(DATA_DIR, "cache");
 const STORE_PATH = path.join(DATA_DIR, "store.json");
 const MAX_FILE_SIZE = Number(process.env.MAX_FILE_SIZE_BYTES || 2 * 1024 * 1024 * 1024);
 const SESSION_TTL = 365 * 24 * 60 * 60 * 1000;
@@ -77,6 +79,10 @@ const attempts = new Map();
 const loginCooldowns = new Map();
 let activeLoginFlowId = null;
 
+const resumableUploads = new Map();
+const telegramUploadQueue = [];
+let isTelegramUploading = false;
+
 function sendJson(res, status, body, headers = {}) {
   const content = JSON.stringify(body);
   res.writeHead(status, {
@@ -91,8 +97,8 @@ function sendJson(res, status, body, headers = {}) {
 function setSecurityHeaders(res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "same-origin");
-  res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob:; frame-src 'self' blob:; connect-src 'self'; object-src 'self'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'");
   if (IS_PRODUCTION) res.setHeader("Strict-Transport-Security", "max-age=31536000");
 }
 
@@ -324,6 +330,62 @@ function cleanFileName(value) {
   return Array.from(name).slice(0, 180).join("");
 }
 
+const MIME_EXTENSIONS = {
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".gif": "image/gif",
+  ".webp": "image/webp",
+  ".svg": "image/svg+xml",
+  ".bmp": "image/bmp",
+  ".ico": "image/x-icon",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mkv": "video/x-matroska",
+  ".mov": "video/quicktime",
+  ".avi": "video/x-msvideo",
+  ".m4v": "video/mp4",
+  ".3gp": "video/3gpp",
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".m4a": "audio/mp4",
+  ".flac": "audio/flac",
+  ".aac": "audio/aac",
+  ".pdf": "application/pdf",
+  ".txt": "text/plain",
+  ".md": "text/markdown",
+  ".csv": "text/csv",
+  ".json": "application/json",
+  ".js": "text/javascript",
+  ".ts": "text/plain",
+  ".py": "text/x-python",
+  ".html": "text/html",
+  ".htm": "text/html",
+  ".css": "text/css",
+  ".xml": "application/xml",
+  ".log": "text/plain",
+  ".sh": "text/plain",
+  ".bat": "text/plain",
+  ".zip": "application/zip",
+  ".rar": "application/x-rar-compressed",
+  ".7z": "application/x-7z-compressed",
+  ".tar": "application/x-tar",
+  ".gz": "application/gzip",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+};
+
+function getEffectiveMimeType(fileName, providedType) {
+  if (providedType && providedType !== "application/octet-stream" && /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i.test(providedType)) {
+    return providedType;
+  }
+  const ext = path.extname(fileName || "").toLowerCase();
+  if (MIME_EXTENSIONS[ext]) return MIME_EXTENSIONS[ext];
+  return providedType || "application/octet-stream";
+}
+
 function contentDisposition(name, disposition = "attachment") {
   const fallback = name.replace(/[^\x20-\x7e]|["\\;]/g, "_").slice(0, 150) || "download";
   return `${disposition}; filename="${fallback}"; filename*=UTF-8''${encodeURIComponent(name)}`;
@@ -338,6 +400,7 @@ function publicFile(file) {
     uploadedAt: file.uploadedAt,
     folderId: file.folderId || null,
     trashed: Boolean(file.deletedAt),
+    syncing: !file.telegramMessageId,
   };
 }
 
@@ -1075,6 +1138,54 @@ function flowStatus(req, res) {
   return sendJson(res, 200, { step: flow.step });
 }
 
+function enqueueTelegramUpload(file, user) {
+  if (!file || !file.localPath || file.telegramMessageId) return;
+  if (!telegramUploadQueue.some((item) => item.fileId === file.id)) {
+    telegramUploadQueue.push({ fileId: file.id, user });
+  }
+  processTelegramUploadQueue().catch((err) => {
+    console.error("Telegram upload queue runner error:", err.message);
+  });
+}
+
+async function processTelegramUploadQueue() {
+  if (isTelegramUploading || telegramUploadQueue.length === 0) return;
+  isTelegramUploading = true;
+  try {
+    while (telegramUploadQueue.length > 0) {
+      const item = telegramUploadQueue.shift();
+      const file = store.files[item.fileId];
+      if (!file || file.deletedAt || file.telegramMessageId) continue;
+      if (!file.localPath) continue;
+      const exists = await fs.promises.access(file.localPath).then(() => true).catch(() => false);
+      if (!exists) continue;
+
+      try {
+        const client = await getTelegramClient(item.user);
+        const result = await client.sendFile("me", {
+          file: file.localPath,
+          forceDocument: true,
+          workers: 4,
+        });
+        const message = Array.isArray(result) ? result[0] : result;
+        if (message && message.id) {
+          file.telegramMessageId = String(message.id);
+          await saveStore();
+          console.log(`Telegram cloud backup complete for: ${file.name} (msg: ${message.id})`);
+        }
+      } catch (err) {
+        console.error(`Telegram background sync failed for ${file.name}:`, err.message);
+        // Put back in queue to retry after a delay
+        telegramUploadQueue.push(item);
+        await new Promise((r) => setTimeout(r, 10000));
+        break;
+      }
+    }
+  } finally {
+    isTelegramUploading = false;
+  }
+}
+
 async function uploadToTelegram(req, res, user, url) {
   const suppliedLength = Number(req.headers["content-length"]);
   if (Number.isFinite(suppliedLength) && suppliedLength > MAX_FILE_SIZE) {
@@ -1110,14 +1221,16 @@ async function uploadToTelegram(req, res, user, url) {
     return sendJson(res, 404, { error: "Folder not found." });
   }
 
-  const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "cloudbox-"));
-  const tempPath = path.join(tempDir, name);
+  await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
+  const fileId = randomUUID();
+  const destPath = path.join(UPLOADS_DIR, `${fileId}_${name}`);
   let output;
   let size = 0;
   let tooLarge = false;
   let outputClosed = false;
+
   try {
-    output = await fs.promises.open(tempPath, "wx", 0o600);
+    output = await fs.promises.open(destPath, "wx", 0o600);
     for await (const chunk of req) {
       size += chunk.length;
       if (size > MAX_FILE_SIZE) {
@@ -1128,36 +1241,30 @@ async function uploadToTelegram(req, res, user, url) {
     }
     await output.close();
     outputClosed = true;
-    if (req.aborted) return;
+
+    if (req.aborted) {
+      await fs.promises.rm(destPath, { force: true }).catch(() => {});
+      return;
+    }
     if (tooLarge) {
-      await fs.promises.rm(tempPath, { force: true });
+      await fs.promises.rm(destPath, { force: true }).catch(() => {});
       return sendJson(res, 413, { error: `File exceeds the ${MAX_FILE_SIZE} byte upload limit.` });
     }
     if (!size) {
-      await fs.promises.rm(tempPath, { force: true });
+      await fs.promises.rm(destPath, { force: true }).catch(() => {});
       return sendJson(res, 400, { error: "Empty files cannot be uploaded." });
     }
 
     const suppliedType = typeof req.headers["content-type"] === "string"
       ? req.headers["content-type"].split(";")[0].slice(0, 120)
       : "";
-    const type = /^[a-z0-9!#$&^_.+-]+\/[a-z0-9!#$&^_.+-]+$/i.test(suppliedType)
-      ? suppliedType
-      : "application/octet-stream";
-    const client = await getTelegramClient(user, req);
-    const result = await client.sendFile("me", {
-      file: tempPath,
-      forceDocument: true,
-      workers: 4,
-    });
-    const message = Array.isArray(result) ? result[0] : result;
-    if (!message || !message.id) throw new Error("Telegram did not return a saved message.");
-
+    const type = getEffectiveMimeType(name, suppliedType);
     const folderId = await resolveUploadFolder(user, parentId, relativePath);
     const file = {
-      id: randomUUID(),
+      id: fileId,
       userId: user.id,
-      telegramMessageId: String(message.id),
+      localPath: destPath,
+      telegramMessageId: null,
       name,
       size,
       type,
@@ -1167,23 +1274,139 @@ async function uploadToTelegram(req, res, user, url) {
     store.files[file.id] = file;
     try {
       await saveStore();
-    } catch (error) {
+    } catch (saveError) {
       delete store.files[file.id];
-      throw error;
+      await fs.promises.rm(destPath, { force: true }).catch(() => {});
+      throw saveError;
     }
-    return sendJson(res, 201, { file: publicFile(file), savedTo: "telegram_saved_messages" });
+
+    // Instantly queue background Telegram sync
+    enqueueTelegramUpload(file, user);
+
+    // Return IMMEDIATELY! Super-fast 0ms add!
+    return sendJson(res, 201, { file: publicFile(file), status: "ready" });
   } catch (error) {
     if (output && !outputClosed) {
-      await output.close().then(() => {
-        outputClosed = true;
-      }).catch((closeError) => console.error("Upload temp close error:", closeError.message));
+      await output.close().catch(() => {});
     }
+    await fs.promises.rm(destPath, { force: true }).catch(() => {});
     throw error;
-  } finally {
-    await fs.promises.rm(tempDir, { recursive: true, force: true }).catch((error) => {
-      console.error("Upload temp cleanup error:", error.message);
-    });
   }
+}
+
+async function handleResumableInit(req, res, user, url) {
+  const parsedBody = await readJson(req);
+  const body = parsedBody && typeof parsedBody === "object" ? parsedBody : {};
+  const rawName = body.name || req.headers["x-file-name"] || "";
+  const size = Number(body.size || req.headers["x-file-size"] || 0);
+  if (!rawName || !size || !Number.isSafeInteger(size) || size <= 0) {
+    return sendJson(res, 400, { error: "Valid file name and size are required." });
+  }
+  if (size > MAX_FILE_SIZE) {
+    return sendJson(res, 413, { error: `File exceeds the ${MAX_FILE_SIZE} byte upload limit.` });
+  }
+
+  const name = cleanFileName(rawName);
+  const parentId = body.folderId || url.searchParams.get("folderId") || null;
+  const relativePath = typeof body.relativePath === "string" ? body.relativePath : "";
+  if (parentId && !activeFolderForUser(user, parentId)) {
+    return sendJson(res, 404, { error: "Folder not found." });
+  }
+
+  await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
+  const uploadId = randomUUID();
+  const partPath = path.join(UPLOADS_DIR, `part_${uploadId}.tmp`);
+  await fs.promises.writeFile(partPath, Buffer.alloc(0));
+
+  const session = {
+    uploadId,
+    userId: user.id,
+    name,
+    size,
+    type: getEffectiveMimeType(name, body.type || req.headers["content-type"]),
+    folderId: parentId,
+    relativePath,
+    partPath,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  };
+  resumableUploads.set(uploadId, session);
+  return sendJson(res, 200, { uploadId, offset: 0, size });
+}
+
+async function handleResumableStatus(req, res, user, url) {
+  const uploadId = url.searchParams.get("uploadId");
+  if (!uploadId || !resumableUploads.has(uploadId)) {
+    return sendJson(res, 404, { error: "Upload session not found or expired." });
+  }
+  const session = resumableUploads.get(uploadId);
+  if (session.userId !== user.id) {
+    return sendJson(res, 403, { error: "Unauthorized." });
+  }
+  let offset = 0;
+  try {
+    const stat = await fs.promises.stat(session.partPath);
+    offset = stat.size;
+  } catch {
+    offset = 0;
+  }
+  return sendJson(res, 200, { uploadId, offset, size: session.size });
+}
+
+async function handleResumableChunk(req, res, user, url) {
+  const uploadId = url.searchParams.get("uploadId");
+  if (!uploadId || !resumableUploads.has(uploadId)) {
+    return sendJson(res, 404, { error: "Upload session not found." });
+  }
+  const session = resumableUploads.get(uploadId);
+  if (session.userId !== user.id) {
+    return sendJson(res, 403, { error: "Unauthorized." });
+  }
+
+  const appendStream = fs.createWriteStream(session.partPath, { flags: "a" });
+  try {
+    for await (const chunk of req) {
+      appendStream.write(chunk);
+    }
+    await new Promise((resolve, reject) => {
+      appendStream.end((err) => (err ? reject(err) : resolve()));
+    });
+  } catch (err) {
+    appendStream.destroy();
+    return sendJson(res, 500, { error: "Failed to write chunk: " + err.message });
+  }
+
+  const stat = await fs.promises.stat(session.partPath);
+  const currentOffset = stat.size;
+  session.updatedAt = Date.now();
+
+  if (currentOffset >= session.size) {
+    const fileId = randomUUID();
+    const finalDestPath = path.join(UPLOADS_DIR, `${fileId}_${session.name}`);
+    await fs.promises.rename(session.partPath, finalDestPath);
+
+    const folderId = await resolveUploadFolder(user, session.folderId, session.relativePath);
+    const file = {
+      id: fileId,
+      userId: user.id,
+      localPath: finalDestPath,
+      telegramMessageId: null,
+      name: session.name,
+      size: session.size,
+      type: session.type,
+      uploadedAt: new Date().toISOString(),
+      folderId,
+    };
+    store.files[file.id] = file;
+    await saveStore();
+
+    enqueueTelegramUpload(file, user);
+    resumableUploads.delete(uploadId);
+
+    return sendJson(res, 201, { file: publicFile(file), completed: true });
+  }
+
+  return sendJson(res, 200, { offset: currentOffset, completed: false });
 }
 
 function parseByteRange(header, size) {
@@ -1213,19 +1436,10 @@ function sendRangeError(res, size) {
   return sendJson(res, 416, { error: "Requested byte range is not satisfiable." }, { "Content-Range": `bytes */${size}`, "Accept-Ranges": "bytes" });
 }
 
-async function streamFromTelegram(req, res, user, file, forceDownload = false) {
-  const indexedSize = Number(file.size);
-  if (!Number.isSafeInteger(indexedSize) || indexedSize < 0) throw new Error("Saved file size is invalid.");
+async function streamLocalFile(req, res, filePath, file, forceDownload = false) {
+  const stat = await fs.promises.stat(filePath);
+  const size = stat.size;
   let range;
-  const client = await getTelegramClient(user, req);
-  const messageId = Number(file.telegramMessageId);
-  if (!Number.isSafeInteger(messageId)) throw new Error("Saved Telegram message reference is invalid.");
-  const messages = await client.getMessages("me", { ids: [messageId] });
-  const message = Array.isArray(messages) ? messages[0] : messages;
-  if (!message || !message.media) return sendJson(res, 404, { error: "The file is no longer in Telegram Saved Messages." });
-
-  const remoteSize = Number(message.media.document?.size);
-  const size = Number.isSafeInteger(remoteSize) && remoteSize >= 0 ? remoteSize : indexedSize;
   try {
     range = parseByteRange(req.headers.range, size);
   } catch (error) {
@@ -1235,8 +1449,76 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
   const start = range?.start || 0;
   const end = range?.end ?? Math.max(0, size - 1);
   const contentLength = size === 0 ? 0 : end - start + 1;
-  const type = file.type || "application/octet-stream";
-  const canPreview = /^(image\/(?!svg\+xml)[a-z0-9.+-]+|video\/[a-z0-9.+-]+|audio\/[a-z0-9.+-]+|application\/pdf|text\/plain)$/i.test(type);
+  const type = getEffectiveMimeType(file.name, file.type);
+  const canPreview = /^(image\/|video\/|audio\/|application\/pdf|application\/json|text\/)/i.test(type);
+
+  res.writeHead(range ? 206 : 200, {
+    "Content-Type": type,
+    "Content-Length": contentLength,
+    "Content-Disposition": contentDisposition(file.name, canPreview && !forceDownload ? "inline" : "attachment"),
+    "Accept-Ranges": "bytes",
+    ...(range ? { "Content-Range": `bytes ${start}-${end}/${size}` } : {}),
+    "Cache-Control": "private, max-age=86400",
+    "X-Content-Type-Options": "nosniff",
+  });
+
+  if (req.method === "HEAD" || contentLength === 0) return res.end();
+  const readStream = fs.createReadStream(filePath, { start, end });
+  readStream.pipe(res);
+}
+
+async function streamFromTelegram(req, res, user, file, forceDownload = false) {
+  const indexedSize = Number(file.size);
+  if (!Number.isSafeInteger(indexedSize) || indexedSize < 0) throw new Error("Saved file size is invalid.");
+
+  await fs.promises.mkdir(CACHE_DIR, { recursive: true });
+  const cachedPath = path.join(CACHE_DIR, `${file.id}`);
+
+  // Check local staged file or existing persistent disk cache
+  const hasLocal = file.localPath && (await fs.promises.access(file.localPath).then(() => true).catch(() => false));
+  const hasCache = await fs.promises.access(cachedPath).then(() => true).catch(() => false);
+
+  if (hasLocal || hasCache) {
+    const streamTarget = hasLocal ? file.localPath : cachedPath;
+    return streamLocalFile(req, res, streamTarget, file, forceDownload);
+  }
+
+  const client = await getTelegramClient(user, req);
+  const messageId = Number(file.telegramMessageId);
+  if (!Number.isSafeInteger(messageId)) {
+    return sendJson(res, 404, { error: "Saved file is syncing or not found." });
+  }
+
+  const messages = await client.getMessages("me", { ids: [messageId] });
+  const message = Array.isArray(messages) ? messages[0] : messages;
+  if (!message || !message.media) return sendJson(res, 404, { error: "The file is no longer in Telegram Saved Messages." });
+
+  // Download directly into persistent cache so all subsequent playback & seeks are 100% instant from disk!
+  try {
+    await client.downloadMedia(message, { outputFile: cachedPath });
+    const cachedExists = await fs.promises.access(cachedPath).then(() => true).catch(() => false);
+    if (cachedExists) {
+      return streamLocalFile(req, res, cachedPath, file, forceDownload);
+    }
+  } catch (cacheErr) {
+    console.warn("Direct download to cache failed, falling back to Telegram stream:", cacheErr.message);
+  }
+
+  // Fallback direct stream if caching fails
+  const remoteSize = Number(message.media.document?.size);
+  const size = Number.isSafeInteger(remoteSize) && remoteSize >= 0 ? remoteSize : indexedSize;
+  let range;
+  try {
+    range = parseByteRange(req.headers.range, size);
+  } catch (error) {
+    return sendRangeError(res, size);
+  }
+
+  const start = range?.start || 0;
+  const end = range?.end ?? Math.max(0, size - 1);
+  const contentLength = size === 0 ? 0 : end - start + 1;
+  const type = getEffectiveMimeType(file.name, file.type);
+  const canPreview = /^(image\/|video\/|audio\/|application\/pdf|application\/json|text\/)/i.test(type);
   res.writeHead(range ? 206 : 200, {
     "Content-Type": type,
     "Content-Length": contentLength,
@@ -1254,8 +1536,6 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
   };
   res.once("close", closeResponse);
   let remaining = contentLength;
-  let sent = 0;
-  let tempDir;
   try {
     for await (const chunk of client.iterDownload(message, {
       offset: start,
@@ -1267,45 +1547,16 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
       const data = chunk.subarray(0, remaining);
       if (!res.write(data)) await new Promise((resolve) => res.once("drain", resolve));
       remaining -= data.length;
-      sent += data.length;
       if (remaining <= 0) break;
     }
-    if (remaining > 0 && !abortController.signal.aborted) {
-      throw new Error("Telegram returned fewer file bytes than expected.");
-    }
     if (!res.writableEnded && !abortController.signal.aborted) res.end();
-  } catch (error) {
+  } catch (streamError) {
     if (abortController.signal.aborted) return;
-    console.warn("Telegram range stream failed; retrying through a complete temporary download:", error.message);
-    try {
-      tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "cloudbox-stream-"));
-      const tempPath = path.join(tempDir, "media");
-      await client.downloadMedia(message, { outputFile: tempPath, signal: abortController.signal });
-      const metadata = await fs.promises.stat(tempPath);
-      if (metadata.size < start + contentLength) {
-        throw new Error("Telegram's downloaded media is shorter than its advertised size.");
-      }
-      const readStream = fs.createReadStream(tempPath, { start: start + sent, end });
-      for await (const chunk of readStream) {
-        if (abortController.signal.aborted) break;
-        if (!res.write(chunk)) await new Promise((resolve) => res.once("drain", resolve));
-        sent += chunk.length;
-      }
-      if (sent !== contentLength) throw new Error("Telegram returned fewer file bytes than expected.");
-      if (!res.writableEnded && !abortController.signal.aborted) res.end();
-    } catch (fallbackError) {
-      if (abortController.signal.aborted) return;
-      console.error("Telegram media stream fallback failed:", fallbackError.message);
-      if (res.headersSent) res.destroy(fallbackError);
-      else throw fallbackError;
-    }
+    console.error("Telegram stream fallback error:", streamError.message);
+    if (!res.headersSent) sendJson(res, 500, { error: "Streaming failed." });
+    else res.destroy(streamError);
   } finally {
     res.removeListener("close", closeResponse);
-    if (tempDir) {
-      await fs.promises.rm(tempDir, { recursive: true, force: true }).catch((error) => {
-        console.error("Media stream temp cleanup error:", error.message);
-      });
-    }
   }
 }
 
@@ -2389,6 +2640,9 @@ async function handleApi(req, res, url) {
     return sendJson(res, 201, { folder: publicFolder(folder) });
   }
   if (req.method === "POST" && url.pathname === "/api/upload") return uploadToTelegram(req, res, user, url);
+  if (req.method === "POST" && url.pathname === "/api/upload/resumable/init") return handleResumableInit(req, res, user, url);
+  if (req.method === "GET" && url.pathname === "/api/upload/resumable/status") return handleResumableStatus(req, res, user, url);
+  if (req.method === "POST" && url.pathname === "/api/upload/resumable/chunk") return handleResumableChunk(req, res, user, url);
 
   const thumbnailMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/thumbnail$/i);
   if (thumbnailMatch && req.method === "GET") {
@@ -2491,6 +2745,8 @@ async function handleRequest(req, res) {
 
 async function start() {
   await fs.promises.mkdir(DATA_DIR, { recursive: true });
+  await fs.promises.mkdir(UPLOADS_DIR, { recursive: true });
+  await fs.promises.mkdir(CACHE_DIR, { recursive: true });
   try {
     const content = await fs.promises.readFile(STORE_PATH, "utf8");
     const loaded = JSON.parse(content);
@@ -2500,6 +2756,12 @@ async function start() {
     store = loaded;
     if (!Array.isArray(store.folders)) store.folders = [];
     if (!store.authCooldowns || typeof store.authCooldowns !== "object") store.authCooldowns = {};
+    for (const file of Object.values(store.files)) {
+      if (!file.deletedAt && !file.telegramMessageId && file.localPath) {
+        const owner = store.users[file.userId];
+        if (owner) enqueueTelegramUpload(file, owner);
+      }
+    }
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
   }
