@@ -9,8 +9,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=9.3">
-    <script src="/app.js?v=9.3" defer></script>
+    <link rel="stylesheet" href="/style.css?v=9.4">
+    <script src="/app.js?v=9.4" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -286,19 +286,19 @@
 
             <!-- User Menu container -->
             <div class="user-menu-container">
-              <button class="account-badge" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false">
+              <button class="account-badge hidden" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false">
                 <span class="account-avatar"><span class="account-avatar-fallback"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><img id="account-avatar-image" alt="Telegram profile photo" class="hidden"></span>
-                <strong id="account-email">Alex Harper</strong>
+                <strong id="account-email"></strong>
                 <span class="vip-badge hidden" id="vip-badge">VIP</span>
                 <span class="admin-badge hidden" id="admin-badge">ADMIN</span>
                 <span class="menu-arrow">▾</span>
               </button>
-              <button class="button button-primary upload-gradient-btn hidden" id="top-login-btn" type="button">Login</button>
+              <button class="top-blue-login-btn" id="top-login-btn" type="button">Login</button>
               <button class="button button-primary upload-gradient-btn hidden" id="start-login-button" type="button">Login with Telegram</button>
 
               <div class="user-menu-popover hidden" id="user-menu-popover" role="menu">
                 <div class="user-menu-header">
-                  <strong id="user-menu-name">Alex Harper</strong>
+                  <strong id="user-menu-name">User</strong>
                   <span id="user-menu-sub">@user</span>
                 </div>
                 <hr class="user-menu-divider">

@@ -350,9 +350,9 @@ function showSignedOut() {
   document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
   document.querySelector("#theme-toggle")?.classList.remove("hidden");
 
-  // Show New Upload and keep Alex Harper user pill visible in topbar matching mockups
+  // Show New Upload and Blue Login button when not logged in (hide account badge)
   document.querySelector("#top-upload-btn")?.classList.remove("hidden");
-  document.querySelector("#top-login-btn")?.classList.add("hidden");
+  document.querySelector("#top-login-btn")?.classList.remove("hidden");
   document.querySelector("#sidebar-admin-btn")?.classList.add("hidden");
   const adminHeaderBtn = document.querySelector("#admin-header-btn");
   if (adminHeaderBtn) {
@@ -362,9 +362,9 @@ function showSignedOut() {
   }
   document.querySelector("#menu-admin-btn")?.classList.add("hidden");
   document.querySelector("#user-menu-popover")?.classList.add("hidden");
-  accountBadge.classList.remove("hidden");
+  accountBadge.classList.add("hidden");
   accountBadge.disabled = false;
-  document.querySelector("#account-email").textContent = "Alex Harper";
+  document.querySelector("#account-email").textContent = "";
   accountAvatarImage.removeAttribute("src");
   accountAvatarImage.classList.add("hidden");
   accountAvatarFallback.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
