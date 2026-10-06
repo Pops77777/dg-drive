@@ -2188,9 +2188,11 @@ function openPreview(file) {
     video.controls = true;
     video.preload = "auto";
     video.playsInline = true;
+    video.autoplay = true;
     video.poster = `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
     video.src = previewUrl;
     previewContent.append(video);
+    video.play().catch(() => {});
   } else if (file.type.startsWith("audio/")) {
     const audio = document.createElement("audio");
     audio.controls = true;
@@ -3294,6 +3296,11 @@ document.querySelector("#library-dialog-cancel").addEventListener("click", close
 
 function closePreview() {
   if (previewDialog.open) {
+    previewContent.querySelectorAll("video, audio").forEach((media) => {
+      media.pause();
+      media.removeAttribute("src");
+      media.load();
+    });
     previewDialog.close();
     document.body.classList.remove("preview-open");
     previewContent.replaceChildren();

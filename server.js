@@ -1493,18 +1493,6 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
   const message = Array.isArray(messages) ? messages[0] : messages;
   if (!message || !message.media) return sendJson(res, 404, { error: "The file is no longer in Telegram Saved Messages." });
 
-  // Download directly into persistent cache so all subsequent playback & seeks are 100% instant from disk!
-  try {
-    await client.downloadMedia(message, { outputFile: cachedPath });
-    const cachedExists = await fs.promises.access(cachedPath).then(() => true).catch(() => false);
-    if (cachedExists) {
-      return streamLocalFile(req, res, cachedPath, file, forceDownload);
-    }
-  } catch (cacheErr) {
-    console.warn("Direct download to cache failed, falling back to Telegram stream:", cacheErr.message);
-  }
-
-  // Fallback direct stream if caching fails
   const remoteSize = Number(message.media.document?.size);
   const size = Number.isSafeInteger(remoteSize) && remoteSize >= 0 ? remoteSize : indexedSize;
   let range;
@@ -1540,7 +1528,7 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
     for await (const chunk of client.iterDownload(message, {
       offset: start,
       limit: contentLength,
-      requestSize: 512 * 1024,
+      requestSize: 1024 * 1024,
       signal: abortController.signal,
     })) {
       if (abortController.signal.aborted) break;

@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#f5f8ff">
     <meta name="description" content="DGx Cloud — a premium personal file library, securely organised with Telegram Saved Messages.">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=2.5">
-    <script src="/app.js?v=2.5" defer></script>
+    <link rel="stylesheet" href="/style.css?v=2.6">
+    <script src="/app.js?v=2.6" defer></script>
   </head>
   <body>
     <header class="topbar">
@@ -16,7 +16,7 @@
         <span>DGx <span class="brand-accent">Cloud</span></span>
       </a>
       <nav class="topnav" aria-label="Main navigation">
-        <a href="#home-dashboard-view" id="home-nav-link">Home Library</a>
+        <a href="#home-dashboard-view" id="home-nav-link">Dashboard</a>
         <a href="#dashboard-view" id="library-nav-link">Library</a>
         <a href="#upload-files-button" id="upload-nav-link">Upload</a>
       </nav>
@@ -277,7 +277,7 @@
         <div class="home-dashboard-header">
           <div>
             <span class="section-kicker">PERSONAL CLOUD OVERVIEW</span>
-            <h2>🏠 Home Library</h2>
+            <h2>📊 Dashboard</h2>
             <p class="account-line">Overview of your storage, media categories, and recent uploads</p>
           </div>
           <div class="home-dashboard-actions">
@@ -324,7 +324,7 @@
       <section class="dashboard hidden" id="dashboard-view">
         <div class="dashboard-heading">
           <div>
-            <h2>My Storage</h2>
+            <h2>My Library</h2>
             <p class="account-line">Everything you’ve uploaded to your Telegram Saved Messages</p>
           </div>
           <div class="library-heading-actions">
@@ -334,7 +334,7 @@
           </div>
         </div>
 
-        <div class="storage-overview">
+        <div class="storage-overview hidden" style="display: none !important;">
           <div class="category-grid" id="category-grid" aria-label="Filter files by type"></div>
           <section class="storage-card" aria-label="Storage summary">
             <div class="storage-total"><img class="storage-ring" id="storage-ring" alt="" aria-hidden="true"><span><strong id="storage-total">0 B</strong><small>Total used</small></span></div>
