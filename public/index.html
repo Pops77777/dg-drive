@@ -9,8 +9,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=9.7">
-    <script src="/app.js?v=9.7" defer></script>
+    <link rel="stylesheet" href="/style.css?v=9.8">
+    <script src="/app.js?v=9.8" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -372,9 +372,11 @@
             <div class="master-dash-header-row">
               <div class="master-dash-title-cluster">
                 <h1 class="master-dash-heading">Dashboard</h1>
-                <span class="dashboard-highlight-pill" title="Telegram Cloud High Speed Storage"><span class="highlight-pill-icon">⚡</span> Up to 2 GB per file · High Speed</span>
               </div>
-              <button class="button button-primary upload-gradient-btn master-dash-upload-btn" id="top-upload-btn" type="button">
+              <span class="dashboard-highlight-pill" title="Telegram Cloud High Speed Storage">
+                <span class="highlight-pill-icon">⚡</span> Up to 2 GB per file · High Speed
+              </span>
+              <button class="button button-primary upload-gradient-btn master-dash-upload-btn hidden" id="top-upload-btn" type="button" style="display:none !important;">
                 <span class="upload-plus">＋</span> New Upload
               </button>
             </div>
@@ -384,13 +386,12 @@
               <section class="master-glass-card storage-overview-panel" aria-label="Storage summary">
                 <div class="master-card-title-row">
                   <h3>Storage Overview</h3>
-                  <div class="api-toggle-box" title="Enable or disable Developer API Suite">
-                    <span class="api-toggle-label">API Access</span>
-                    <label class="switch-toggle" for="api-feature-toggle">
-                      <input type="checkbox" id="api-feature-toggle" aria-label="Toggle Developer API Suite">
-                      <span class="slider-round"></span>
-                    </label>
-                  </div>
+                  <button class="api-status-toggle-btn is-off" id="dashboard-api-toggle-btn" type="button" title="Click to turn Developer API ON or OFF">
+                    <span class="api-toggle-indicator"></span>
+                    <span class="api-toggle-text">Developer API: <strong>OFF</strong></span>
+                    <span class="api-toggle-action">(Turn ON)</span>
+                  </button>
+                  <input type="checkbox" id="api-feature-toggle" class="hidden" style="display:none;">
                 </div>
                 <div class="master-donut-wrap">
                   <div class="master-donut-aurora"></div>
@@ -780,13 +781,12 @@
               <section class="master-glass-card profile-form-card">
                 <div class="master-card-title-row">
                   <h3>Developer API Suite</h3>
-                  <div class="api-toggle-box" title="Enable or disable Developer API Suite">
-                    <span class="api-toggle-label">Enable API</span>
-                    <label class="switch-toggle" for="profile-api-toggle">
-                      <input type="checkbox" id="profile-api-toggle" aria-label="Toggle Developer API Suite">
-                      <span class="slider-round"></span>
-                    </label>
-                  </div>
+                  <button class="api-status-toggle-btn is-off" id="profile-api-toggle-btn" type="button" title="Click to turn Developer API ON or OFF">
+                    <span class="api-toggle-indicator"></span>
+                    <span class="api-toggle-text">Developer API: <strong>OFF</strong></span>
+                    <span class="api-toggle-action">(Turn ON)</span>
+                  </button>
+                  <input type="checkbox" id="profile-api-toggle" class="hidden" style="display:none;">
                 </div>
                 <div class="profile-security-row">
                   <div>

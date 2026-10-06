@@ -5524,55 +5524,146 @@ html[data-theme="dark"] .api-key-stats {
 /* 10. Topbar Blue Login Button (When Not Signed In) */
 .top-blue-login-btn,
 #top-login-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  background: #2563eb !important;
-  color: #ffffff !important;
-  font-size: 13.5px !important;
-  font-weight: 700 !important;
-  padding: 8px 22px !important;
-  border-radius: 9999px !important;
-  border: 1.5px solid rgba(255, 255, 255, 0.25) !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.38) !important;
-  cursor: pointer !important;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
-  line-height: 1 !important;
-  text-decoration: none !important;
-  flex-shrink: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  padding: 8px 22px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.38);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+#top-login-btn.hidden,
+.top-blue-login-btn.hidden {
+  display: none !important;
 }
 
 .top-blue-login-btn:hover,
 #top-login-btn:hover {
-  background: #1d4ed8 !important;
-  box-shadow: 0 6px 22px rgba(37, 99, 235, 0.5) !important;
-  transform: translateY(-1px) scale(1.02) !important;
+  background: #1d4ed8;
+  box-shadow: 0 6px 22px rgba(37, 99, 235, 0.5);
+  transform: translateY(-1px) scale(1.02);
 }
 
 .top-blue-login-btn:active,
 #top-login-btn:active {
-  transform: translateY(0) scale(0.98) !important;
+  transform: translateY(0) scale(0.98);
 }
 
 html[data-theme="dark"] .top-blue-login-btn,
 html[data-theme="dark"] #top-login-btn {
-  background: #2563eb !important;
-  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45) !important;
-  border-color: rgba(255, 255, 255, 0.2) !important;
+  background: #2563eb;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 html[data-theme="dark"] .top-blue-login-btn:hover,
 html[data-theme="dark"] #top-login-btn:hover {
-  background: #1d4ed8 !important;
+  background: #1d4ed8;
 }
 
 @media (max-width: 768px) {
   .top-blue-login-btn,
   #top-login-btn {
-    padding: 6px 16px !important;
-    font-size: 12.5px !important;
+    padding: 6px 16px;
+    font-size: 12.5px;
   }
+}
+
+/* 11. Prominent Developer API Status Toggle Button */
+.api-status-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(0, 0, 0, 0.1);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  user-select: none;
+}
+.api-status-toggle-btn.is-off {
+  background: rgba(241, 245, 249, 0.9);
+  border-color: rgba(148, 163, 184, 0.4);
+  color: #475569;
+}
+.api-status-toggle-btn.is-off:hover {
+  background: #ffffff;
+  border-color: #3b82f6;
+  color: #1e293b;
+  transform: translateY(-1px);
+}
+.api-status-toggle-btn.is-on {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.5);
+  color: #065f46;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+}
+.api-status-toggle-btn.is-on:hover {
+  background: rgba(16, 185, 129, 0.18);
+  border-color: #10b981;
+  transform: translateY(-1px);
+}
+html[data-theme="dark"] .api-status-toggle-btn.is-off {
+  background: rgba(30, 41, 59, 0.85);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+html[data-theme="dark"] .api-status-toggle-btn.is-off:hover {
+  background: rgba(30, 41, 59, 1);
+  border-color: #60a5fa;
+  color: #f8fafc;
+}
+html[data-theme="dark"] .api-status-toggle-btn.is-on {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(52, 211, 153, 0.6);
+  color: #6ee7b7;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+.api-toggle-indicator {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.api-status-toggle-btn.is-off .api-toggle-indicator {
+  background: #94a3b8;
+  box-shadow: 0 0 4px rgba(148, 163, 184, 0.5);
+}
+.api-status-toggle-btn.is-on .api-toggle-indicator {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+  animation: pulseIndicator 2s infinite;
+}
+@keyframes pulseIndicator {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.85; }
+}
+.api-toggle-text {
+  font-weight: 600;
+}
+.api-toggle-text strong {
+  font-weight: 800;
+}
+.api-toggle-action {
+  font-size: 11px;
+  opacity: 0.8;
+  margin-left: 2px;
 }
 
 

@@ -361,7 +361,11 @@ function showSignedOut() {
 
   // Show New Upload and Blue Login button when not logged in (hide account badge)
   document.querySelector("#top-upload-btn")?.classList.remove("hidden");
-  document.querySelector("#top-login-btn")?.classList.remove("hidden");
+  const topLogin = document.querySelector("#top-login-btn");
+  if (topLogin) {
+    topLogin.classList.remove("hidden");
+    topLogin.style.removeProperty("display");
+  }
   document.querySelector("#sidebar-admin-btn")?.classList.add("hidden");
   const adminHeaderBtn = document.querySelector("#admin-header-btn");
   if (adminHeaderBtn) {
@@ -418,7 +422,10 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   if (appSidebar) appSidebar.classList.remove("hidden");
   if (mobileDock) mobileDock.classList.remove("hidden");
   if (topUploadBtn) topUploadBtn.classList.remove("hidden");
-  if (topLoginBtn) topLoginBtn.classList.add("hidden");
+  if (topLoginBtn) {
+    topLoginBtn.classList.add("hidden");
+    topLoginBtn.style.setProperty("display", "none", "important");
+  }
   if (topbarSearchWrap) topbarSearchWrap.classList.remove("hidden");
   if (sidebarAdminBtn) sidebarAdminBtn.classList.toggle("hidden", !user.isAdmin);
 
@@ -1704,7 +1711,7 @@ function renderLibrary() {
   document.querySelector("#new-folder-button")?.classList.toggle("hidden", trashMode);
   document.querySelector("#upload-folder-button")?.classList.toggle("hidden", trashMode);
   document.querySelector("#upload-files-button")?.classList.toggle("hidden", trashMode);
-  document.querySelector("#upload-limit")?.classList.toggle("hidden", trashMode);
+  document.querySelector("#upload-limit")?.classList.add("hidden");
   document.querySelector("#selection-toolbar")?.classList.toggle("is-trash-mode", trashMode);
   const query = searchTerm.trim().toLocaleLowerCase();
   const searching = Boolean(query);
@@ -4233,6 +4240,16 @@ function updateApiToggleUI(enabled) {
   if (dashToggle && dashToggle.checked !== enabled) dashToggle.checked = enabled;
   const profToggle = document.querySelector("#profile-api-toggle");
   if (profToggle && profToggle.checked !== enabled) profToggle.checked = enabled;
+
+  const buttons = document.querySelectorAll("#dashboard-api-toggle-btn, #profile-api-toggle-btn");
+  buttons.forEach((btn) => {
+    btn.classList.toggle("is-on", enabled);
+    btn.classList.toggle("is-off", !enabled);
+    const textEl = btn.querySelector(".api-toggle-text");
+    if (textEl) textEl.innerHTML = `Developer API: <strong>${enabled ? "ON" : "OFF"}</strong>`;
+    const actionEl = btn.querySelector(".api-toggle-action");
+    if (actionEl) actionEl.textContent = enabled ? "(Turn OFF)" : "(Turn ON)";
+  });
 }
 
 async function setApiFeatureState(enabled) {
@@ -4246,6 +4263,16 @@ async function setApiFeatureState(enabled) {
     await api("/api/developer/toggle", { method: "POST", body: JSON.stringify({ enabled }) });
   } catch {}
 }
+
+document.querySelector("#dashboard-api-toggle-btn")?.addEventListener("click", () => {
+  const isCurrentlyOn = window.localStorage.getItem("dgcloud-api-enabled") === "true" || (currentUser && currentUser.apiEnabled === true);
+  setApiFeatureState(!isCurrentlyOn);
+});
+
+document.querySelector("#profile-api-toggle-btn")?.addEventListener("click", () => {
+  const isCurrentlyOn = window.localStorage.getItem("dgcloud-api-enabled") === "true" || (currentUser && currentUser.apiEnabled === true);
+  setApiFeatureState(!isCurrentlyOn);
+});
 
 function showProfile() {
   if (!currentUser) {
@@ -4595,7 +4622,10 @@ async function initialize() {
     }
     const result = await api("/api/me");
     maxFileSize = result.maxFileSize;
-    fileLimit.textContent = `Max ${formatSize(maxFileSize)} per file`;
+    if (fileLimit) {
+      fileLimit.textContent = "";
+      fileLimit.classList.add("hidden");
+    }
     if (result.user && !result.blocked) await showSignedIn(result.user);
     else if (result.blocked) {
       showSignedOut();
