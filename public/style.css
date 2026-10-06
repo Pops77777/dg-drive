@@ -4429,6 +4429,9 @@ html[data-theme="dark"] .share-box-row input {
     border-radius: 14px !important;
     cursor: pointer !important;
   }
+  .dock-btn.hidden {
+    display: none !important;
+  }
   html[data-theme="dark"] .dock-btn {
     color: #94a3b8 !important;
   }
@@ -5087,6 +5090,9 @@ html[data-theme="dark"] .vault-dialog {
     border-radius: 14px !important;
     cursor: pointer !important;
     touch-action: manipulation !important;
+  }
+  .dock-btn.hidden {
+    display: none !important;
   }
   .dock-btn svg {
     width: 24px !important;

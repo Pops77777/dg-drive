@@ -1529,19 +1529,9 @@ function renderHomeDashboard() {
   const apiToggle = document.querySelector("#api-feature-toggle");
   if (apiToggle) {
     const isApiOn = currentUser?.apiEnabled === true || window.localStorage.getItem("dgcloud-api-enabled") === "true";
-    apiToggle.checked = isApiOn;
     updateApiToggleUI(isApiOn);
-    apiToggle.onchange = async () => {
-      const enabled = apiToggle.checked;
-      window.localStorage.setItem("dgcloud-api-enabled", enabled ? "true" : "false");
-      if (currentUser) currentUser.apiEnabled = enabled;
-      updateApiToggleUI(enabled);
-      if (!enabled && !document.querySelector("#api-view")?.classList.contains("hidden")) {
-        showHome();
-      }
-      try {
-        await api("/api/developer/toggle", { method: "POST", body: JSON.stringify({ enabled }) });
-      } catch {}
+    apiToggle.onchange = () => {
+      setApiFeatureState(apiToggle.checked);
     };
   }
 
@@ -4220,9 +4210,41 @@ document.querySelector("#folder-action-sheet-close-btn")?.addEventListener("clic
 
 function updateApiToggleUI(enabled) {
   const dockApiBtn = document.querySelector("#dock-api-btn");
-  if (dockApiBtn) dockApiBtn.classList.toggle("hidden", !enabled);
+  if (dockApiBtn) {
+    if (enabled) {
+      dockApiBtn.classList.remove("hidden");
+      dockApiBtn.style.removeProperty("display");
+    } else {
+      dockApiBtn.classList.add("hidden");
+      dockApiBtn.style.setProperty("display", "none", "important");
+    }
+  }
   const sidebarApiBtn = document.querySelector("#sidebar-api-btn");
-  if (sidebarApiBtn) sidebarApiBtn.classList.toggle("hidden", !enabled);
+  if (sidebarApiBtn) {
+    if (enabled) {
+      sidebarApiBtn.classList.remove("hidden");
+      sidebarApiBtn.style.removeProperty("display");
+    } else {
+      sidebarApiBtn.classList.add("hidden");
+      sidebarApiBtn.style.setProperty("display", "none", "important");
+    }
+  }
+  const dashToggle = document.querySelector("#api-feature-toggle");
+  if (dashToggle && dashToggle.checked !== enabled) dashToggle.checked = enabled;
+  const profToggle = document.querySelector("#profile-api-toggle");
+  if (profToggle && profToggle.checked !== enabled) profToggle.checked = enabled;
+}
+
+async function setApiFeatureState(enabled) {
+  window.localStorage.setItem("dgcloud-api-enabled", enabled ? "true" : "false");
+  if (currentUser) currentUser.apiEnabled = enabled;
+  updateApiToggleUI(enabled);
+  if (!enabled && !document.querySelector("#api-view")?.classList.contains("hidden")) {
+    showHome();
+  }
+  try {
+    await api("/api/developer/toggle", { method: "POST", body: JSON.stringify({ enabled }) });
+  } catch {}
 }
 
 function showProfile() {
@@ -4263,6 +4285,15 @@ function populateProfilePageView() {
   if (loginInput) loginInput.value = currentUser.username || "";
   const statStorage = document.querySelector("#profile-stat-storage");
   if (statStorage) statStorage.textContent = "Unlimited (∞)";
+
+  const profToggle = document.querySelector("#profile-api-toggle");
+  if (profToggle) {
+    const isApiOn = currentUser.apiEnabled === true || window.localStorage.getItem("dgcloud-api-enabled") === "true";
+    profToggle.checked = isApiOn;
+    profToggle.onchange = () => {
+      setApiFeatureState(profToggle.checked);
+    };
+  }
 }
 
 document.querySelector("#profile-credentials-page-form")?.addEventListener("submit", async (e) => {
