@@ -1926,7 +1926,7 @@ async function handleApi(req, res, url) {
       nextHash = hashedPin.hash;
       nextSalt = hashedPin.salt;
     } else if (body.enabled && !hasExistingPin) {
-      return sendJson(res, 400, { error: "Create an account lock PIN with at least 6 characters." });
+      return sendJson(res, 400, { error: "Create an account lock PIN with at least 4 characters." });
     } else if (hasExistingPin && !existingPinMatches && !isRecentTelegramLogin) {
       return sendJson(res, 401, { error: "Enter your current account lock PIN, or verify again with Telegram QR." });
     }

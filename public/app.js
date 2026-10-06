@@ -362,11 +362,11 @@ async function openProfileDialog() {
     document.querySelector("#account-lock-new-pin").value = "";
     document.querySelector("#account-lock-confirm-pin").value = "";
     document.querySelector("#account-lock-current-pin").placeholder = lockStatus.configured
-      ? "Current PIN (required to change or turn off)"
+      ? "Current PIN (min 4 digits)"
       : "Not required for the first PIN";
     document.querySelector("#account-lock-new-pin").placeholder = lockStatus.configured
       ? "Leave empty to keep the current PIN"
-      : "At least 6 characters";
+      : "4-digit PIN (min 4 digits)";
     profileDialog.showModal();
   } catch (error) {
     window.alert(error.message);
@@ -540,6 +540,7 @@ async function beginQrRecovery(purpose) {
     dashboardView.classList.add("hidden");
     adminView.classList.add("hidden");
   }
+  accountLockView.classList.add("hidden");
   authView.classList.remove("hidden");
   qrMethodButton.click();
   authView.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -2173,6 +2174,17 @@ async function pollLoginStatus() {
         setMessage(vaultMessage, "Telegram verified. Set a new Vault passcode without signing out.");
         return;
       }
+      if (result.recovery && recoveryPurpose === "account-lock") {
+        currentUser = result.user;
+        accountLocked = false;
+        loginStarted = false;
+        authView.classList.add("hidden");
+        accountLockView.classList.add("hidden");
+        await showLibrary();
+        await openProfileDialog();
+        setMessage(document.querySelector("#account-lock-settings-message"), "Telegram verified. You can now set a new lock PIN or turn it off.");
+        return;
+      }
       await showSignedIn(result.user, true);
       return;
     }
@@ -2441,6 +2453,9 @@ document.querySelector("#account-lock-signout").addEventListener("click", async 
   } catch (error) {
     setMessage(accountLockMessage, error.message, true);
   }
+});
+document.querySelector("#account-lock-forgot")?.addEventListener("click", () => {
+  void beginQrRecovery("account-lock");
 });
 document.querySelector("#auth-back-button").addEventListener("click", async () => {
   if (loginStarted) {
@@ -2856,6 +2871,10 @@ previewDialog.addEventListener("close", () => {
 document.querySelectorAll("dialog").forEach((dialog) => {
   dialog.addEventListener("pointerdown", (event) => {
     if (event.target === dialog) {
+      if (dialog === vaultDialog) {
+        // Vault must NOT close on outside/backdrop click; user must explicitly click Close/Back
+        return;
+      }
       if (dialog === previewDialog) closePreview();
       else dialog.close();
     }

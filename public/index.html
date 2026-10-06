@@ -161,16 +161,16 @@
             <label class="account-lock-toggle"><input id="account-lock-enabled" type="checkbox"> Ask for a PIN when this website opens</label>
             <label class="field-label" for="account-lock-current-pin">Current lock PIN</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="account-lock-current-pin" type="password" autocomplete="current-password" minlength="6" maxlength="128">
+              <input class="field-input" id="account-lock-current-pin" type="password" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Current PIN (min 4 digits)">
               <button class="password-toggle" type="button" data-password-toggle="account-lock-current-pin" aria-label="Show current lock PIN" aria-pressed="false">Show</button>
             </div>
             <label class="field-label" for="account-lock-new-pin">New lock PIN <span>(optional to keep existing PIN)</span></label>
             <div class="password-input-wrap">
-              <input class="field-input" id="account-lock-new-pin" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+              <input class="field-input" id="account-lock-new-pin" type="password" autocomplete="new-password" minlength="4" maxlength="128" placeholder="4-digit PIN (min 4 digits)">
               <button class="password-toggle" type="button" data-password-toggle="account-lock-new-pin" aria-label="Show new lock PIN" aria-pressed="false">Show</button>
             </div>
             <label class="field-label" for="account-lock-confirm-pin">Confirm new lock PIN</label>
-            <input class="field-input" id="account-lock-confirm-pin" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+            <input class="field-input" id="account-lock-confirm-pin" type="password" autocomplete="new-password" minlength="4" maxlength="128" placeholder="Confirm 4-digit PIN">
             <div class="dialog-actions">
               <button class="button button-outline" id="account-lock-save" type="button">Save lock settings</button>
             </div>
@@ -210,7 +210,7 @@
           <section class="vault-unlock hidden" id="vault-unlock">
             <label class="field-label" for="vault-passcode">Vault passcode</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="vault-passcode" type="password" autocomplete="current-password" minlength="6" maxlength="128">
+              <input class="field-input" id="vault-passcode" type="password" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Enter 4-digit passcode">
               <button class="password-toggle" type="button" data-password-toggle="vault-passcode" aria-label="Show Vault passcode" aria-pressed="false">Show</button>
             </div>
             <button class="button button-primary" id="vault-unlock-button" type="button">Unlock Vault</button>
@@ -262,13 +262,14 @@
           <form id="account-lock-form">
             <label class="field-label" for="account-lock-pin">Account lock PIN</label>
             <div class="password-input-wrap">
-              <input class="field-input" id="account-lock-pin" type="password" autocomplete="current-password" minlength="6" maxlength="128" required>
+              <input class="field-input" id="account-lock-pin" type="password" autocomplete="current-password" minlength="4" maxlength="128" placeholder="Enter 4-digit PIN" required>
               <button class="password-toggle" type="button" data-password-toggle="account-lock-pin" aria-label="Show account lock PIN" aria-pressed="false">Show</button>
             </div>
             <button class="button button-primary" id="account-lock-submit" type="submit">Unlock account</button>
           </form>
           <p class="form-message" id="account-lock-message" role="status" aria-live="polite"></p>
           <button class="text-button" id="account-lock-signout" type="button">Sign out instead</button>
+          <button class="text-button" id="account-lock-forgot" type="button">Forgot PIN? Verify with Telegram QR</button>
         </div>
       </section>
 
