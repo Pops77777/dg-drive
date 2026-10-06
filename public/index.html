@@ -9,8 +9,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=9.0">
-    <script src="/app.js?v=9.0" defer></script>
+    <link rel="stylesheet" href="/style.css?v=9.2">
+    <script src="/app.js?v=9.2" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -666,8 +666,8 @@
     </div>
 
     <!-- Hidden file inputs & upload queue -->
-    <input id="file-picker" type="file" multiple class="hidden">
-    <input id="folder-picker" type="file" webkitdirectory multiple class="hidden">
+    <input id="file-picker" type="file" multiple class="file-input-hidden">
+    <input id="folder-picker" type="file" webkitdirectory multiple class="file-input-hidden">
     <div class="upload-queue" id="upload-queue" aria-live="polite"></div>
 
     <!-- Dialogs for Folders, Preview, Properties, Devices -->
@@ -706,7 +706,7 @@
         <h2 id="properties-title">File Information</h2>
         <div class="properties-grid" id="properties-grid"></div>
         <div class="properties-actions">
-          <button class="button button-primary" id="properties-copy-link" type="button">🔗 Copy Link</button>
+          <button class="button button-primary" id="properties-copy-link" type="button"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;margin-right:6px;"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Copy Link</button>
           <a class="button button-outline" id="properties-download-btn" href="#" download>↓ Download</a>
         </div>
       </div>
@@ -733,7 +733,7 @@
         <div class="action-sheet-drag-handle"></div>
         <div class="action-sheet-header">
           <div class="action-sheet-thumb-wrap">
-            <span class="action-sheet-file-icon" id="action-sheet-icon">📄</span>
+            <span class="action-sheet-file-icon" id="action-sheet-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span>
             <img class="action-sheet-file-thumb hidden" id="action-sheet-thumb" alt="">
           </div>
           <div class="action-sheet-details">
@@ -776,7 +776,7 @@
       </button>
       <button class="dock-btn" id="dock-profile-btn" type="button" title="Profile">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-        <span class="dock-label">Profil</span>
+        <span class="dock-label">Profile</span>
       </button>
     </nav>
   </body>

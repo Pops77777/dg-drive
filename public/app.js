@@ -939,11 +939,11 @@ function renderAdminAccountLibrary() {
   const categoryGrid = document.createElement("div");
   categoryGrid.className = "category-grid admin-library-categories";
   const specs = [
-    { id: "videos", icon: "🎬", color: "navy" },
-    { id: "photos", icon: "🖼", color: "green" },
-    { id: "other", icon: "▦", color: "yellow" },
-    { id: "vault", icon: "🔒", color: "vault" },
-    { id: "all", icon: "▤", color: "purple" },
+    { id: "videos", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`, color: "navy" },
+    { id: "photos", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`, color: "green" },
+    { id: "other", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`, color: "yellow" },
+    { id: "vault", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, color: "vault" },
+    { id: "all", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>`, color: "purple" },
   ];
   for (const spec of specs) {
     const card = document.createElement("button");
@@ -952,7 +952,7 @@ function renderAdminAccountLibrary() {
     card.setAttribute("aria-pressed", String(adminViewedCategory === spec.id));
     const icon = document.createElement("span");
     icon.className = "category-icon";
-    icon.textContent = spec.icon;
+    icon.innerHTML = spec.svg;
     const label = document.createElement("strong");
     label.textContent = categoryNames[spec.id];
     const amount = document.createElement("span");
@@ -1073,10 +1073,12 @@ function renderAdminAccountLibrary() {
     for (const folder of visibleFolders) {
       const tile = document.createElement("article");
       tile.className = "folder-tile";
-      tile.append(createButton("📁", "folder-open", () => {
+      const openFolderBtn = createButton("", "folder-open", () => {
         adminViewedFolderId = folder.id;
         renderAdminAccountLibrary();
-      }, `Open ${folder.name} in ${adminViewedAccount.name}'s library`));
+      }, `Open ${folder.name} in ${adminViewedAccount.name}'s library`);
+      openFolderBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+      tile.append(openFolderBtn);
       const detail = createButton(`${folder.name}\n${folder.path || "Folder"}`, "folder-info", () => {
         adminViewedFolderId = folder.id;
         renderAdminAccountLibrary();
@@ -1109,7 +1111,11 @@ function renderAdminAccountLibrary() {
     const fileUrl = `/api/admin/users/${encodeURIComponent(adminViewedAccount.id)}/files/${encodeURIComponent(file.id)}`;
     const preview = document.createElement("div");
     preview.className = `admin-library-file-icon ${fileCategory(file)}`;
-    preview.textContent = fileCategory(file) === "videos" ? "▶" : fileCategory(file) === "photos" ? "▧" : "▤";
+    preview.innerHTML = fileCategory(file) === "videos"
+      ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`
+      : fileCategory(file) === "photos"
+        ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`
+        : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
     const thumbnail = document.createElement("img");
     thumbnail.className = "admin-library-thumbnail";
     thumbnail.alt = "";
@@ -1125,7 +1131,7 @@ function renderAdminAccountLibrary() {
     name.textContent = file.name;
     if (file.isVault) {
       const badge = document.createElement("span");
-      badge.textContent = " 🔒 Vault";
+      badge.innerHTML = ' <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Vault';
       badge.style.color = "#7b50db";
       badge.style.fontWeight = "bold";
       badge.style.fontSize = "12px";
@@ -1293,11 +1299,11 @@ function folderDescendantIds(folderId) {
 
 function renderCategories() {
   const specs = [
-    { id: "videos", icon: "🎬", color: "navy" },
-    { id: "photos", icon: "🖼", color: "green" },
-    { id: "other", icon: "▦", color: "yellow" },
-    { id: "vault", icon: "🔒", color: "vault" },
-    { id: "all", icon: "▤", color: "purple" },
+    { id: "videos", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>`, color: "navy" },
+    { id: "photos", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`, color: "green" },
+    { id: "other", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`, color: "yellow" },
+    { id: "vault", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`, color: "vault" },
+    { id: "all", svg: `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg>`, color: "purple" },
   ];
   const totals = Object.fromEntries(Object.keys(categoryNames).map((id) => [id, { count: 0, size: 0 }]));
   for (const file of allFiles) {
@@ -1318,7 +1324,7 @@ function renderCategories() {
     if (spec.id === "vault") card.setAttribute("aria-label", `Open private Vault, ${total.count} files · ${formatSize(total.size)}`);
     const icon = document.createElement("span");
     icon.className = "category-icon";
-    icon.textContent = spec.icon;
+    icon.innerHTML = spec.svg;
     const title = document.createElement("strong");
     title.textContent = categoryNames[spec.id];
     const summary = document.createElement("span");
@@ -1563,7 +1569,7 @@ function renderHomeDashboard() {
         if (isVid) {
           const play = document.createElement("span");
           play.className = "recent-card-play-overlay";
-          play.textContent = "▶";
+          play.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
           thumbWrap.append(play);
         }
 
@@ -1592,7 +1598,7 @@ function renderHomeDashboard() {
 function renderBreadcrumbs() {
   breadcrumbs.replaceChildren();
   if (trashMode) {
-    breadcrumbs.append(createButton("🗑 Trash", "breadcrumb-button", () => {
+    breadcrumbs.append(createButton("Trash", "breadcrumb-button", () => {
       trashFolderId = null;
       renderLibrary();
     }));
@@ -1614,7 +1620,7 @@ function renderBreadcrumbs() {
     currentFolderTitle.textContent = chain.at(-1)?.name || "Trash";
     return;
   }
-  const root = createButton("⌂ Root", "breadcrumb-button", () => {
+  const root = createButton("Root", "breadcrumb-button", () => {
     activeFolderId = null;
     renderLibrary();
   });
@@ -1643,15 +1649,16 @@ function renderLibrary() {
   dashboardView.dataset.dataSaver = String(dataSaverEnabled);
   renderCategories();
   renderBreadcrumbs();
-  trashToggle.textContent = trashMode ? "← Back to files" : "🗑 Trash";
-  emptyTrashButton.classList.toggle("hidden", !trashMode);
-  emptyTrashButton.disabled = !allTrashItems.length;
-  document.querySelector("#new-folder-button").classList.toggle("hidden", trashMode);
-  document.querySelector("#upload-folder-button").classList.toggle("hidden", trashMode);
-  document.querySelector("#upload-files-button").classList.toggle("hidden", trashMode);
-  document.querySelector("#upload-limit").classList.toggle("hidden", trashMode);
-  document.querySelector("#telegram-notice").classList.toggle("hidden", trashMode);
-  document.querySelector("#selection-toolbar").classList.toggle("is-trash-mode", trashMode);
+  if (trashToggle) trashToggle.textContent = trashMode ? "← Back to files" : "Trash";
+  if (emptyTrashButton) {
+    emptyTrashButton.classList.toggle("hidden", !trashMode);
+    emptyTrashButton.disabled = !allTrashItems.length;
+  }
+  document.querySelector("#new-folder-button")?.classList.toggle("hidden", trashMode);
+  document.querySelector("#upload-folder-button")?.classList.toggle("hidden", trashMode);
+  document.querySelector("#upload-files-button")?.classList.toggle("hidden", trashMode);
+  document.querySelector("#upload-limit")?.classList.toggle("hidden", trashMode);
+  document.querySelector("#selection-toolbar")?.classList.toggle("is-trash-mode", trashMode);
   const query = searchTerm.trim().toLocaleLowerCase();
   const searching = Boolean(query);
   const inFolder = trashMode ? [] : allFiles.filter((file) => searching
@@ -1686,10 +1693,12 @@ function renderLibrary() {
     for (const item of trashFolders) {
       const tile = document.createElement("article");
       tile.className = "folder-tile";
-      tile.append(createButton("📁", "folder-open", () => {
+      const openBtn = createButton("", "folder-open", () => {
         trashFolderId = item.id;
         renderLibrary();
-      }, `Open trashed folder ${item.name}`));
+      }, `Open trashed folder ${item.name}`);
+      openBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+      tile.append(openBtn);
       const info = document.createElement("span");
       info.className = "folder-info";
       info.textContent = `${item.name}\n${item.itemCount} ${item.itemCount === 1 ? "item" : "items"} · ${formatSize(item.size)} · Deleted ${formatDate(item.trashedAt)}`;
@@ -1704,14 +1713,16 @@ function renderLibrary() {
     const childFiles = allFiles.filter((file) => descendants.has(file.folderId));
     const tile = document.createElement("article");
     tile.className = "folder-tile";
-    tile.append(createButton("📁", "folder-open", () => {
+    const openBtn = createButton("", "folder-open", () => {
       history.pushState({ folderId: folder.id }, "");
       activeFolderId = folder.id;
       activeCategory = "all";
-      searchInput.value = "";
+      if (searchInput) searchInput.value = "";
       searchTerm = "";
       renderLibrary();
-    }, `Open folder ${folder.name}`));
+    }, `Open folder ${folder.name}`);
+    openBtn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M10 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/></svg>`;
+    tile.append(openBtn);
     const info = createButton(folder.name, "folder-info", () => {
       history.pushState({ folderId: folder.id }, "");
       activeFolderId = folder.id;
@@ -1719,7 +1730,9 @@ function renderLibrary() {
       renderLibrary();
     }, `Open folder ${folder.name}`);
     tile.append(info);
-    tile.append(createButton("🔗", "folder-share", () => shareFolder(folder), `Share folder ${folder.name}`));
+    const shareBtn = createButton("", "folder-share", () => shareFolder(folder), `Share folder ${folder.name}`);
+    shareBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`;
+    tile.append(shareBtn);
     tile.append(createButton("×", "folder-delete", () => deleteFolder(folder), `Delete folder ${folder.name}`));
     makeSelectable(tile, `folder:${folder.id}`);
     folderList.append(tile);
@@ -1785,26 +1798,33 @@ function makeSelectable(element, key) {
   let longPressTriggered = false;
   const cancelLongPress = () => window.clearTimeout(timer);
   element.addEventListener("pointerdown", (event) => {
-    if (event.target instanceof Element && event.target.closest(".restore-trash-item")) return;
+    if (event.target instanceof Element && event.target.closest(".file-action-btn, .file-menu, .restore-trash-item, .folder-delete, .folder-share")) return;
     if (event.button !== 0) return;
     startX = event.clientX;
     startY = event.clientY;
     longPressTriggered = false;
     timer = window.setTimeout(() => {
       longPressTriggered = true;
+      if (window.navigator && window.navigator.vibrate) {
+        try { window.navigator.vibrate(35); } catch {}
+      }
       toggleSelectedItem(key);
-    }, 550);
+    }, 420);
   });
   element.addEventListener("pointermove", (event) => {
-    if (Math.abs(event.clientX - startX) > 10 || Math.abs(event.clientY - startY) > 10) {
+    if (Math.abs(event.clientX - startX) > 24 || Math.abs(event.clientY - startY) > 24) {
       cancelLongPress();
     }
   });
   element.addEventListener("pointerup", cancelLongPress);
   element.addEventListener("pointercancel", cancelLongPress);
-  element.addEventListener("contextmenu", (event) => event.preventDefault());
+  element.addEventListener("contextmenu", (event) => {
+    if (!event.target.closest(".file-action-btn")) {
+      event.preventDefault();
+    }
+  });
   element.addEventListener("click", (event) => {
-    if (event.target instanceof Element && event.target.closest(".file-menu, .restore-trash-item")) return;
+    if (event.target instanceof Element && event.target.closest(".file-action-btn, .file-menu, .restore-trash-item, .folder-delete, .folder-share")) return;
     if (longPressTriggered) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -1842,22 +1862,26 @@ function visibleSelectionKeys() {
 
 function updateSelectionToolbar() {
   const count = selectedItems.size;
-  selectionToolbar.classList.toggle("is-active", count > 0 || Boolean(clipboardItems));
-  selectionCount.textContent = `${count} selected${clipboardItems ? " · clipboard ready" : ""}`;
+  selectionToolbar?.classList.toggle("is-active", count > 0 || Boolean(clipboardItems));
+  if (selectionCount) selectionCount.textContent = `${count} selected${clipboardItems ? " · clipboard ready" : ""}`;
   const selectedFileCount = [...selectedItems].filter((key) => key.startsWith("file:")).length;
-  downloadSelectedButton.classList.toggle("hidden", trashMode || selectedFileCount === 0);
-  vaultSelectedButton.classList.toggle("hidden", trashMode || selectedFileCount === 0);
-  downloadSelectedButton.textContent = `↓ Download ${selectedFileCount} selected file${selectedFileCount === 1 ? "" : "s"}`;
+  downloadSelectedButton?.classList.toggle("hidden", trashMode || selectedFileCount === 0);
+  vaultSelectedButton?.classList.toggle("hidden", trashMode || selectedFileCount === 0);
+  if (downloadSelectedButton) {
+    downloadSelectedButton.textContent = `↓ Download (${selectedFileCount})`;
+  }
   const visibleKeys = visibleSelectionKeys();
   const allVisibleSelected = visibleKeys.length > 0 && visibleKeys.every((key) => selectedItems.has(key));
-  selectAllItems.textContent = allVisibleSelected ? "Deselect all" : "Select all";
-  selectAllItems.classList.toggle("hidden", !visibleKeys.length);
-  for (const id of ["move-selected", "copy-selected", "trash-selected"]) {
-    document.querySelector(`#${id}`).classList.toggle("hidden", trashMode);
+  if (selectAllItems) {
+    selectAllItems.textContent = allVisibleSelected ? "Deselect all" : "Select all";
+    selectAllItems.classList.toggle("hidden", !visibleKeys.length);
   }
-  document.querySelector("#paste-selected").classList.toggle("hidden", trashMode || !clipboardItems);
-  document.querySelector("#restore-selected").classList.toggle("hidden", !trashMode);
-  document.querySelector("#delete-selected").classList.toggle("hidden", !trashMode);
+  for (const id of ["move-selected", "copy-selected", "vault-selected", "trash-selected"]) {
+    document.querySelector(`#${id}`)?.classList.toggle("hidden", trashMode);
+  }
+  document.querySelector("#paste-selected")?.classList.toggle("hidden", trashMode || !clipboardItems);
+  document.querySelector("#restore-selected")?.classList.toggle("hidden", !trashMode);
+  document.querySelector("#delete-selected")?.classList.toggle("hidden", !trashMode);
 }
 
 function downloadSelectedFiles() {
@@ -1875,7 +1899,7 @@ function downloadSelectedFiles() {
     link.click();
     link.remove();
   }
-  selectionDownloadStatus.textContent = `Started ${files.length} download${files.length === 1 ? "" : "s"}. Your browser may ask to allow multiple downloads.`;
+  if (selectionDownloadStatus) selectionDownloadStatus.textContent = `Started ${files.length} download${files.length === 1 ? "" : "s"}.`;
 }
 
 function createFileCard(file) {
@@ -1884,7 +1908,11 @@ function createFileCard(file) {
   const icon = document.createElement("span");
   const category = fileCategory(file);
   icon.className = `file-icon ${category === "videos" ? "video-icon" : category === "photos" ? "image-icon" : "document-icon"}`;
-  icon.textContent = category === "videos" ? "▶" : category === "photos" ? "▧" : "▤";
+  icon.innerHTML = category === "videos"
+    ? `<svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`
+    : category === "photos"
+      ? `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`
+      : `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
   icon.setAttribute("aria-hidden", "true");
   const open = createButton("", "file-preview", () => {
     if (!file._uploading) openPreview(file);
@@ -1914,7 +1942,7 @@ function createFileCard(file) {
   if (category === "videos" && !file._uploading) {
     const play = document.createElement("span");
     play.className = "thumbnail-play";
-    play.textContent = "▶";
+    play.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
     play.setAttribute("aria-hidden", "true");
     open.append(play);
   }
@@ -1947,13 +1975,21 @@ function createFileCard(file) {
     if (!file._uploading) openPreview(file);
   });
   details.append(name);
+
   const actions = document.createElement("div");
   actions.className = "file-actions";
   if (!file._uploading) {
-    const menuButton = createButton("⋮", "file-action-btn", (event) => {
+    const menuButton = document.createElement("button");
+    menuButton.type = "button";
+    menuButton.className = "file-action-btn";
+    menuButton.setAttribute("aria-label", `More actions for ${file.name}`);
+    menuButton.title = `More actions for ${file.name}`;
+    menuButton.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>`;
+    menuButton.addEventListener("click", (event) => {
+      event.preventDefault();
       event.stopPropagation();
       openFileActionSheet(file);
-    }, `More actions for ${file.name}`);
+    });
     actions.append(menuButton);
   }
   card.append(open, details, actions);
@@ -1988,7 +2024,13 @@ function openFileActionSheet(file) {
   if (metaEl) metaEl.textContent = `${formatSize(file.size)} • ${formatDate(file.uploadedAt)}`;
 
   const category = fileCategory(file);
-  if (iconEl) iconEl.textContent = category === "videos" ? "▶" : category === "photos" ? "▧" : "📄";
+  if (iconEl) {
+    iconEl.innerHTML = category === "videos"
+      ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`
+      : category === "photos"
+        ? `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`
+        : `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  }
 
   if (thumbEl) {
     if (category === "photos" || category === "videos") {
@@ -2002,13 +2044,13 @@ function openFileActionSheet(file) {
 
   actionsContainer.replaceChildren();
 
-  const addAction = (icon, text, handler, isDestructive = false) => {
+  const addAction = (iconSvg, text, handler, isDestructive = false) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = `action-sheet-btn${isDestructive ? " is-destructive" : ""}`;
     const iconSpan = document.createElement("span");
     iconSpan.className = "action-icon";
-    iconSpan.textContent = icon;
+    iconSpan.innerHTML = iconSvg;
     const textSpan = document.createElement("span");
     textSpan.className = "action-label";
     textSpan.textContent = text;
@@ -2020,12 +2062,12 @@ function openFileActionSheet(file) {
     actionsContainer.append(btn);
   };
 
-  addAction("👁", "Preview", () => openPreview(file));
-  addAction("↓", "Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
-  addAction("🔗", "Share link", () => shareFile(file));
-  addAction("ℹ", "Details / Info", () => showFileProperties(file));
-  addAction("✏", "Rename", () => renameFile(file));
-  addAction("📁", "Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, "Preview", () => openPreview(file));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`, "Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share link", () => shareFile(file));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`, "Details / Info", () => showFileProperties(file));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`, "Rename", () => renameFile(file));
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>`, "Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
     try {
       await api("/api/items/move", {
         method: "POST",
@@ -2036,7 +2078,7 @@ function openFileActionSheet(file) {
       window.alert(error.message);
     }
   }));
-  addAction("📄", "Copy to folder", () => openDestinationDialog("Copy file", async (targetFolderId) => {
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`, "Copy to folder", () => openDestinationDialog("Copy file", async (targetFolderId) => {
     try {
       await api("/api/items/copy", {
         method: "POST",
@@ -2048,7 +2090,7 @@ function openFileActionSheet(file) {
     }
   }));
   if (!file.vault) {
-    addAction("🔒", "Move to Vault", async () => {
+    addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`, "Move to Vault", async () => {
       try {
         await moveFilesIntoVault([file.id]);
         await loadFiles();
@@ -2057,7 +2099,7 @@ function openFileActionSheet(file) {
       }
     });
   }
-  addAction("🗑", "Move to Trash", () => deleteFile(file), true);
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>`, "Move to Trash", () => deleteFile(file), true);
 
   dialog.showModal();
 }
@@ -3808,8 +3850,10 @@ adminSettingsForm.addEventListener("submit", async (event) => {
 
 function applyTheme(dark) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
-  themeToggle.textContent = dark ? "☀" : "☾";
   themeToggle.setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+  themeToggle.innerHTML = dark
+    ? `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`
+    : `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>`;
   window.localStorage.setItem("dgcloud-theme", dark ? "dark" : "light");
 }
 
