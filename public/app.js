@@ -242,6 +242,38 @@ function checkCanUpload() {
   return true;
 }
 
+function updateNavActive(activeTab) {
+  const sidebarItems = document.querySelectorAll(".sidebar-item");
+  sidebarItems.forEach((item) => item.classList.remove("is-active"));
+  const dockItems = document.querySelectorAll(".dock-btn");
+  dockItems.forEach((btn) => btn.classList.remove("is-active"));
+
+  if (activeTab === "dashboard") {
+    document.querySelector("#sidebar-dash-btn")?.classList.add("is-active");
+    document.querySelector("#dock-dash-btn")?.classList.add("is-active");
+    homeNavLink.classList.add("is-active");
+    libraryNavLink.classList.remove("is-active");
+  } else if (activeTab === "files") {
+    document.querySelector("#sidebar-files-btn")?.classList.add("is-active");
+    document.querySelector("#dock-files-btn")?.classList.add("is-active");
+    homeNavLink.classList.remove("is-active");
+    libraryNavLink.classList.add("is-active");
+  } else if (activeTab === "recents") {
+    document.querySelector("#sidebar-recents-btn")?.classList.add("is-active");
+  } else if (activeTab === "starred") {
+    document.querySelector("#sidebar-starred-btn")?.classList.add("is-active");
+  } else if (activeTab === "shared") {
+    document.querySelector("#sidebar-shared-btn")?.classList.add("is-active");
+  } else if (activeTab === "vault") {
+    document.querySelector("#sidebar-vault-btn")?.classList.add("is-active");
+    document.querySelector("#dock-vault-btn")?.classList.add("is-active");
+  } else if (activeTab === "admin") {
+    document.querySelector("#sidebar-admin-btn")?.classList.add("is-active");
+  } else if (activeTab === "trash") {
+    document.querySelector("#sidebar-trash-btn")?.classList.add("is-active");
+  }
+}
+
 function showHome() {
   if (currentUser) {
     showHomeDashboard();
@@ -254,9 +286,7 @@ function showHome() {
   if (homeDashboardView) homeDashboardView.classList.add("hidden");
   adminView.classList.add("hidden");
   featureStrip.classList.remove("hidden");
-  homeNavLink.classList.add("is-active");
-  libraryNavLink.classList.remove("is-active");
-  uploadNavLink.classList.remove("is-active");
+  updateNavActive("dashboard");
 }
 
 async function showHomeDashboard() {
@@ -275,9 +305,7 @@ async function showHomeDashboard() {
   adminView.classList.add("hidden");
   if (homeDashboardView) homeDashboardView.classList.remove("hidden");
   featureStrip.classList.remove("hidden");
-  homeNavLink.classList.add("is-active");
-  libraryNavLink.classList.remove("is-active");
-  uploadNavLink.classList.remove("is-active");
+  updateNavActive("dashboard");
   if (allFiles.length === 0) {
     await loadFiles();
   }
@@ -302,9 +330,7 @@ async function showLibrary() {
   adminView.classList.add("hidden");
   dashboardView.classList.remove("hidden");
   featureStrip.classList.remove("hidden");
-  homeNavLink.classList.remove("is-active");
-  libraryNavLink.classList.add("is-active");
-  uploadNavLink.classList.remove("is-active");
+  updateNavActive("files");
   await loadFiles();
 }
 
@@ -324,6 +350,13 @@ function showSignedOut() {
   featureStrip.classList.remove("hidden");
   logoutButton.classList.add("hidden");
   themeToggle.classList.add("hidden");
+  document.body.classList.remove("is-signed-in");
+  document.querySelector("#app-sidebar")?.classList.add("hidden");
+  document.querySelector("#mobile-bottom-dock")?.classList.add("hidden");
+  document.querySelector("#top-upload-btn")?.classList.add("hidden");
+  document.querySelector("#live-synced-badge")?.classList.add("hidden");
+  document.querySelector("#topbar-search-wrap")?.classList.add("hidden");
+  document.querySelector("#sidebar-admin-btn")?.classList.add("hidden");
   const adminHeaderBtn = document.querySelector("#admin-header-btn");
   if (adminHeaderBtn) {
     adminHeaderBtn.classList.add("hidden");
@@ -338,9 +371,7 @@ function showSignedOut() {
   accountAvatarImage.classList.add("hidden");
   accountAvatarFallback.classList.remove("hidden");
   adminBadge.classList.add("hidden");
-  libraryNavLink.classList.remove("is-active");
-  homeNavLink.classList.add("is-active");
-  uploadNavLink.classList.remove("is-active");
+  updateNavActive("dashboard");
   passwordStep.classList.add("hidden");
   authSubmit.classList.add("hidden");
   qrLoginPanel.classList.remove("hidden");
@@ -352,6 +383,7 @@ function showSignedOut() {
 async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   window.clearTimeout(pollTimer);
   currentUser = user;
+  document.body.classList.add("is-signed-in");
   welcomeView.classList.add("hidden");
   authView.classList.add("hidden");
   dashboardView.classList.add("hidden");
@@ -367,9 +399,22 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   accountAvatarImage.src = `/api/profile-photo?v=${Date.now()}`;
   accountBadge.disabled = false;
   accountBadge.title = "Open account profile";
-  homeNavLink.classList.add("is-active");
-  libraryNavLink.classList.remove("is-active");
-  uploadNavLink.classList.remove("is-active");
+
+  const appSidebar = document.querySelector("#app-sidebar");
+  const mobileDock = document.querySelector("#mobile-bottom-dock");
+  const topUploadBtn = document.querySelector("#top-upload-btn");
+  const liveSyncedBadge = document.querySelector("#live-synced-badge");
+  const topbarSearchWrap = document.querySelector("#topbar-search-wrap");
+  const sidebarAdminBtn = document.querySelector("#sidebar-admin-btn");
+
+  if (appSidebar) appSidebar.classList.remove("hidden");
+  if (mobileDock) mobileDock.classList.remove("hidden");
+  if (topUploadBtn) topUploadBtn.classList.remove("hidden");
+  if (liveSyncedBadge) liveSyncedBadge.classList.remove("hidden");
+  if (topbarSearchWrap) topbarSearchWrap.classList.remove("hidden");
+  if (sidebarAdminBtn) sidebarAdminBtn.classList.toggle("hidden", !user.isAdmin);
+
+  updateNavActive("dashboard");
   document.querySelector("#account-email").textContent = user.username ? `@${user.username}` : user.name;
   const userMenuName = document.querySelector("#user-menu-name");
   const userMenuSub = document.querySelector("#user-menu-sub");
@@ -1125,12 +1170,11 @@ async function enterAdminConsole() {
   welcomeView.classList.add("hidden");
   authView.classList.add("hidden");
   dashboardView.classList.add("hidden");
+  if (homeDashboardView) homeDashboardView.classList.add("hidden");
   featureStrip.classList.add("hidden");
   adminView.classList.remove("hidden");
   adminAccountView.classList.add("hidden");
-  homeNavLink.classList.remove("is-active");
-  libraryNavLink.classList.remove("is-active");
-  uploadNavLink.classList.remove("is-active");
+  updateNavActive("admin");
   try {
     await Promise.all([loadAdminConfig(), loadAdminUsers()]);
   } catch (error) {
@@ -1356,6 +1400,16 @@ function renderHomeDashboard() {
   if (homeStorageTotal) homeStorageTotal.textContent = formatSize(totalSize);
   if (homeStorageRing && storageRing) homeStorageRing.src = storageRing.src;
   if (homeStorageBreakdown && storageBreakdown) homeStorageBreakdown.innerHTML = storageBreakdown.innerHTML;
+
+  const sidebarStorageUsed = document.querySelector("#sidebar-storage-used");
+  const sidebarStorageBar = document.querySelector("#sidebar-storage-bar");
+  if (sidebarStorageUsed) {
+    sidebarStorageUsed.textContent = formatSize(totalSize);
+  }
+  if (sidebarStorageBar) {
+    const pct = Math.max(2, Math.min(100, Math.round((totalSize / (2 * 1024 * 1024 * 1024 * 1024)) * 100 * 100) / 100 || 3));
+    sidebarStorageBar.style.width = `${pct}%`;
+  }
 
   if (homeCategoryTiles) {
     homeCategoryTiles.replaceChildren();
@@ -3582,6 +3636,110 @@ document.addEventListener("pointerdown", (event) => {
       menu.closest(".library-file-card")?.classList.remove("has-menu-open");
     }
   }
+});
+
+// Universal Search & Quick Keys (Ctrl+K)
+const universalSearch = document.querySelector("#universal-search");
+if (universalSearch) {
+  universalSearch.addEventListener("input", () => {
+    searchTerm = universalSearch.value;
+    if (searchInput) searchInput.value = universalSearch.value;
+    if (dashboardView.classList.contains("hidden")) {
+      showLibrary();
+    } else {
+      renderLibrary();
+    }
+  });
+}
+
+window.addEventListener("keydown", (event) => {
+  if ((event.ctrlKey || event.metaKey) && (event.key === "k" || event.key === "K")) {
+    event.preventDefault();
+    if (universalSearch) {
+      universalSearch.focus();
+      universalSearch.select();
+    }
+  }
+});
+
+// Topbar Upload Button
+document.querySelector("#top-upload-btn")?.addEventListener("click", () => {
+  if (!checkCanUpload()) return;
+  filePicker.click();
+});
+
+// Sidebar Navigation Actions
+document.querySelector("#sidebar-dash-btn")?.addEventListener("click", () => {
+  showHome();
+});
+
+document.querySelector("#sidebar-files-btn")?.addEventListener("click", () => {
+  if (trashMode) {
+    trashToggle.click();
+  }
+  showLibrary();
+});
+
+document.querySelector("#sidebar-recents-btn")?.addEventListener("click", () => {
+  showHome();
+  const recentSection = document.querySelector("#home-recent-section");
+  if (recentSection) {
+    recentSection.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  updateNavActive("recents");
+});
+
+document.querySelector("#sidebar-starred-btn")?.addEventListener("click", () => {
+  showLibrary();
+  updateNavActive("starred");
+});
+
+document.querySelector("#sidebar-shared-btn")?.addEventListener("click", () => {
+  window.alert("Shared Links: All your public download links are securely active.");
+  updateNavActive("shared");
+});
+
+document.querySelector("#sidebar-vault-btn")?.addEventListener("click", () => {
+  openVaultDialog();
+  updateNavActive("vault");
+});
+
+document.querySelector("#sidebar-admin-btn")?.addEventListener("click", () => {
+  enterAdminConsole();
+});
+
+document.querySelector("#sidebar-trash-btn")?.addEventListener("click", async () => {
+  await showLibrary();
+  if (!trashMode) {
+    trashToggle.click();
+  }
+  updateNavActive("trash");
+});
+
+// Mobile Bottom Dock Actions
+document.querySelector("#dock-dash-btn")?.addEventListener("click", () => {
+  showHome();
+});
+
+document.querySelector("#dock-files-btn")?.addEventListener("click", () => {
+  if (trashMode) {
+    trashToggle.click();
+  }
+  showLibrary();
+});
+
+document.querySelector("#dock-upload-btn")?.addEventListener("click", () => {
+  if (!checkCanUpload()) return;
+  filePicker.click();
+});
+
+document.querySelector("#dock-vault-btn")?.addEventListener("click", () => {
+  openVaultDialog();
+  updateNavActive("vault");
+});
+
+document.querySelector("#dock-profile-btn")?.addEventListener("click", () => {
+  openProfileDialog();
 });
 
 async function initialize() {

@@ -15,14 +15,27 @@
         <span class="brand-mark" aria-hidden="true"><svg class="infinity-mark" viewBox="0 0 24 24" focusable="false"><path d="M3 12c0-3.3 4.1-5 6.4-2.5l5.2 5C17 17 21 15.3 21 12s-4.1-5-6.4-2.5l-5.2 5C7 17 3 15.3 3 12Z"></path></svg></span>
         <span>DGx <span class="brand-accent">Cloud</span></span>
       </a>
+      <div class="topbar-search-wrap" id="topbar-search-wrap">
+        <div class="universal-search-box">
+          <span class="search-icon">⌕</span>
+          <input type="search" id="universal-search" placeholder="Search all files (Ctrl+K)..." autocomplete="off">
+          <span class="search-badge">Ctrl+K</span>
+        </div>
+      </div>
       <nav class="topnav" aria-label="Main navigation">
         <a href="#home-dashboard-view" id="home-nav-link">Dashboard</a>
         <a href="#dashboard-view" id="library-nav-link">Library</a>
         <a href="#upload-files-button" id="upload-nav-link">Upload</a>
       </nav>
       <div class="header-actions">
+        <div class="live-synced-badge" id="live-synced-badge">
+          <span class="sync-dot"></span>
+          <span>Live Synced</span>
+          <span class="tg-plane">✈</span>
+        </div>
         <button class="upload-status-pill hidden" id="upload-status-pill" type="button" title="View uploading progress"><span class="upload-spinner">⏳</span> <span id="upload-status-count">Uploading...</span></button>
         <button class="admin-header-btn hidden" id="admin-header-btn" type="button" title="Open Admin Control Room" hidden aria-hidden="true"><span class="admin-crown-icon">👑</span> <span class="admin-btn-text">Admin</span></button>
+        <button class="button button-primary upload-gradient-btn hidden" id="top-upload-btn" type="button"><span class="upload-plus">＋</span> New Upload</button>
         <div class="user-menu-container">
           <button class="account-badge hidden" id="account-badge" type="button" aria-haspopup="true" aria-expanded="false"><span class="account-avatar"><span class="account-avatar-fallback" aria-hidden="true">☁</span><img id="account-avatar-image" alt="Telegram profile photo"></span><strong id="account-email"></strong><span class="vip-badge hidden" id="vip-badge">VIP</span><span class="admin-badge hidden" id="admin-badge">ADMIN</span><span class="menu-arrow">▾</span></button>
           <div class="user-menu-popover hidden" id="user-menu-popover" role="menu">
@@ -273,7 +286,54 @@
         </div>
       </section>
 
-      <section class="home-dashboard hidden" id="home-dashboard-view">
+      <div class="app-main-layout" id="app-main-layout">
+        <aside class="app-sidebar hidden" id="app-sidebar">
+          <nav class="sidebar-nav">
+            <button class="sidebar-item is-active" id="sidebar-dash-btn" type="button">
+              <span class="sidebar-icon">🏠</span>
+              <span class="sidebar-label">Dashboard</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-files-btn" type="button">
+              <span class="sidebar-icon">📁</span>
+              <span class="sidebar-label">All Files</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-recents-btn" type="button">
+              <span class="sidebar-icon">🕒</span>
+              <span class="sidebar-label">Recents</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-starred-btn" type="button">
+              <span class="sidebar-icon">⭐</span>
+              <span class="sidebar-label">Starred</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-shared-btn" type="button">
+              <span class="sidebar-icon">🔗</span>
+              <span class="sidebar-label">Shared Links</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-vault-btn" type="button">
+              <span class="sidebar-icon">🔒</span>
+              <span class="sidebar-label">Private Vault</span>
+            </button>
+            <button class="sidebar-item sidebar-admin-item hidden" id="sidebar-admin-btn" type="button">
+              <span class="sidebar-icon">👑</span>
+              <span class="sidebar-label">Admin Console</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-trash-btn" type="button">
+              <span class="sidebar-icon">🗑</span>
+              <span class="sidebar-label">Trash</span>
+            </button>
+          </nav>
+          <div class="sidebar-storage-widget">
+            <div class="sidebar-storage-track">
+              <div class="sidebar-storage-fill" id="sidebar-storage-bar" style="width: 14%;"></div>
+            </div>
+            <div class="sidebar-storage-text">
+              <strong id="sidebar-storage-used">14.2 GB</strong> <span class="sidebar-storage-total">of 2 TB</span>
+            </div>
+          </div>
+        </aside>
+
+        <div class="app-content-body">
+          <section class="home-dashboard hidden" id="home-dashboard-view">
         <div class="home-dashboard-header">
           <div>
             <span class="section-kicker">PERSONAL CLOUD OVERVIEW</span>
@@ -516,6 +576,8 @@
           <div class="admin-account-content" id="admin-account-content"></div>
         </dialog>
       </section>
+        </div>
+      </div>
 
       <section class="feature-strip" id="feature-strip" aria-label="Features">
         <article class="feature-item">
@@ -567,5 +629,27 @@
         <div class="dialog-actions"><button class="button button-primary" type="submit">Got it</button></div>
       </form>
     </dialog>
+    <nav class="mobile-bottom-dock hidden" id="mobile-bottom-dock">
+      <button class="dock-btn is-active" id="dock-dash-btn" type="button" title="Dashboard">
+        <span class="dock-icon">🏠</span>
+        <span class="dock-label">Dashboard</span>
+      </button>
+      <button class="dock-btn" id="dock-files-btn" type="button" title="Files">
+        <span class="dock-icon">📁</span>
+        <span class="dock-label">Files</span>
+      </button>
+      <button class="dock-btn dock-btn-upload" id="dock-upload-btn" type="button" title="Upload file">
+        <span class="dock-icon-plus">＋</span>
+        <span class="dock-label">Upload</span>
+      </button>
+      <button class="dock-btn" id="dock-vault-btn" type="button" title="Vault">
+        <span class="dock-icon">🔒</span>
+        <span class="dock-label">Vault</span>
+      </button>
+      <button class="dock-btn" id="dock-profile-btn" type="button" title="Profile">
+        <span class="dock-icon">👤</span>
+        <span class="dock-label">Profile</span>
+      </button>
+    </nav>
   </body>
 </html>
