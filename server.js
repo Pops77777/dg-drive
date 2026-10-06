@@ -2931,7 +2931,7 @@ async function handleRequest(req, res) {
       return sendJson(res, 426, { error: "HTTPS is required. Connect through the local TLS reverse proxy." });
     }
     if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
-    if (req.method === "GET") {
+    if (req.method === "GET" || req.method === "HEAD") {
       let relativePath = url.pathname === "/" || url.pathname === "/library" ? "index.html" : url.pathname.replace(/^\/+/, "");
       const safePath = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, "");
       const fullPath = path.join(ROOT, "public", safePath);
@@ -2959,6 +2959,7 @@ async function handleRequest(req, res) {
           "Pragma": "no-cache",
           "Expires": "0",
         });
+        if (req.method === "HEAD") return res.end();
         return res.end(content);
       }
     }
