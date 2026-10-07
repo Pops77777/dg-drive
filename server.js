@@ -1233,7 +1233,7 @@ async function processTelegramUploadQueue() {
         const result = await client.sendFile("me", {
           file: file.localPath,
           forceDocument: true,
-          workers: 4,
+          workers: 16,
         });
         const message = Array.isArray(result) ? result[0] : result;
         if (message && message.id) {
