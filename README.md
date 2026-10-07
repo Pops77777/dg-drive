@@ -1,3 +1,13 @@
+---
+title: DGx Cloud
+emoji: ☁️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # DGx Cloud
 
 User uploads are sent to **that user's own Telegram Saved Messages**. The library lists, previews and organises the messages uploaded by this app.

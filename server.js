@@ -44,7 +44,7 @@ const SESSION_TTL = 365 * 24 * 60 * 60 * 1000;
 const COOKIE_NAME = "cloudbox_session";
 const FLOW_COOKIE = "cloudbox_telegram_flow";
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
-const LISTEN_HOST = process.env.LISTEN_HOST || "127.0.0.1";
+const LISTEN_HOST = process.env.LISTEN_HOST || "0.0.0.0";
 const TRUST_PROXY_HTTPS = process.env.TRUST_PROXY_HTTPS === "true";
 const API_ID = Number(process.env.TELEGRAM_API_ID);
 const API_HASH = process.env.TELEGRAM_API_HASH;
