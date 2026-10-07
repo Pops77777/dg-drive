@@ -1518,15 +1518,6 @@ function updateInspectorPane(file) {
     inspectorDownloadBtn.href = `/api/files/${encodeURIComponent(file.id)}/download`;
     inspectorDownloadBtn.setAttribute("download", file.name);
   }
-  const inspectorTgBtn = document.querySelector("#inspector-tg-btn");
-  if (inspectorTgBtn) {
-    if (file.telegramMessageId) {
-      inspectorTgBtn.classList.remove("hidden");
-      inspectorTgBtn.href = `tg://openmessage?user_id=${encodeURIComponent(currentUser?.id || "")}&message_id=${encodeURIComponent(file.telegramMessageId)}`;
-    } else {
-      inspectorTgBtn.classList.add("hidden");
-    }
-  }
 
   if (isVid) {
     if (inspectorImg) {
@@ -2272,15 +2263,6 @@ function openFileActionSheet(file) {
 
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, "Preview", () => openPreview(file));
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`, "Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
-  if (file.telegramMessageId) {
-    addAction(
-      `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0ea5e9" stroke-width="2"><path d="M22 2L11 13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>`,
-      "⚡ Telegram Direct (0 MB Data)",
-      () => {
-        window.location.href = `tg://openmessage?user_id=${encodeURIComponent(currentUser?.id || "")}&message_id=${encodeURIComponent(file.telegramMessageId)}`;
-      }
-    );
-  }
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share link", () => shareFile(file));
   const isStarred = Boolean(file.starred);
   addAction(
@@ -2576,15 +2558,6 @@ function showFileProperties(file) {
   if (!dialog || !grid) return;
   title.textContent = file.name;
   downloadBtn.href = `/api/files/${encodeURIComponent(file.id)}?download=1`;
-  const propTgDirect = document.querySelector("#properties-tg-direct-btn");
-  if (propTgDirect) {
-    if (file.telegramMessageId) {
-      propTgDirect.classList.remove("hidden");
-      propTgDirect.href = `tg://openmessage?user_id=${encodeURIComponent(currentUser?.id || "")}&message_id=${encodeURIComponent(file.telegramMessageId)}`;
-    } else {
-      propTgDirect.classList.add("hidden");
-    }
-  }
   const shareUrl = `${window.location.origin}/api/files/${encodeURIComponent(file.id)}`;
   copyBtn.onclick = async () => {
     try {
@@ -2704,15 +2677,6 @@ async function renderTextDocumentPreview(file, previewUrl, container) {
 function openPreview(file) {
   previewTitle.textContent = file.name;
   previewDownload.href = `/api/files/${encodeURIComponent(file.id)}?download=1`;
-  const previewTgDirect = document.querySelector("#preview-tg-direct");
-  if (previewTgDirect) {
-    if (file.telegramMessageId) {
-      previewTgDirect.classList.remove("hidden");
-      previewTgDirect.href = `tg://openmessage?user_id=${encodeURIComponent(currentUser?.id || "")}&message_id=${encodeURIComponent(file.telegramMessageId)}`;
-    } else {
-      previewTgDirect.classList.add("hidden");
-    }
-  }
   previewContent.replaceChildren();
   const previewUrl = `/api/files/${encodeURIComponent(file.id)}`;
   if (file.type.startsWith("image/") && file.type !== "image/svg+xml") {
