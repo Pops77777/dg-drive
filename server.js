@@ -1585,7 +1585,7 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
     for await (const chunk of client.iterDownload(message, {
       offset: start,
       limit: contentLength,
-      requestSize: 1024 * 1024,
+      requestSize: 512 * 1024,
       signal: abortController.signal,
     })) {
       if (abortController.signal.aborted) break;
