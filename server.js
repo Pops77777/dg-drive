@@ -403,6 +403,7 @@ function publicFile(file) {
     trashed: Boolean(file.deletedAt),
     syncing: !file.telegramMessageId,
     starred: Boolean(file.starred),
+    telegramMessageId: file.telegramMessageId || null,
   };
 }
 
@@ -2920,6 +2921,19 @@ async function handleApi(req, res, url) {
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
   if (file.vault) requireVaultUnlocked(req, user);
   return sendThumbnail(res, user, file, url.searchParams.get("quality") === "low", req);
+  }
+
+  const tgMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/telegram$/i);
+  if (tgMatch && req.method === "GET") {
+    const file = fileForUser(user, tgMatch[1]);
+    if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
+    if (file.vault) requireVaultUnlocked(req, user);
+    if (!file.telegramMessageId) {
+      return sendJson(res, 400, { error: "File is still syncing to Telegram cloud. Please try again in a few moments." });
+    }
+    const tgUrl = `tg://openmessage?user_id=${encodeURIComponent(user.id)}&message_id=${encodeURIComponent(file.telegramMessageId)}`;
+    res.writeHead(302, { Location: tgUrl });
+    return res.end();
   }
 
   const match = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})$/i);

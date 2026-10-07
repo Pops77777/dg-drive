@@ -5967,14 +5967,29 @@ html[data-theme="dark"] .dashboard-highlight-pill {
   transform: translateZ(0) !important;
   -webkit-overflow-scrolling: touch !important;
 }
-@media (max-width: 768px) {
-  .master-glass-card,
-  .library-file-card,
-  .master-recent-card {
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-  }
+/* 21. Direct Telegram Zero-Data High-Speed Download Buttons */
+.tg-direct-btn {
+  background: linear-gradient(135deg, #0284c7, #0369a1) !important;
+  color: #ffffff !important;
+  border: 1px solid #38bdf8 !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.35) !important;
+  text-decoration: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease !important;
 }
+.tg-direct-btn:hover {
+  transform: translateY(-1px) !important;
+  filter: brightness(1.1) !important;
+  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.5) !important;
+}
+.tg-direct-btn:active {
+  transform: translateY(0) !important;
+}
+
 
 
 
