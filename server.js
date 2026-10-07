@@ -122,7 +122,7 @@ function parseCookies(header = "") {
 
 function cookieHeader(name, value, maxAge) {
   const secure = IS_PRODUCTION ? "; Secure" : "";
-  return `${name}=${encodeURIComponent(value)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${secure}`;
+  return `${name}=${encodeURIComponent(value)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secure}`;
 }
 
 function sessionDeviceLabel(userAgent) {
@@ -233,7 +233,18 @@ function checkOrigin(req) {
   } catch {
     throw Object.assign(new Error("Invalid request origin."), { statusCode: 403 });
   }
-  if (parsed.host !== req.headers.host || !["http:", "https:"].includes(parsed.protocol)) {
+  const allowedHosts = [
+    req.headers.host,
+    req.headers["x-forwarded-host"],
+  ].filter(Boolean);
+
+  const isAllowed = allowedHosts.includes(parsed.host)
+    || parsed.host.endsWith(".workers.dev")
+    || parsed.host.endsWith(".onrender.com")
+    || parsed.host === "localhost"
+    || isLoopbackAddress(parsed.hostname);
+
+  if (!isAllowed || !["http:", "https:"].includes(parsed.protocol)) {
     throw Object.assign(new Error("Cross-site requests are not allowed."), { statusCode: 403 });
   }
 }

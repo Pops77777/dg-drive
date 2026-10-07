@@ -12,6 +12,9 @@ export default {
     newHeaders.set("Host", "dgx-cloud-pmz8.onrender.com");
     newHeaders.set("X-Forwarded-Host", url.host);
     newHeaders.set("X-Forwarded-Proto", "https");
+    if (newHeaders.has("origin")) {
+      newHeaders.set("Origin", targetOrigin);
+    }
 
     const modifiedRequest = new Request(targetUrl, {
       method: request.method,
@@ -22,7 +25,7 @@ export default {
 
     const response = await fetch(modifiedRequest);
 
-    // Clone response and ensure aggressive caching for media streams
+    // Clone response and ensure proper headers
     const newResponseHeaders = new Headers(response.headers);
     newResponseHeaders.set("Access-Control-Allow-Origin", "*");
 
