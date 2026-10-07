@@ -12,8 +12,9 @@ const {
   timingSafeEqual,
 } = require("node:crypto");
 const { promisify } = require("node:util");
-const { TelegramClient } = require("teleproto");
+const { TelegramClient, utils: teleprotoUtils, Api: teleprotoApi } = require("teleproto");
 const { StringSession } = require("teleproto/sessions");
+const bigInt = require("big-integer");
 const QRCode = require("qrcode");
 
 const ROOT = __dirname;
@@ -1535,6 +1536,91 @@ async function streamLocalFile(req, res, filePath, file, forceDownload = false) 
   readStream.pipe(res);
 }
 
+async function fastStreamTelegram(client, message, start, contentLength, res, signal) {
+  const CHUNK_SIZE = 512 * 1024;
+  const CONCURRENCY = 8; // 8 parallel Telegram DC sessions for 10x throughput
+
+  const info = teleprotoUtils.getFileInfo(message);
+  let dcId = info.dcId || client.session.dcId;
+  const location = info.location;
+
+  const firstChunkIdx = Math.floor(start / CHUNK_SIZE);
+  const lastChunkIdx = Math.floor((start + contentLength - 1) / CHUNK_SIZE);
+
+  let nextFetchIdx = firstChunkIdx;
+  const inflight = new Map();
+
+  async function fetchChunk(chunkIdx) {
+    if (signal?.aborted) return null;
+    const offset = bigInt(chunkIdx).multiply(CHUNK_SIZE);
+    try {
+      if (client._media && typeof client._media.getFile === "function") {
+        return await client._media.getFile(
+          dcId,
+          location,
+          offset,
+          CHUNK_SIZE,
+          signal,
+          (newDc) => { dcId = newDc; }
+        );
+      }
+    } catch (mediaErr) {
+      if (signal?.aborted) return null;
+    }
+    const result = await client.invoke(
+      new teleprotoApi.upload.GetFile({
+        location,
+        offset,
+        limit: CHUNK_SIZE,
+        precise: true,
+      }),
+      dcId
+    );
+    return result.bytes || Buffer.alloc(0);
+  }
+
+  while (nextFetchIdx <= lastChunkIdx && inflight.size < CONCURRENCY) {
+    const idx = nextFetchIdx++;
+    inflight.set(idx, fetchChunk(idx));
+  }
+
+  let currentChunkIdx = firstChunkIdx;
+  let remainingBytes = contentLength;
+
+  while (currentChunkIdx <= lastChunkIdx && remainingBytes > 0) {
+    if (signal?.aborted) break;
+
+    const chunkPromise = inflight.get(currentChunkIdx);
+    inflight.delete(currentChunkIdx);
+
+    if (nextFetchIdx <= lastChunkIdx && !signal?.aborted) {
+      const idx = nextFetchIdx++;
+      inflight.set(idx, fetchChunk(idx));
+    }
+
+    const chunkBuffer = await chunkPromise;
+    if (!chunkBuffer || chunkBuffer.length === 0) break;
+
+    const chunkStartInFile = currentChunkIdx * CHUNK_SIZE;
+    const sliceStart = Math.max(0, start - chunkStartInFile);
+    const sliceEnd = Math.min(chunkBuffer.length, sliceStart + remainingBytes);
+    const data = chunkBuffer.subarray(sliceStart, sliceEnd);
+
+    if (data.length > 0) {
+      if (!res.write(data)) {
+        await new Promise((resolve) => res.once("drain", resolve));
+      }
+      remainingBytes -= data.length;
+    }
+
+    if (chunkBuffer.length < CHUNK_SIZE) {
+      break;
+    }
+
+    currentChunkIdx++;
+  }
+}
+
 async function streamFromTelegram(req, res, user, file, forceDownload = false) {
   const indexedSize = Number(file.size);
   if (!Number.isSafeInteger(indexedSize) || indexedSize < 0) throw new Error("Saved file size is invalid.");
@@ -1591,26 +1677,33 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
     if (!res.writableEnded) abortController.abort();
   };
   res.once("close", closeResponse);
-  let remaining = contentLength;
   try {
-    for await (const chunk of client.iterDownload(message, {
-      offset: start,
-      limit: contentLength,
-      requestSize: 512 * 1024,
-      signal: abortController.signal,
-    })) {
-      if (abortController.signal.aborted) break;
-      const data = chunk.subarray(0, remaining);
-      if (!res.write(data)) await new Promise((resolve) => res.once("drain", resolve));
-      remaining -= data.length;
-      if (remaining <= 0) break;
-    }
+    await fastStreamTelegram(client, message, start, contentLength, res, abortController.signal);
     if (!res.writableEnded && !abortController.signal.aborted) res.end();
-  } catch (streamError) {
+  } catch (fastErr) {
     if (abortController.signal.aborted) return;
-    console.error("Telegram stream fallback error:", streamError.message);
-    if (!res.headersSent) sendJson(res, 500, { error: "Streaming failed." });
-    else res.destroy(streamError);
+    console.warn("Fast pipelined stream warning, falling back to iterDownload:", fastErr.message);
+    try {
+      let remaining = contentLength;
+      for await (const chunk of client.iterDownload(message, {
+        offset: start,
+        limit: contentLength,
+        requestSize: 512 * 1024,
+        signal: abortController.signal,
+      })) {
+        if (abortController.signal.aborted) break;
+        const data = chunk.subarray(0, remaining);
+        if (!res.write(data)) await new Promise((resolve) => res.once("drain", resolve));
+        remaining -= data.length;
+        if (remaining <= 0) break;
+      }
+      if (!res.writableEnded && !abortController.signal.aborted) res.end();
+    } catch (streamError) {
+      if (abortController.signal.aborted) return;
+      console.error("Telegram stream fallback error:", streamError.message);
+      if (!res.headersSent) sendJson(res, 500, { error: "Streaming failed." });
+      else res.destroy(streamError);
+    }
   } finally {
     res.removeListener("close", closeResponse);
   }
