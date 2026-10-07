@@ -5666,6 +5666,152 @@ html[data-theme="dark"] .api-status-toggle-btn.is-on {
   margin-left: 2px;
 }
 
+/* 12. Phone OTP Authentication Styles */
+.auth-method-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 5px !important;
+  margin-bottom: 14px !important;
+  padding: 4px !important;
+  border: 1px solid rgba(220, 228, 246, 0.9) !important;
+  border-radius: 13px !important;
+  background: #f1f4fb !important;
+}
+@media (max-width: 480px) {
+  .auth-method-tabs {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+  }
+}
+html[data-theme="dark"] .auth-method-tabs {
+  border-color: #39445e !important;
+  background: #202a3f !important;
+}
+
+.auth-desc-pill {
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #475569;
+  margin: 0 0 10px 0;
+  background: rgba(37, 99, 235, 0.08);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border-left: 3px solid #2563eb;
+  font-weight: 500;
+}
+html[data-theme="dark"] .auth-desc-pill {
+  color: #94a3b8;
+  background: rgba(37, 99, 235, 0.16);
+  border-left-color: #60a5fa;
+}
+
+.phone-login-panel,
+.otp-step-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(190, 202, 233, 0.62);
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.98), rgba(246, 248, 255, 0.94));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), 0 8px 20px rgba(62, 81, 138, 0.055);
+}
+html[data-theme="dark"] .phone-login-panel,
+html[data-theme="dark"] .otp-step-panel {
+  border-color: #3b465f;
+  background: linear-gradient(145deg, #28334b, #202a3f);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+.phone-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.phone-cc-wrap {
+  width: 76px;
+  flex-shrink: 0;
+}
+.phone-cc-input {
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+.phone-number-wrap {
+  flex: 1;
+  min-width: 0;
+}
+.phone-num-input {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.phone-submit-btn {
+  margin-top: 4px;
+}
+
+/* OTP Badge & Box */
+.otp-badge-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+html[data-theme="dark"] .otp-badge-notice {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(52, 211, 153, 0.4);
+}
+.otp-badge-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+.otp-notice-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #065f46;
+}
+html[data-theme="dark"] .otp-notice-title {
+  color: #6ee7b7;
+}
+.otp-notice-sub {
+  font-size: 11px;
+  color: #047857;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+html[data-theme="dark"] .otp-notice-sub {
+  color: #a7f3d0;
+}
+
+.otp-input-wrap {
+  display: flex;
+  justify-content: center;
+}
+.otp-code-input {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  padding: 10px;
+  max-width: 240px;
+  border-radius: 12px;
+}
+.otp-action-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2px;
+}
+.otp-resend-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  text-decoration: none !important;
+}
+
 
 
 

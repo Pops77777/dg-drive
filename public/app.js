@@ -31,6 +31,19 @@ const authSubmit = document.querySelector("#auth-submit");
 const passwordStep = document.querySelector("#password-step");
 const telegramPasswordInput = document.querySelector("#telegram-password");
 const qrLoginPanel = document.querySelector("#qr-login-panel");
+const phoneMethodButton = document.querySelector("#phone-method-button");
+const phoneLoginPanel = document.querySelector("#phone-login-panel");
+const phoneCountryCode = document.querySelector("#phone-country-code");
+const phoneNumberInput = document.querySelector("#phone-number-input");
+const phoneSubmitBtn = document.querySelector("#phone-submit-btn");
+const phoneAuthBackButton = document.querySelector("#phone-auth-back-button");
+const otpStepPanel = document.querySelector("#otp-step-panel");
+const otpPhoneDisplay = document.querySelector("#otp-phone-display");
+const telegramOtpInput = document.querySelector("#telegram-otp-input");
+const otpSubmitBtn = document.querySelector("#otp-submit-btn");
+const otpResendBtn = document.querySelector("#otp-resend-btn");
+const otpCountdownEl = document.querySelector("#otp-countdown");
+const otpChangePhoneBtn = document.querySelector("#otp-change-phone-btn");
 const qrImage = document.querySelector("#login-qr-image");
 const refreshQrButton = document.querySelector("#refresh-qr-login");
 const logoutButton = document.querySelector("#logout-button");
@@ -295,7 +308,11 @@ function openAuthModal() {
   if (currentUser) return;
   hideAllMainViews();
   authView.classList.remove("hidden");
-  startQrLogin();
+  if (phoneMethodButton) {
+    phoneMethodButton.click();
+  } else {
+    startQrLogin();
+  }
 }
 
 function showHome() {
@@ -386,10 +403,23 @@ function showSignedOut() {
   updateNavActive("dashboard");
   passwordStep.classList.add("hidden");
   authSubmit.classList.add("hidden");
-  qrLoginPanel.classList.remove("hidden");
+  phoneLoginPanel?.classList.remove("hidden");
+  otpStepPanel?.classList.add("hidden");
+  qrLoginPanel?.classList.add("hidden");
   qrImage.removeAttribute("src");
   qrImage.classList.add("hidden");
   refreshQrButton.classList.remove("hidden");
+  phoneMethodButton?.classList.add("is-active");
+  qrMethodButton?.classList.remove("is-active");
+  passwordMethodButton?.classList.remove("is-active");
+  if (phoneSubmitBtn) {
+    phoneSubmitBtn.disabled = false;
+    phoneSubmitBtn.textContent = "Send Telegram OTP →";
+  }
+  if (otpSubmitBtn) {
+    otpSubmitBtn.disabled = false;
+    otpSubmitBtn.textContent = "Verify Code & Open Cloud →";
+  }
 
   renderCategories();
   renderHomeDashboard();
@@ -2955,17 +2985,182 @@ async function uploadMany(files, relativePathForFile = () => "") {
   await loadFiles();
 }
 
+let otpCountdownTimer = null;
+
+function startOtpCountdown(seconds = 60) {
+  if (otpCountdownTimer) window.clearInterval(otpCountdownTimer);
+  let remaining = Math.max(0, Number(seconds) || 60);
+  const countdownEl = document.querySelector("#otp-countdown");
+  const resendBtn = document.querySelector("#otp-resend-btn");
+  if (!resendBtn) return;
+  resendBtn.disabled = true;
+  if (countdownEl) countdownEl.textContent = remaining;
+  otpCountdownTimer = window.setInterval(() => {
+    remaining -= 1;
+    if (countdownEl) countdownEl.textContent = remaining;
+    if (remaining <= 0) {
+      window.clearInterval(otpCountdownTimer);
+      otpCountdownTimer = null;
+      resendBtn.disabled = false;
+      resendBtn.textContent = "Resend Code";
+    } else {
+      resendBtn.innerHTML = `Resend Code (<span id="otp-countdown">${remaining}</span>s)`;
+    }
+  }, 1000);
+}
+
+async function startPhoneLogin() {
+  const ccEl = document.querySelector("#phone-country-code");
+  const numEl = document.querySelector("#phone-number-input");
+  const submitBtn = document.querySelector("#phone-submit-btn");
+  let cc = (ccEl?.value || "+91").trim().replace(/[^\d+]/g, "");
+  if (!cc.startsWith("+")) cc = `+${cc}`;
+  const num = (numEl?.value || "").trim().replace(/\D/g, "");
+  if (!num || num.length < 5) {
+    setMessage(authMessage, "Please enter a valid mobile number.", true);
+    numEl?.focus();
+    return;
+  }
+  const fullPhone = `${cc}${num}`;
+  if (!/^\+[1-9]\d{6,14}$/.test(fullPhone)) {
+    setMessage(authMessage, "Invalid phone number format. Example: +919876543210", true);
+    return;
+  }
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending OTP to Telegram...";
+  }
+  setMessage(authMessage, "Requesting code from Telegram…");
+  try {
+    window.clearTimeout(pollTimer);
+    loginStarted = true;
+    await api("/api/telegram/start", {
+      method: "POST",
+      body: JSON.stringify({ phone: fullPhone }),
+    });
+    pollTimer = window.setTimeout(pollLoginStatus, 500);
+  } catch (error) {
+    loginStarted = false;
+    setMessage(authMessage, error.message, true);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Send Telegram OTP →";
+    }
+  }
+}
+
+async function submitTelegramOtp() {
+  const otpInput = document.querySelector("#telegram-otp-input");
+  const submitBtn = document.querySelector("#otp-submit-btn");
+  const code = (otpInput?.value || "").trim().replace(/\s/g, "");
+  if (!/^\d{3,8}$/.test(code)) {
+    setMessage(authMessage, "Please enter the verification code sent by Telegram.", true);
+    otpInput?.focus();
+    return;
+  }
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Verifying Code...";
+  }
+  setMessage(authMessage, "Verifying code with Telegram…");
+  try {
+    await api("/api/telegram/code", {
+      method: "POST",
+      body: JSON.stringify({ code }),
+    });
+    pollTimer = window.setTimeout(pollLoginStatus, 500);
+  } catch (error) {
+    setMessage(authMessage, error.message, true);
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Verify Code & Open Cloud →";
+    }
+  }
+}
+
+async function resendTelegramOtp() {
+  const resendBtn = document.querySelector("#otp-resend-btn");
+  if (resendBtn) {
+    resendBtn.disabled = true;
+    resendBtn.textContent = "Resending...";
+  }
+  try {
+    await api("/api/telegram/resend", { method: "POST", body: "{}" });
+    setMessage(authMessage, "New code sent to your Telegram app! Check your messages.");
+    startOtpCountdown(60);
+  } catch (error) {
+    setMessage(authMessage, error.message, true);
+    if (resendBtn) resendBtn.disabled = false;
+  }
+}
+
+async function cancelPhoneLoginAndChange() {
+  try {
+    await api("/api/telegram/cancel", { method: "POST", body: "{}" });
+  } catch {}
+  window.clearTimeout(pollTimer);
+  if (otpCountdownTimer) window.clearInterval(otpCountdownTimer);
+  loginStarted = false;
+  document.querySelector("#otp-step-panel")?.classList.add("hidden");
+  document.querySelector("#phone-login-panel")?.classList.remove("hidden");
+  const phoneBtn = document.querySelector("#phone-submit-btn");
+  if (phoneBtn) {
+    phoneBtn.disabled = false;
+    phoneBtn.textContent = "Send Telegram OTP →";
+  }
+  const otpBtn = document.querySelector("#otp-submit-btn");
+  if (otpBtn) {
+    otpBtn.disabled = false;
+    otpBtn.textContent = "Verify Code & Open Cloud →";
+  }
+  const otpInput = document.querySelector("#telegram-otp-input");
+  if (otpInput) otpInput.value = "";
+  setMessage(authMessage, "");
+  document.querySelector("#phone-number-input")?.focus();
+}
+
 async function pollLoginStatus() {
   try {
     const result = await api("/api/telegram/status");
+    if (result.step === "waiting_for_code") {
+      document.querySelector("#phone-login-panel")?.classList.add("hidden");
+      qrLoginPanel?.classList.add("hidden");
+      document.querySelector("#otp-step-panel")?.classList.remove("hidden");
+      passwordStep?.classList.add("hidden");
+      authSubmit?.classList.add("hidden");
+      const phoneDisplay = document.querySelector("#otp-phone-display");
+      if (phoneDisplay && result.phone) {
+        phoneDisplay.textContent = result.phone;
+      }
+      if (result.error) {
+        setMessage(authMessage, result.error, true);
+      } else {
+        setMessage(authMessage, "Verification code sent to your Telegram app.");
+      }
+      startOtpCountdown(result.resendIn || 60);
+      const otpBtn = document.querySelector("#otp-submit-btn");
+      if (otpBtn) {
+        otpBtn.disabled = false;
+        otpBtn.textContent = "Verify Code & Open Cloud →";
+      }
+      const otpInput = document.querySelector("#telegram-otp-input");
+      if (otpInput && document.activeElement !== otpInput) {
+        otpInput.focus();
+      }
+      pollTimer = window.setTimeout(pollLoginStatus, 1000);
+      return;
+    }
     if (result.step === "waiting_for_password") {
-      qrLoginPanel.classList.add("hidden");
-      passwordStep.classList.remove("hidden");
-      authSubmit.classList.remove("hidden");
-      refreshQrButton.classList.add("hidden");
-      setMessage(authMessage, "Enter your Telegram two-step verification password.");
+      document.querySelector("#phone-login-panel")?.classList.add("hidden");
+      document.querySelector("#otp-step-panel")?.classList.add("hidden");
+      qrLoginPanel?.classList.add("hidden");
+      passwordStep?.classList.remove("hidden");
+      authSubmit?.classList.remove("hidden");
+      refreshQrButton?.classList.add("hidden");
+      setMessage(authMessage, result.error || "Enter your Telegram two-step verification password.");
       authSubmit.disabled = false;
-      telegramPasswordInput.focus();
+      telegramPasswordInput?.focus();
+      pollTimer = window.setTimeout(pollLoginStatus, 1000);
       return;
     }
     if (result.step === "complete") {
@@ -3018,30 +3213,42 @@ async function pollLoginStatus() {
     }
     if (result.step === "error" || result.step === "signed_out") {
       loginStarted = false;
-      qrImage.removeAttribute("src");
-      qrImage.classList.add("hidden");
-      refreshQrButton.classList.remove("hidden");
+      qrImage?.removeAttribute("src");
+      qrImage?.classList.add("hidden");
+      refreshQrButton?.classList.remove("hidden");
       refreshQrButton.textContent = "Refresh QR code";
-      passwordStep.classList.add("hidden");
-      authSubmit.classList.add("hidden");
-      setMessage(authMessage, result.error || "QR login expired. Refresh the QR code and scan again.", true);
+      const phoneBtn = document.querySelector("#phone-submit-btn");
+      if (phoneBtn) {
+        phoneBtn.disabled = false;
+        phoneBtn.textContent = "Send Telegram OTP →";
+      }
+      const otpBtn = document.querySelector("#otp-submit-btn");
+      if (otpBtn) {
+        otpBtn.disabled = false;
+        otpBtn.textContent = "Verify Code & Open Cloud →";
+      }
+      passwordStep?.classList.add("hidden");
+      authSubmit?.classList.add("hidden");
+      setMessage(authMessage, result.error || "Sign-in expired or interrupted. Please try again.", true);
       return;
     }
     if (result.step === "waiting_for_qr_scan") {
-      qrLoginPanel.classList.remove("hidden");
+      document.querySelector("#phone-login-panel")?.classList.add("hidden");
+      document.querySelector("#otp-step-panel")?.classList.add("hidden");
+      qrLoginPanel?.classList.remove("hidden");
       if (result.qrImage && qrImage.src !== result.qrImage) qrImage.src = result.qrImage;
-      qrImage.classList.toggle("hidden", !result.qrImage);
+      qrImage?.classList.toggle("hidden", !result.qrImage);
       const expiresAt = Number(result.qrExpires) * 1000;
       const secondsRemaining = Number.isFinite(expiresAt) ? Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)) : 0;
       if (!secondsRemaining) {
         loginStarted = false;
-        qrImage.classList.add("hidden");
-        refreshQrButton.classList.remove("hidden");
+        qrImage?.classList.add("hidden");
+        refreshQrButton?.classList.remove("hidden");
         refreshQrButton.textContent = "QR expired · refresh";
         setMessage(authMessage, "This QR code expired. Tap “QR expired · refresh” to create a new one.", true);
         return;
       }
-      refreshQrButton.classList.add("hidden");
+      refreshQrButton?.classList.add("hidden");
       setMessage(authMessage, `Scan with Telegram now. This QR expires in ${secondsRemaining} seconds.`);
       pollTimer = window.setTimeout(pollLoginStatus, 900);
       return;
@@ -3051,7 +3258,7 @@ async function pollLoginStatus() {
   } catch (error) {
     setMessage(authMessage, error.message, true);
     loginStarted = false;
-    refreshQrButton.classList.remove("hidden");
+    refreshQrButton?.classList.remove("hidden");
   }
 }
 
@@ -3100,18 +3307,44 @@ startLoginButton.addEventListener("click", async () => {
     await showLibrary();
     return;
   }
-  qrMethodButton.click();
+  if (phoneMethodButton) phoneMethodButton.click();
+  else qrMethodButton.click();
   authView.classList.remove("hidden");
   authView.scrollIntoView({ behavior: "smooth", block: "center" });
-  await startQrLogin();
 });
-qrMethodButton.addEventListener("click", async () => {
-  qrMethodButton.classList.add("is-active");
+
+phoneMethodButton?.addEventListener("click", () => {
+  phoneMethodButton.classList.add("is-active");
+  qrMethodButton.classList.remove("is-active");
   passwordMethodButton.classList.remove("is-active");
-  qrMethodButton.setAttribute("aria-selected", "true");
+  phoneMethodButton.setAttribute("aria-selected", "true");
+  qrMethodButton.setAttribute("aria-selected", "false");
   passwordMethodButton.setAttribute("aria-selected", "false");
   credentialLoginForm.classList.add("hidden");
   authForm.classList.remove("hidden");
+  qrLoginPanel.classList.add("hidden");
+  if (!passwordStep.classList.contains("hidden")) {
+    document.querySelector("#phone-login-panel")?.classList.add("hidden");
+    document.querySelector("#otp-step-panel")?.classList.add("hidden");
+  } else if (!document.querySelector("#otp-step-panel")?.classList.contains("hidden")) {
+    document.querySelector("#phone-login-panel")?.classList.add("hidden");
+  } else {
+    document.querySelector("#phone-login-panel")?.classList.remove("hidden");
+    document.querySelector("#otp-step-panel")?.classList.add("hidden");
+  }
+});
+
+qrMethodButton.addEventListener("click", async () => {
+  qrMethodButton.classList.add("is-active");
+  phoneMethodButton?.classList.remove("is-active");
+  passwordMethodButton.classList.remove("is-active");
+  qrMethodButton.setAttribute("aria-selected", "true");
+  phoneMethodButton?.setAttribute("aria-selected", "false");
+  passwordMethodButton.setAttribute("aria-selected", "false");
+  credentialLoginForm.classList.add("hidden");
+  authForm.classList.remove("hidden");
+  document.querySelector("#phone-login-panel")?.classList.add("hidden");
+  document.querySelector("#otp-step-panel")?.classList.add("hidden");
   qrLoginPanel.classList.remove("hidden");
   if (!passwordStep.classList.contains("hidden")) {
     qrLoginPanel.classList.add("hidden");
@@ -3119,6 +3352,7 @@ qrMethodButton.addEventListener("click", async () => {
     await startQrLogin();
   }
 });
+
 passwordMethodButton.addEventListener("click", async () => {
   if (loginStarted) {
     try {
@@ -3131,12 +3365,40 @@ passwordMethodButton.addEventListener("click", async () => {
     loginStarted = false;
   }
   passwordMethodButton.classList.add("is-active");
+  phoneMethodButton?.classList.remove("is-active");
   qrMethodButton.classList.remove("is-active");
   passwordMethodButton.setAttribute("aria-selected", "true");
+  phoneMethodButton?.setAttribute("aria-selected", "false");
   qrMethodButton.setAttribute("aria-selected", "false");
   authForm.classList.add("hidden");
   credentialLoginForm.classList.remove("hidden");
   document.querySelector("#credential-login-id").focus();
+});
+
+phoneSubmitBtn?.addEventListener("click", startPhoneLogin);
+phoneNumberInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    startPhoneLogin();
+  }
+});
+phoneCountryCode?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    phoneNumberInput?.focus();
+  }
+});
+otpSubmitBtn?.addEventListener("click", submitTelegramOtp);
+telegramOtpInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    submitTelegramOtp();
+  }
+});
+otpResendBtn?.addEventListener("click", resendTelegramOtp);
+otpChangePhoneBtn?.addEventListener("click", cancelPhoneLoginAndChange);
+phoneAuthBackButton?.addEventListener("click", () => {
+  showHome();
 });
 credentialLoginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -3305,19 +3567,29 @@ document.querySelector("#auth-back-button").addEventListener("click", async () =
 
 authForm.addEventListener("submit", async (event) => {
   event.preventDefault();
-  if (passwordStep.classList.contains("hidden")) return;
-  authSubmit.disabled = true;
-  try {
-    setMessage(authMessage, "Verifying Telegram password…");
-    await api("/api/telegram/password", {
-      method: "POST",
-      body: JSON.stringify({ password: telegramPasswordInput.value }),
-    });
-    telegramPasswordInput.value = "";
-    pollTimer = window.setTimeout(pollLoginStatus, 400);
-  } catch (error) {
-    setMessage(authMessage, error.message, true);
-    authSubmit.disabled = false;
+  if (!passwordStep.classList.contains("hidden")) {
+    authSubmit.disabled = true;
+    try {
+      setMessage(authMessage, "Verifying Telegram password…");
+      await api("/api/telegram/password", {
+        method: "POST",
+        body: JSON.stringify({ password: telegramPasswordInput.value }),
+      });
+      telegramPasswordInput.value = "";
+      pollTimer = window.setTimeout(pollLoginStatus, 400);
+    } catch (error) {
+      setMessage(authMessage, error.message, true);
+      authSubmit.disabled = false;
+    }
+    return;
+  }
+  if (!document.querySelector("#otp-step-panel")?.classList.contains("hidden")) {
+    await submitTelegramOtp();
+    return;
+  }
+  if (!document.querySelector("#phone-login-panel")?.classList.contains("hidden")) {
+    await startPhoneLogin();
+    return;
   }
 });
 

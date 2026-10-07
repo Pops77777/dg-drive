@@ -763,7 +763,23 @@ async function runTelegramLogin(flow, phone, forceSMS = false) {
       },
       onError: (error) => {
         flow.telegramError = error;
-        console.error("Telegram sign-in failed:", error.message);
+        console.error("Telegram sign-in failed:", error.message || error);
+        if (error.errorMessage === "PHONE_CODE_INVALID") {
+          flow.error = "The verification code you entered is incorrect. Please check your Telegram app and enter the code again.";
+          flow.step = "waiting_for_code";
+          flow.updatedAt = Date.now();
+          flow.code = createDeferred();
+          flow.code.promise.catch(() => {});
+          return false;
+        }
+        if (error.errorMessage === "PASSWORD_HASH_INVALID") {
+          flow.error = "Incorrect 2-step verification password. Please try again.";
+          flow.step = "waiting_for_password";
+          flow.updatedAt = Date.now();
+          flow.password = createDeferred();
+          flow.password.promise.catch(() => {});
+          return false;
+        }
         return true;
       },
     });
@@ -771,18 +787,22 @@ async function runTelegramLogin(flow, phone, forceSMS = false) {
   } catch (error) {
     if (flow.cancelled) return;
     const telegramError = flow.telegramError || error;
-    console.error("Telegram authentication error:", telegramError.message);
+    console.error("Telegram authentication error:", telegramError.message || telegramError);
     flow.step = "error";
-    if (/API ID invalid/i.test(telegramError.message)) {
+    if (telegramError.errorMessage === "PHONE_NUMBER_INVALID") {
+      flow.error = "The phone number you entered is invalid. Make sure to include your country code (e.g. +91XXXXXXXXXX).";
+    } else if (telegramError.errorMessage === "PHONE_NUMBER_BANNED") {
+      flow.error = "This phone number is banned by Telegram.";
+    } else if (telegramError.errorMessage === "PHONE_CODE_EXPIRED") {
+      flow.error = "The verification code has expired. Please request a new code.";
+    } else if (/API ID invalid/i.test(telegramError.message)) {
       flow.error = "Server setup error: Telegram API ID/API hash are invalid. Ask the site owner to configure valid credentials.";
-    } else if (/PHONE_CODE|PHONE_NUMBER|PASSWORD_HASH/i.test(telegramError.message)) {
-      flow.error = "Telegram verification failed. Check the number/code/password and start again.";
     } else if (floodWaitSeconds(telegramError)) {
       const waitSeconds = floodWaitSeconds(telegramError);
       await setPhoneCooldown(phone, waitSeconds);
-      flow.error = `Telegram has temporarily blocked new sign-in codes because too many were requested. Wait ${formatWait(waitSeconds)} before trying phone login again. Do not request more codes during this time.`;
+      flow.error = `Telegram has temporarily blocked new sign-in codes because too many were requested. Wait ${formatWait(waitSeconds)} before trying phone login again.`;
     } else {
-      flow.error = "Telegram could not sign you in. Please start again.";
+      flow.error = telegramError.errorMessage || telegramError.message || "Telegram could not sign you in. Please start again.";
     }
     flow.updatedAt = Date.now();
     await flow.client.disconnect().catch((disconnectError) => {
@@ -801,6 +821,7 @@ async function persistTelegramLogin(flow, telegramUser) {
   const user = {
     ...prior,
     id,
+    phone: flow.phone || prior.phone || "",
     telegramSession: encryptSession(flow.client.session.save()),
     firstName: telegramUser.firstName || prior.firstName || "",
     username: telegramUser.username || "",
@@ -880,7 +901,11 @@ async function runTelegramQrLogin(flow) {
 async function beginTelegramLogin(req, res) {
   registerAttempt(req);
   const body = await readJson(req);
-  const phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  let phone = typeof body.phone === "string" ? body.phone.trim() : "";
+  phone = phone.replace(/[\s\-\(\)]/g, "");
+  if (!phone.startsWith("+")) {
+    phone = `+${phone}`;
+  }
   if (!/^\+[1-9]\d{7,14}$/.test(phone)) {
     return sendJson(res, 400, { error: "Enter a valid phone number with country code, for example +919876543210." });
   }
@@ -1020,14 +1045,22 @@ async function cancelTelegramLogin(req, res) {
 
 async function submitTelegramCode(req, res) {
   const flow = telegramFlowCookie(req);
-  if (!flow || flow.step !== "waiting_for_code") {
+  if (!flow || (flow.step !== "waiting_for_code" && flow.step !== "waiting_for_password")) {
     return sendJson(res, 409, { error: "Start Telegram sign-in again before entering a code." });
   }
   const body = await readJson(req);
+  if (flow.step === "waiting_for_password" && body.password) {
+    flow.error = null;
+    flow.step = "processing";
+    flow.updatedAt = Date.now();
+    flow.password.resolve(body.password);
+    return sendJson(res, 202, { status: "processing" });
+  }
   const code = typeof body.code === "string" ? body.code.replace(/\s/g, "") : "";
-  if (!/^\d{4,8}$/.test(code)) {
+  if (!/^\d{3,8}$/.test(code)) {
     return sendJson(res, 400, { error: "Enter the verification code sent by Telegram." });
   }
+  flow.error = null;
   flow.step = "processing";
   flow.updatedAt = Date.now();
   flow.code.resolve(code);
@@ -1068,10 +1101,10 @@ async function submitTelegramPassword(req, res) {
   if (!password || password.length > 256) {
     return sendJson(res, 400, { error: "Enter your Telegram two-step verification password." });
   }
+  flow.error = null;
   flow.step = "processing";
   flow.updatedAt = Date.now();
   flow.password.resolve(password);
-  flow.password = createDeferred();
   return sendJson(res, 202, { status: "processing" });
 }
 
@@ -1133,13 +1166,21 @@ function flowStatus(req, res) {
       telegramSessionToken: sessionToken,
     });
   }
-  if (flow.step === "waiting_for_code" && flow.codeInfo) {
+  if (flow.step === "waiting_for_code") {
     return sendJson(res, 200, {
       step: flow.step,
-      delivery: flow.codeInfo.type,
-      nextDelivery: flow.codeInfo.nextType || null,
-      resendIn: flow.codeInfo.timeout || null,
+      delivery: flow.codeInfo?.type || "app",
+      nextDelivery: flow.codeInfo?.nextType || null,
+      resendIn: flow.codeInfo?.timeout || null,
       smsRequested: flow.smsRequested,
+      phone: flow.phone || null,
+      error: flow.error || null,
+    });
+  }
+  if (flow.step === "waiting_for_password") {
+    return sendJson(res, 200, {
+      step: flow.step,
+      error: flow.error || null,
     });
   }
   if (flow.step === "waiting_for_qr_scan") {
@@ -1149,7 +1190,7 @@ function flowStatus(req, res) {
       qrExpires: flow.qrExpires,
     });
   }
-  return sendJson(res, 200, { step: flow.step });
+  return sendJson(res, 200, { step: flow.step, error: flow.error || null });
 }
 
 function enqueueTelegramUpload(file, user) {
@@ -2251,10 +2292,14 @@ async function handleApi(req, res, url) {
     }
     return sendJson(res, 200, { config: publicSiteConfig() });
   }
+  if (req.method === "POST" && (url.pathname === "/api/telegram/start" || url.pathname === "/auth/send-code" || url.pathname === "/api/auth/send-code")) return beginTelegramLogin(req, res);
   if (req.method === "POST" && url.pathname === "/api/telegram/qr-start") return beginQrLogin(req, res, user);
+  if (req.method === "POST" && (url.pathname === "/api/telegram/code" || url.pathname === "/auth/verify-code" || url.pathname === "/api/auth/verify-code")) return submitTelegramCode(req, res);
+  if (req.method === "POST" && url.pathname === "/api/telegram/resend") return resendTelegramCode(req, res);
+  if (req.method === "POST" && url.pathname === "/api/telegram/try-sms") return trySmsCode(req, res);
   if (req.method === "POST" && url.pathname === "/api/telegram/cancel") return cancelTelegramLogin(req, res);
   if (req.method === "POST" && url.pathname === "/api/telegram/password") return submitTelegramPassword(req, res);
-  if (req.method === "GET" && url.pathname === "/api/telegram/status") return flowStatus(req, res);
+  if (req.method === "GET" && (url.pathname === "/api/telegram/status" || url.pathname === "/auth/status")) return flowStatus(req, res);
 
   if (req.method === "POST" && url.pathname === "/api/logout") {
     clearSession(req, res);
