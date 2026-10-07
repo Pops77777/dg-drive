@@ -2,15 +2,15 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#dbeafe">
     <meta name="description" content="DGx Cloud — 100% Master Frosted Glassmorphism Telegram Cloud Storage.">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=9.9">
-    <script src="/app.js?v=9.9" defer></script>
+    <link rel="stylesheet" href="/style.css?v=11.0">
+    <script src="/app.js?v=11.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -247,8 +247,7 @@
             <div class="topbar-search-wrap" id="topbar-search-wrap">
               <div class="universal-search-box">
                 <span class="search-icon">⌕</span>
-                <input type="search" id="universal-search" placeholder="Search all files (Ctrl+K)..." autocomplete="off">
-                <span class="search-badge">Ctrl+K</span>
+                <input type="search" id="universal-search" placeholder="Search all files..." autocomplete="off">
               </div>
             </div>
 
@@ -275,14 +274,6 @@
             <button class="icon-round-btn theme-toggle-btn" id="theme-toggle" type="button" title="Switch theme">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
             </button>
-
-            <div class="upload-popover hidden" id="upload-popover">
-              <div class="upload-popover-head">
-                <span>Upload Progress</span>
-                <button type="button" class="upload-popover-close" id="upload-popover-close">✕</button>
-              </div>
-              <div class="upload-popover-body" id="upload-popover-body"></div>
-            </div>
 
             <!-- User Menu container -->
             <div class="user-menu-container">
@@ -313,6 +304,15 @@
             </div>
           </div>
         </header>
+
+        <!-- Global Upload Progress Popover -->
+        <div class="upload-popover hidden" id="upload-popover">
+          <div class="upload-popover-head">
+            <span>Upload Progress</span>
+            <button type="button" class="upload-popover-close" id="upload-popover-close">✕</button>
+          </div>
+          <div class="upload-popover-body" id="upload-popover-body"></div>
+        </div>
 
         <!-- Main Content Area -->
         <main class="app-content-body">
@@ -416,7 +416,7 @@
                 <h1 class="master-dash-heading">Dashboard</h1>
               </div>
               <span class="dashboard-highlight-pill" title="Telegram Cloud High Speed Storage">
-                <span class="highlight-pill-icon">⚡</span> Up to 2 GB per file · High Speed
+                <span class="highlight-pill-icon">⚡</span> Max 2GB Upload
               </span>
               <button class="button button-primary upload-gradient-btn master-dash-upload-btn hidden" id="top-upload-btn" type="button" style="display:none !important;">
                 <span class="upload-plus">＋</span> New Upload
@@ -428,10 +428,9 @@
               <section class="master-glass-card storage-overview-panel" aria-label="Storage summary">
                 <div class="master-card-title-row">
                   <h3>Storage Overview</h3>
-                  <button class="api-status-toggle-btn is-off" id="dashboard-api-toggle-btn" type="button" title="Click to turn Developer API ON or OFF">
+                  <button class="api-status-toggle-btn api-mini-btn is-off" id="dashboard-api-toggle-btn" type="button" title="Click to turn Developer API ON or OFF">
                     <span class="api-toggle-indicator"></span>
-                    <span class="api-toggle-text">Developer API: <strong>OFF</strong></span>
-                    <span class="api-toggle-action">(Turn ON)</span>
+                    <span class="api-toggle-text">API: <strong>OFF</strong></span>
                   </button>
                   <input type="checkbox" id="api-feature-toggle" class="hidden" style="display:none;">
                 </div>

@@ -1,3 +1,35 @@
+// Universal Zoom & Selection Prevention across all mobile & desktop browsers
+document.addEventListener("gesturestart", (e) => e.preventDefault());
+document.addEventListener("gesturechange", (e) => e.preventDefault());
+document.addEventListener("gestureend", (e) => e.preventDefault());
+document.addEventListener("touchstart", (e) => {
+  if (e.touches && e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+let lastTouchEndTime = 0;
+document.addEventListener("touchend", (e) => {
+  const now = Date.now();
+  if (now - lastTouchEndTime <= 300) {
+    const tag = e.target?.tagName?.toLowerCase();
+    if (tag !== "input" && tag !== "textarea" && tag !== "button" && tag !== "a") {
+      e.preventDefault();
+    }
+  }
+  lastTouchEndTime = now;
+}, { passive: false });
+window.addEventListener("wheel", (e) => {
+  if (e.ctrlKey) e.preventDefault();
+}, { passive: false });
+window.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && (e.key === "+" || e.key === "-" || e.key === "=" || e.key === "0")) {
+    e.preventDefault();
+  }
+});
+window.addEventListener("selectstart", (e) => {
+  if (!e.target.closest("input, textarea, [contenteditable='true'], .selectable-text")) {
+    e.preventDefault();
+  }
+});
+
 const welcomeView = document.querySelector("#welcome-view");
 const authView = document.querySelector("#auth-view");
 const dashboardView = document.querySelector("#dashboard-view");
@@ -347,7 +379,11 @@ async function showLibrary() {
   dashboardView?.classList.remove("hidden");
   document.querySelector("#topbar-breadcrumb-pill")?.classList.remove("hidden");
   document.querySelector("#topbar-search-wrap")?.classList.add("hidden");
-  updateNavActive("files");
+  if (activeCategory === "starred") {
+    updateNavActive("starred");
+  } else {
+    updateNavActive("files");
+  }
   if (currentUser) {
     await loadFiles();
   } else {
@@ -1665,7 +1701,13 @@ function renderHomeDashboard() {
 
 function renderBreadcrumbs() {
   breadcrumbs.replaceChildren();
-  if (trashMode) {
+  if (activeCategory === "starred") {
+    breadcrumbs.append(createButton("Starred", "breadcrumb-button", () => {
+      activeCategory = "starred";
+      renderLibrary();
+    }));
+    currentFolderTitle.textContent = "Starred Files";
+  } else if (trashMode) {
     breadcrumbs.append(createButton("Trash", "breadcrumb-button", () => {
       trashFolderId = null;
       renderLibrary();
@@ -1745,23 +1787,45 @@ function renderLibrary() {
   document.querySelector("#selection-toolbar")?.classList.toggle("is-trash-mode", trashMode);
   const query = searchTerm.trim().toLocaleLowerCase();
   const searching = Boolean(query);
-  const inFolder = trashMode ? [] : allFiles.filter((file) => searching
-    ? true
-    : (file.folderId || null) === activeFolderId);
-  const visibleFiles = inFolder.filter((file) =>
-    (activeCategory === "all" || fileCategory(file) === activeCategory)
-    && (!query || file.name.toLocaleLowerCase().includes(query)));
-  const trashFolder = trashFolderId
-    ? allTrashItems.find((item) => item.kind === "folder" && item.id === trashFolderId)
-    : null;
+  const apiFolderIds = new Set(allFolders.filter((f) => (f.name || "").startsWith("[API]")).map((f) => f.id));
+  const isInsideApiFolder = Boolean(activeFolderId && apiFolderIds.has(activeFolderId));
+
   const compareItems = (a, b, dateField) => librarySortMode === "date-desc"
     ? new Date(b[dateField] || 0) - new Date(a[dateField] || 0)
     : librarySortMode === "date-asc"
       ? new Date(a[dateField] || 0) - new Date(b[dateField] || 0)
       : a.name.localeCompare(b.name);
-  const childFolders = trashMode || searching ? [] : allFolders
-    .filter((folder) => (folder.parentId || null) === activeFolderId)
-    .sort((a, b) => compareItems(a, b, "createdAt"));
+
+  let visibleFiles = [];
+  let childFolders = [];
+
+  if (trashMode) {
+    visibleFiles = [];
+    childFolders = [];
+  } else if (activeCategory === "starred") {
+    childFolders = [];
+    visibleFiles = allFiles.filter((file) => !file.trashed && !file.vault && Boolean(file.starred)
+      && (!query || file.name.toLocaleLowerCase().includes(query)));
+  } else {
+    const inFolder = allFiles.filter((file) => {
+      if (file.trashed || file.vault) return false;
+      if (!isInsideApiFolder && apiFolderIds.has(file.folderId)) return false;
+      if (searching) return true;
+      return (file.folderId || null) === activeFolderId;
+    });
+
+    visibleFiles = inFolder.filter((file) =>
+      (activeCategory === "all" || fileCategory(file) === activeCategory)
+      && (!query || file.name.toLocaleLowerCase().includes(query)));
+
+    childFolders = searching ? [] : allFolders
+      .filter((folder) => {
+        if ((folder.parentId || null) !== activeFolderId) return false;
+        if (!isInsideApiFolder && (folder.name || "").startsWith("[API]")) return false;
+        return true;
+      })
+      .sort((a, b) => compareItems(a, b, "createdAt"));
+  }
   const sortedVisibleFiles = [...visibleFiles].sort((a, b) => compareItems(a, b, "uploadedAt"));
   const trashFolders = trashMode ? allTrashItems.filter((item) => item.kind === "folder"
     && (trashFolder
@@ -1862,6 +1926,15 @@ function renderLibrary() {
   
   if (displayCount === 0 && !childFolders.length) {
     emptyState.classList.remove("hidden");
+    const emptyTitle = emptyState.querySelector("strong");
+    const emptySub = emptyState.querySelector("span:not(.empty-icon)");
+    if (activeCategory === "starred") {
+      if (emptyTitle) emptyTitle.textContent = "No Starred Files";
+      if (emptySub) emptySub.textContent = "Click the star icon on any file to save it here for fast access.";
+    } else {
+      if (emptyTitle) emptyTitle.textContent = "Your cloud is ready";
+      if (emptySub) emptySub.textContent = "Upload files to get started.";
+    }
     resetInspectorPane();
   } else {
     emptyState.classList.add("hidden");
@@ -1890,7 +1963,7 @@ function makeSelectable(element, key) {
   let longPressTriggered = false;
   const cancelLongPress = () => window.clearTimeout(timer);
   element.addEventListener("pointerdown", (event) => {
-    if (event.target instanceof Element && event.target.closest(".file-action-btn, .file-menu, .restore-trash-item, .folder-delete, .folder-share")) return;
+    if (event.target instanceof Element && event.target.closest(".file-action-btn, .file-star-btn, .file-menu, .restore-trash-item, .folder-delete, .folder-share")) return;
     if (event.button !== 0) return;
     startX = event.clientX;
     startY = event.clientY;
@@ -1911,12 +1984,12 @@ function makeSelectable(element, key) {
   element.addEventListener("pointerup", cancelLongPress);
   element.addEventListener("pointercancel", cancelLongPress);
   element.addEventListener("contextmenu", (event) => {
-    if (!event.target.closest(".file-action-btn")) {
+    if (!event.target.closest(".file-action-btn, .file-star-btn")) {
       event.preventDefault();
     }
   });
   element.addEventListener("click", (event) => {
-    if (event.target instanceof Element && event.target.closest(".file-action-btn, .file-menu, .restore-trash-item, .folder-delete, .folder-share")) return;
+    if (event.target instanceof Element && event.target.closest(".file-action-btn, .file-star-btn, .file-menu, .restore-trash-item, .folder-delete, .folder-share")) return;
     if (longPressTriggered) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -1994,9 +2067,45 @@ function downloadSelectedFiles() {
   if (selectionDownloadStatus) selectionDownloadStatus.textContent = `Started ${files.length} download${files.length === 1 ? "" : "s"}.`;
 }
 
+async function toggleFileStar(file) {
+  file.starred = !file.starred;
+  renderLibrary();
+  renderHomeDashboard();
+  try {
+    const res = await api(`/api/files/${encodeURIComponent(file.id)}/star`, {
+      method: "POST",
+      body: JSON.stringify({ starred: file.starred }),
+    });
+    if (res && typeof res.starred === "boolean") {
+      file.starred = res.starred;
+    }
+  } catch (err) {
+    file.starred = !file.starred;
+    renderLibrary();
+    renderHomeDashboard();
+    window.alert(err.message || "Failed to update star");
+  }
+}
+
 function createFileCard(file) {
   const card = document.createElement("article");
   card.className = "library-file-card";
+
+  if (!file._uploading) {
+    const starBtn = document.createElement("button");
+    starBtn.type = "button";
+    starBtn.className = `file-star-btn${file.starred ? " is-starred" : ""}`;
+    starBtn.setAttribute("aria-label", file.starred ? "Remove star" : "Star file");
+    starBtn.title = file.starred ? "Starred" : "Star file";
+    starBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="${file.starred ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+    starBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFileStar(file);
+    });
+    card.append(starBtn);
+  }
+
   const icon = document.createElement("span");
   const category = fileCategory(file);
   icon.className = `file-icon ${category === "videos" ? "video-icon" : category === "photos" ? "image-icon" : "document-icon"}`;
@@ -2155,6 +2264,12 @@ function openFileActionSheet(file) {
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, "Preview", () => openPreview(file));
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`, "Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share link", () => shareFile(file));
+  const isStarred = Boolean(file.starred);
+  addAction(
+    `<svg viewBox="0 0 24 24" width="18" height="18" fill="${isStarred ? "#f59e0b" : "none"}" stroke="${isStarred ? "#f59e0b" : "currentColor"}" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+    isStarred ? "Remove from Starred" : "Add to Starred",
+    () => toggleFileStar(file)
+  );
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`, "Details / Info", () => showFileProperties(file));
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>`, "Rename", () => renameFile(file));
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>`, "Move to folder", () => openDestinationDialog("Move file", async (targetFolderId) => {
@@ -4359,6 +4474,12 @@ document.querySelector("#sidebar-starred-btn")?.addEventListener("click", () => 
     startLoginButton.click();
     return;
   }
+  activeCategory = "starred";
+  activeFolderId = null;
+  searchTerm = "";
+  if (searchInput) searchInput.value = "";
+  if (universalSearch) universalSearch.value = "";
+  if (trashMode) trashMode = false;
   showLibrary();
   updateNavActive("starred");
 });
@@ -4518,7 +4639,13 @@ function updateApiToggleUI(enabled) {
     btn.classList.toggle("is-on", enabled);
     btn.classList.toggle("is-off", !enabled);
     const textEl = btn.querySelector(".api-toggle-text");
-    if (textEl) textEl.innerHTML = `Developer API: <strong>${enabled ? "ON" : "OFF"}</strong>`;
+    if (textEl) {
+      if (btn.classList.contains("api-mini-btn")) {
+        textEl.innerHTML = `API: <strong>${enabled ? "ON" : "OFF"}</strong>`;
+      } else {
+        textEl.innerHTML = `Developer API: <strong>${enabled ? "ON" : "OFF"}</strong>`;
+      }
+    }
     const actionEl = btn.querySelector(".api-toggle-action");
     if (actionEl) actionEl.textContent = enabled ? "(Turn OFF)" : "(Turn ON)";
   });

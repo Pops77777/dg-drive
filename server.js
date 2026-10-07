@@ -402,6 +402,7 @@ function publicFile(file) {
     folderId: file.folderId || null,
     trashed: Boolean(file.deletedAt),
     syncing: !file.telegramMessageId,
+    starred: Boolean(file.starred),
   };
 }
 
@@ -2715,6 +2716,15 @@ async function handleApi(req, res, url) {
       .sort((a, b) => b.uploadedAt.localeCompare(a.uploadedAt))
       .map(publicFile);
     return sendJson(res, 200, { files });
+  }
+  const starMatch = url.pathname.match(/^\/api\/files\/([^\/]+)\/star$/);
+  if (starMatch && req.method === "POST") {
+    const file = fileForUser(user, decodeURIComponent(starMatch[1]));
+    if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
+    const body = await readJson(req).catch(() => ({}));
+    file.starred = typeof body.starred === "boolean" ? body.starred : !file.starred;
+    await saveStore();
+    return sendJson(res, 200, { ok: true, starred: file.starred });
   }
   if (req.method === "GET" && url.pathname === "/api/folders") {
     const folders = store.folders
