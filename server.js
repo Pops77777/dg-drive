@@ -2975,7 +2975,7 @@ async function handleRequest(req, res) {
         && (isLoopbackAddress(req.socket.remoteAddress) || TRUST_PROXY_HTTPS))) {
       return sendJson(res, 426, { error: "HTTPS is required. Connect through the local TLS reverse proxy." });
     }
-    if (url.pathname.startsWith("/api/")) return await handleApi(req, res, url);
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/auth/")) return await handleApi(req, res, url);
     if (req.method === "GET" || req.method === "HEAD") {
       let relativePath = url.pathname === "/" || url.pathname === "/library" ? "index.html" : url.pathname.replace(/^\/+/, "");
       const safePath = path.normalize(relativePath).replace(/^(\.\.[\/\\])+/, "");
