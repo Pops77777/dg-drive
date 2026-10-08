@@ -3132,6 +3132,7 @@ async function handleRequest(req, res) {
         res.writeHead(200, {
           "Content-Type": contentType,
           "Content-Length": content.length,
+          ...(safePath === "sw.js" ? { "Service-Worker-Allowed": "/" } : {}),
           "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0",
           "Pragma": "no-cache",
           "Expires": "0",

@@ -1,4 +1,4 @@
-// Cloudflare Worker for DGx Cloud (100% Unlimited Bandwidth & Super Fast CDN)
+// Cloudflare Worker for DGx Cloud (100% Unlimited Bandwidth & Edge CDN Caching)
 // Deploy this to Cloudflare Workers (Free Plan, 0 Cost, Unlimited Bandwidth)
 
 export default {
@@ -7,7 +7,18 @@ export default {
     const targetOrigin = "https://dgx-cloud-pmz8.onrender.com";
     const targetUrl = new URL(url.pathname + url.search, targetOrigin);
 
-    // Forward the original request with all headers, cookies, and range requests
+    const isMedia = url.pathname.startsWith("/api/files/") || url.pathname.startsWith("/api/v1/stream/");
+    const cache = caches.default;
+
+    // Check Cloudflare Edge Cache for media streaming chunks
+    if (isMedia && request.method === "GET") {
+      const cached = await cache.match(request);
+      if (cached) {
+        return cached;
+      }
+    }
+
+    // Forward original request headers
     const newHeaders = new Headers(request.headers);
     newHeaders.set("Host", "dgx-cloud-pmz8.onrender.com");
     newHeaders.set("X-Forwarded-Host", url.host);
@@ -25,14 +36,24 @@ export default {
 
     const response = await fetch(modifiedRequest);
 
-    // Clone response and ensure proper headers
     const newResponseHeaders = new Headers(response.headers);
     newResponseHeaders.set("Access-Control-Allow-Origin", "*");
+    newResponseHeaders.set("Access-Control-Expose-Headers", "Content-Range, Content-Length, Accept-Ranges");
+    if (isMedia) {
+      newResponseHeaders.set("Cache-Control", "public, max-age=31536000, immutable");
+    }
 
-    return new Response(response.body, {
+    const modifiedResponse = new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: newResponseHeaders,
     });
+
+    // Save media chunks to Cloudflare Unlimited Edge Cache
+    if (isMedia && (response.status === 200 || response.status === 206)) {
+      ctx.waitUntil(cache.put(request, modifiedResponse.clone()));
+    }
+
+    return modifiedResponse;
   },
 };

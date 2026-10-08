@@ -1,3 +1,10 @@
+// Register Media Stream Service Worker for Zero-Egress Client Acceleration
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
+
 // Universal Zoom & Selection Prevention across all mobile & desktop browsers
 document.addEventListener("gesturestart", (e) => e.preventDefault());
 document.addEventListener("gesturechange", (e) => e.preventDefault());
