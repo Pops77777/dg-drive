@@ -10,12 +10,20 @@ export default {
       reqHeaders.set("X-Forwarded-Proto", "https");
 
       try {
-        const response = await fetch(backendUrl.toString(), {
+        const isMedia = url.pathname.match(/^\/api\/files\/[0-9a-f-]{36}/i);
+        const fetchOptions = {
           method: request.method,
           headers: reqHeaders,
           body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
           redirect: "manual",
-        });
+        };
+        if (isMedia && ["GET", "HEAD"].includes(request.method)) {
+          fetchOptions.cf = {
+            cacheEverything: true,
+            cacheTtl: 86400 * 30, // 30 days edge cache
+          };
+        }
+        const response = await fetch(backendUrl.toString(), fetchOptions);
 
         const resHeaders = new Headers(response.headers);
         resHeaders.set("Access-Control-Allow-Origin", url.origin);

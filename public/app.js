@@ -206,20 +206,18 @@ function resetPasswordToggles(container) {
   });
 }
 
+const RENDER_BACKEND_ORIGIN = "https://dgx-cloud-pmz8.onrender.com";
+
 function getBackendUrl() {
   const saved = localStorage.getItem("dgx_backend_url");
   if (saved) return saved.replace(/\/+$/, "");
   if (window.DGX_BACKEND_URL) return window.DGX_BACKEND_URL.replace(/\/+$/, "");
-  const host = (window.location.hostname || "").toLowerCase();
-  if (host === "localhost" || host === "127.0.0.1" || host.includes("onrender.com")) {
-    return "";
-  }
-  return "https://dgx-cloud-pmz8.onrender.com";
+  return "";
 }
 
 function apiUrl(path) {
   if (!path) return "";
-  if (/^(https?:|\/\/|blob:|data:|tg:)/i.test(path)) return path;
+  if (/^(https?:|\/\/|blob:|data:)/i.test(path)) return path;
   const base = getBackendUrl();
   return base ? `${base}${path.startsWith("/") ? "" : "/"}${path}` : path;
 }
@@ -228,7 +226,7 @@ async function api(url, options = {}) {
   const tgToken = localStorage.getItem("dgx_tg_session") || "";
   const sessionToken = localStorage.getItem("dgx_user_session") || "";
   const fullUrl = apiUrl(url);
-  const response = await fetch(fullUrl, {
+  let response = await fetch(fullUrl, {
     credentials: "include",
     ...options,
     headers: {
@@ -238,6 +236,23 @@ async function api(url, options = {}) {
       ...options.headers,
     },
   });
+
+  // If Cloudflare static gives 405 (method not allowed), auto-retry directly on Render backend
+  if (response.status === 405 && !fullUrl.startsWith(RENDER_BACKEND_ORIGIN)) {
+    try {
+      const fallbackUrl = `${RENDER_BACKEND_ORIGIN}${url.startsWith("/") ? "" : "/"}${url}`;
+      response = await fetch(fallbackUrl, {
+        credentials: "include",
+        ...options,
+        headers: {
+          ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+          ...(tgToken ? { "x-telegram-session": tgToken } : {}),
+          ...(sessionToken ? { "x-session-token": sessionToken, "Authorization": `Bearer ${sessionToken}` } : {}),
+          ...options.headers,
+        },
+      });
+    } catch {}
+  }
   const body = await response.json().catch(() => ({}));
   if (body && typeof body === "object") {
     if (body.telegramSessionToken) {
@@ -1550,9 +1565,7 @@ function updateInspectorPane(file) {
   const shareUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   if (inspectorShareLink) inspectorShareLink.value = shareUrl;
   if (inspectorDownloadBtn) {
-    inspectorDownloadBtn.href = file.telegramMessageId
-      ? apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)
-      : apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+    inspectorDownloadBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
     inspectorDownloadBtn.setAttribute("download", file.name);
   }
 
@@ -1698,7 +1711,7 @@ function renderHomeDashboard() {
         img.alt = file.name;
         img.loading = "lazy";
         if (isImg || isVid) {
-          img.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
+          img.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
           img.onerror = () => {
             img.style.display = "none";
           };
@@ -2094,7 +2107,7 @@ function downloadSelectedFiles() {
   if (!files.length) return;
   for (const file of files) {
     const link = document.createElement("a");
-    link.href = `/api/files/${encodeURIComponent(file.id)}?download=1`;
+    link.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
     link.download = file.name;
     link.style.display = "none";
     document.body.append(link);
@@ -2320,23 +2333,11 @@ function openFileActionSheet(file) {
   };
 
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, "Preview", () => openPreview(file));
-  if (file.telegramMessageId) {
-    addAction(
-      `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0ea5e9" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
-      "⚡ Telegram 10x Turbo Stream (0 MB Server)",
-      () => {
-        window.location.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`);
-      }
-    );
-  }
   addAction(
     `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
-    "Download (Telegram 10x Unlimited)",
+    "Download",
     () => {
-      const targetUrl = file.telegramMessageId
-        ? apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)
-        : apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
-      window.location.assign(targetUrl);
+      window.location.assign(apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`));
     }
   );
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share link", () => shareFile(file));
@@ -2752,20 +2753,10 @@ async function renderTextDocumentPreview(file, previewUrl, container) {
 
 function openPreview(file) {
   previewTitle.textContent = file.name;
-  const isTgSynced = Boolean(file.telegramMessageId);
-  previewDownload.href = isTgSynced
-    ? apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)
-    : apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
-  previewDownload.textContent = isTgSynced ? "↓ Download (Telegram 10x Unlimited)" : "↓ Download";
+  previewDownload.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+  previewDownload.textContent = "↓ Download";
   const tgStreamBtn = document.querySelector("#preview-tg-stream");
-  if (tgStreamBtn) {
-    if (isTgSynced) {
-      tgStreamBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`);
-      tgStreamBtn.style.display = "inline-flex";
-    } else {
-      tgStreamBtn.style.display = "none";
-    }
-  }
+  if (tgStreamBtn) tgStreamBtn.style.display = "none";
   previewContent.replaceChildren();
   const previewUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   if (file.type.startsWith("image/") && file.type !== "image/svg+xml") {
@@ -2775,29 +2766,12 @@ function openPreview(file) {
     image.alt = file.name;
     previewContent.append(image);
   } else if (file.type.startsWith("video/")) {
-    if (isTgSynced) {
-      const tgBanner = document.createElement("div");
-      tgBanner.className = "tg-stream-hero-banner";
-      tgBanner.style.cssText = "background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 4px 16px rgba(2,132,199,0.3);";
-      tgBanner.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <span style="font-size: 24px;">⚡</span>
-          <div>
-            <div style="font-weight: 700; font-size: 15px; letter-spacing: -0.2px;">Instant Telegram Direct Stream</div>
-            <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">100% Unlimited • 10x Speed • 0 MB Server Bandwidth Used</div>
-          </div>
-        </div>
-        <a href="${apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)}" style="background: #ffffff; color: #0284c7; padding: 9px 18px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 6px;">
-          ▶ Open in Telegram
-        </a>
-      `;
-      previewContent.append(tgBanner);
-    }
     const video = document.createElement("video");
     video.className = "preview-video";
     video.controls = true;
     video.preload = "auto";
     video.playsInline = true;
+    video.autoplay = true;
     video.crossOrigin = "anonymous";
     video.poster = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
     video.src = previewUrl;
