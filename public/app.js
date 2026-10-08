@@ -210,10 +210,11 @@ function getBackendUrl() {
   const saved = localStorage.getItem("dgx_backend_url");
   if (saved) return saved.replace(/\/+$/, "");
   if (window.DGX_BACKEND_URL) return window.DGX_BACKEND_URL.replace(/\/+$/, "");
-  if (window.location.hostname.endsWith(".pages.dev")) {
-    return "https://dgx-cloud-pmz8.onrender.com";
+  const host = (window.location.hostname || "").toLowerCase();
+  if (host === "localhost" || host === "127.0.0.1" || host.includes("onrender.com")) {
+    return "";
   }
-  return "";
+  return "https://dgx-cloud-pmz8.onrender.com";
 }
 
 function apiUrl(path) {
@@ -507,7 +508,7 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   accountBadge.classList.remove("hidden");
   accountAvatarImage.classList.add("hidden");
   accountAvatarFallback.classList.remove("hidden");
-  accountAvatarImage.src = `/api/profile-photo?v=${Date.now()}`;
+  accountAvatarImage.src = apiUrl(`/api/profile-photo?v=${Date.now()}`);
   accountBadge.disabled = false;
   accountBadge.title = "Open account profile";
 
@@ -2458,7 +2459,7 @@ function createVideoThumbnail(file, thumbnail) {
     video.muted = true;
     video.playsInline = true;
     video.preload = "metadata";
-    video.src = `/api/files/${encodeURIComponent(file.id)}`;
+    video.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
     const releaseVideo = () => {
       video.removeAttribute("src");
       video.load();
@@ -2621,8 +2622,8 @@ function showFileProperties(file) {
   const downloadBtn = document.querySelector("#properties-download-btn");
   if (!dialog || !grid) return;
   title.textContent = file.name;
-  downloadBtn.href = `/api/files/${encodeURIComponent(file.id)}?download=1`;
-  const shareUrl = `${window.location.origin}/api/files/${encodeURIComponent(file.id)}`;
+  downloadBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+  const shareUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   copyBtn.onclick = async () => {
     try {
       file.shareCount = (file.shareCount || 0) + 1;
