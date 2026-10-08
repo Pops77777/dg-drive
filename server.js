@@ -1527,7 +1527,9 @@ async function streamLocalFile(req, res, filePath, file, forceDownload = false) 
     "Content-Disposition": contentDisposition(file.name, !forceDownload ? "inline" : "attachment"),
     "Accept-Ranges": "bytes",
     ...(range ? { "Content-Range": `bytes ${start}-${end}/${size}` } : {}),
-    "Cache-Control": "private, max-age=604800, stale-while-revalidate=86400",
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
     "X-Content-Type-Options": "nosniff",
   });
 
@@ -1667,7 +1669,9 @@ async function streamFromTelegram(req, res, user, file, forceDownload = false) {
     "Content-Disposition": contentDisposition(file.name, !forceDownload ? "inline" : "attachment"),
     "Accept-Ranges": "bytes",
     ...(range ? { "Content-Range": `bytes ${start}-${end}/${size}` } : {}),
-    "Cache-Control": "private, max-age=604800, stale-while-revalidate=86400",
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Expose-Headers": "Content-Range, Content-Length, Accept-Ranges",
     "X-Content-Type-Options": "nosniff",
   });
   if (req.method === "HEAD" || contentLength === 0) return res.end();

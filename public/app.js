@@ -2692,6 +2692,7 @@ function openPreview(file) {
     video.preload = "auto";
     video.playsInline = true;
     video.autoplay = true;
+    video.crossOrigin = "anonymous";
     video.poster = `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
     video.src = previewUrl;
     previewContent.append(video);
@@ -2700,6 +2701,7 @@ function openPreview(file) {
     const audio = document.createElement("audio");
     audio.controls = true;
     audio.preload = "auto";
+    audio.crossOrigin = "anonymous";
     audio.src = previewUrl;
     previewContent.append(audio);
   } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
