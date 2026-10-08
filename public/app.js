@@ -206,23 +206,50 @@ function resetPasswordToggles(container) {
   });
 }
 
+function getBackendUrl() {
+  const saved = localStorage.getItem("dgx_backend_url");
+  if (saved) return saved.replace(/\/+$/, "");
+  if (window.DGX_BACKEND_URL) return window.DGX_BACKEND_URL.replace(/\/+$/, "");
+  if (window.location.hostname.endsWith(".pages.dev")) {
+    return "https://dgx-cloud-pmz8.onrender.com";
+  }
+  return "";
+}
+
+function apiUrl(path) {
+  if (!path) return "";
+  if (/^(https?:|\/\/|blob:|data:|tg:)/i.test(path)) return path;
+  const base = getBackendUrl();
+  return base ? `${base}${path.startsWith("/") ? "" : "/"}${path}` : path;
+}
+
 async function api(url, options = {}) {
   const tgToken = localStorage.getItem("dgx_tg_session") || "";
-  const response = await fetch(url, {
-    credentials: "same-origin",
+  const sessionToken = localStorage.getItem("dgx_user_session") || "";
+  const fullUrl = apiUrl(url);
+  const response = await fetch(fullUrl, {
+    credentials: "include",
     ...options,
     headers: {
       ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
       ...(tgToken ? { "x-telegram-session": tgToken } : {}),
+      ...(sessionToken ? { "x-session-token": sessionToken, "Authorization": `Bearer ${sessionToken}` } : {}),
       ...options.headers,
     },
   });
   const body = await response.json().catch(() => ({}));
-  if (body && typeof body === "object" && body.telegramSessionToken) {
-    try {
-      localStorage.setItem("dgx_tg_session", body.telegramSessionToken);
-      document.cookie = `dgx_tg_session=${encodeURIComponent(body.telegramSessionToken)}; max-age=31536000; path=/; SameSite=Lax`;
-    } catch {}
+  if (body && typeof body === "object") {
+    if (body.telegramSessionToken) {
+      try {
+        localStorage.setItem("dgx_tg_session", body.telegramSessionToken);
+        document.cookie = `dgx_tg_session=${encodeURIComponent(body.telegramSessionToken)}; max-age=31536000; path=/; SameSite=Lax`;
+      } catch {}
+    }
+    if (body.sessionToken) {
+      try {
+        localStorage.setItem("dgx_user_session", body.sessionToken);
+      } catch {}
+    }
   }
   if (!response.ok) {
     let message = body.error || `Request failed (${response.status}).`;
@@ -1519,16 +1546,16 @@ function updateInspectorPane(file) {
   if (inspectorTitle) inspectorTitle.textContent = file.name;
   if (inspectorMeta) inspectorMeta.textContent = `${isVid ? "Video • " : isImg ? "Photo • " : ""}${formatSize(file.size)} • ${formatDate(file.uploadedAt || new Date())}`;
 
-  const shareUrl = `${window.location.origin}/api/files/${encodeURIComponent(file.id)}/download`;
+  const shareUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   if (inspectorShareLink) inspectorShareLink.value = shareUrl;
   if (inspectorDownloadBtn) {
-    inspectorDownloadBtn.href = `/api/files/${encodeURIComponent(file.id)}/download`;
+    inspectorDownloadBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
     inspectorDownloadBtn.setAttribute("download", file.name);
   }
 
   if (isVid) {
     if (inspectorImg) {
-      inspectorImg.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
+      inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
       inspectorImg.style.display = "block";
       inspectorImg.classList.remove("hidden");
     }
@@ -1539,7 +1566,7 @@ function updateInspectorPane(file) {
     }
   } else if (isImg) {
     if (inspectorImg) {
-      inspectorImg.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=high`;
+      inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=high`);
       inspectorImg.style.display = "block";
       inspectorImg.classList.remove("hidden");
     }
@@ -2133,12 +2160,12 @@ function createFileCard(file) {
     thumbnail.alt = "";
     thumbnail.loading = "lazy";
     thumbnail.decoding = "async";
-    thumbnail.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
+    thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
     thumbnail.addEventListener("error", () => {
       if (category === "videos") {
         createVideoThumbnail(file, thumbnail);
       } else if (category === "photos") {
-        thumbnail.src = `/api/files/${encodeURIComponent(file.id)}`;
+        thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
         thumbnail.addEventListener("error", () => thumbnail.remove(), { once: true });
       } else {
         thumbnail.remove();
@@ -2183,7 +2210,7 @@ function createFileCard(file) {
     file._syncPolling = true;
     const pollInterval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/files/${file.id}/sync-status`);
+        const res = await fetch(apiUrl(`/api/files/${file.id}/sync-status`));
         if (res.ok) {
           const data = await res.json();
           if (data.synced) {
@@ -2261,7 +2288,7 @@ function openFileActionSheet(file) {
 
   if (thumbEl) {
     if (category === "photos" || category === "videos") {
-      thumbEl.src = `/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`;
+      thumbEl.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
       thumbEl.classList.remove("hidden");
       thumbEl.onerror = () => thumbEl.classList.add("hidden");
     } else {
@@ -2290,7 +2317,16 @@ function openFileActionSheet(file) {
   };
 
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`, "Preview", () => openPreview(file));
-  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`, "Download", () => window.location.assign(`/api/files/${encodeURIComponent(file.id)}?download=1`));
+  if (file.telegramMessageId) {
+    addAction(
+      `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#0ea5e9" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+      "⚡ Telegram 10x Turbo Stream (0 MB Server)",
+      () => {
+        window.location.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`);
+      }
+    );
+  }
+  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`, "Download", () => window.location.assign(apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`)));
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share link", () => shareFile(file));
   const isStarred = Boolean(file.starred);
   addAction(
@@ -2704,9 +2740,18 @@ async function renderTextDocumentPreview(file, previewUrl, container) {
 
 function openPreview(file) {
   previewTitle.textContent = file.name;
-  previewDownload.href = `/api/files/${encodeURIComponent(file.id)}?download=1`;
+  previewDownload.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+  const tgStreamBtn = document.querySelector("#preview-tg-stream");
+  if (tgStreamBtn) {
+    if (file.telegramMessageId) {
+      tgStreamBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`);
+      tgStreamBtn.style.display = "inline-flex";
+    } else {
+      tgStreamBtn.style.display = "none";
+    }
+  }
   previewContent.replaceChildren();
-  const previewUrl = `/api/files/${encodeURIComponent(file.id)}`;
+  const previewUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   if (file.type.startsWith("image/") && file.type !== "image/svg+xml") {
     const image = document.createElement("img");
     image.className = "preview-image";
@@ -2721,7 +2766,7 @@ function openPreview(file) {
     video.playsInline = true;
     video.autoplay = true;
     video.crossOrigin = "anonymous";
-    video.poster = `/api/files/${encodeURIComponent(file.id)}/thumbnail`;
+    video.poster = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
     video.src = previewUrl;
     previewContent.append(video);
     video.play().catch(() => {});
@@ -2825,6 +2870,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
 
     // Telegram session token for authenticated MTProto uploads
     const tgSession = localStorage.getItem("dgx_tg_session") || "";
+    const userSession = localStorage.getItem("dgx_user_session") || "";
 
     // Fast direct upload for small files (<= 10MB)
     if (file.size <= 10 * 1024 * 1024) {
@@ -2832,11 +2878,16 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       currentXhr = xhr;
       const params = new URLSearchParams();
       if (activeFolderId) params.set("folderId", activeFolderId);
-      xhr.open("POST", `/api/upload${params.size ? `?${params}` : ""}`);
+      xhr.open("POST", apiUrl(`/api/upload${params.size ? `?${params}` : ""}`));
+      xhr.withCredentials = true;
       xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
       xhr.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
       if (relativePath) xhr.setRequestHeader("X-Folder-Path", encodeURIComponent(relativePath));
       if (tgSession) xhr.setRequestHeader("X-Telegram-Session", tgSession);
+      if (userSession) {
+        xhr.setRequestHeader("X-Session-Token", userSession);
+        xhr.setRequestHeader("Authorization", `Bearer ${userSession}`);
+      }
 
       xhr.upload.addEventListener("progress", (event) => {
         if (!event.lengthComputable) return;
@@ -2909,11 +2960,13 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       try {
         if (!uploadId) {
           status.textContent = "Preparing upload…";
-          const initRes = await fetch("/api/upload/resumable/init", {
+          const initRes = await fetch(apiUrl("/api/upload/resumable/init"), {
             method: "POST",
+            credentials: "include",
             headers: {
               "Content-Type": "application/json",
               ...(tgSession ? { "X-Telegram-Session": tgSession } : {}),
+              ...(userSession ? { "X-Session-Token": userSession, "Authorization": `Bearer ${userSession}` } : {}),
             },
             body: JSON.stringify({
               name: file.name,
@@ -2931,8 +2984,12 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
           uploadId = initData.uploadId;
           offset = initData.offset || 0;
         } else {
-          const statusRes = await fetch(`/api/upload/resumable/status?uploadId=${uploadId}`, {
-            headers: tgSession ? { "X-Telegram-Session": tgSession } : {},
+          const statusRes = await fetch(apiUrl(`/api/upload/resumable/status?uploadId=${uploadId}`), {
+            credentials: "include",
+            headers: {
+              ...(tgSession ? { "X-Telegram-Session": tgSession } : {}),
+              ...(userSession ? { "X-Session-Token": userSession, "Authorization": `Bearer ${userSession}` } : {}),
+            },
           });
           if (statusRes.ok) {
             const statusData = await statusRes.json();
@@ -2948,10 +3005,15 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
           const uploadChunk = () => new Promise((resolveChunk, rejectChunk) => {
             const xhr = new XMLHttpRequest();
             currentXhr = xhr;
-            xhr.open("POST", `/api/upload/resumable/chunk?uploadId=${uploadId}`);
+            xhr.open("POST", apiUrl(`/api/upload/resumable/chunk?uploadId=${uploadId}`));
+            xhr.withCredentials = true;
             xhr.setRequestHeader("X-Chunk-Offset", String(offset));
             xhr.setRequestHeader("Content-Type", "application/octet-stream");
             if (tgSession) xhr.setRequestHeader("X-Telegram-Session", tgSession);
+            if (userSession) {
+              xhr.setRequestHeader("X-Session-Token", userSession);
+              xhr.setRequestHeader("Authorization", `Bearer ${userSession}`);
+            }
 
             xhr.upload.addEventListener("progress", (e) => {
               if (aborted) { xhr.abort(); return; }

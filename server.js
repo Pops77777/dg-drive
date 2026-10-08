@@ -122,8 +122,8 @@ function parseCookies(header = "") {
 }
 
 function cookieHeader(name, value, maxAge) {
-  const secure = IS_PRODUCTION ? "; Secure" : "";
-  return `${name}=${encodeURIComponent(value)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}${secure}`;
+  const secure = IS_PRODUCTION ? "; Secure; SameSite=None" : "; SameSite=Lax";
+  return `${name}=${encodeURIComponent(value)}; HttpOnly${secure}; Path=/; Max-Age=${maxAge}`;
 }
 
 function sessionDeviceLabel(userAgent) {
@@ -153,6 +153,7 @@ function setSession(res, userId, req, authMethod = "telegram") {
     device: sessionDeviceLabel(String(req.headers["user-agent"] || "").slice(0, 512)),
     authMethod,
   });
+  if (res) res._sessionToken = token;
   return cookieHeader(COOKIE_NAME, token, Math.floor(SESSION_TTL / 1000));
 }
 
@@ -163,7 +164,12 @@ function clearSession(req, res) {
 }
 
 function getUser(req) {
-  const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
+  let token = parseCookies(req.headers.cookie)[COOKIE_NAME];
+  if (!token) {
+    const authHeader = req.headers.authorization || "";
+    if (authHeader.startsWith("Bearer ")) token = authHeader.slice(7).trim();
+    else if (req.headers["x-session-token"]) token = req.headers["x-session-token"];
+  }
   const session = token && sessions.get(token);
   if (!session || session.expiresAt <= Date.now()) {
     if (token) sessions.delete(token);
@@ -241,6 +247,7 @@ function checkOrigin(req) {
 
   const isAllowed = allowedHosts.includes(parsed.host)
     || parsed.host.endsWith(".workers.dev")
+    || parsed.host.endsWith(".pages.dev")
     || parsed.host.endsWith(".onrender.com")
     || parsed.host === "localhost"
     || isLoopbackAddress(parsed.hostname);
@@ -1178,6 +1185,7 @@ function flowStatus(req, res) {
       step: "complete",
       user: publicUser(store.users[flow.userId]),
       telegramSessionToken: sessionToken,
+      sessionToken: res._sessionToken || "",
     });
   }
   if (flow.step === "waiting_for_code") {
@@ -2281,6 +2289,18 @@ async function handleDeveloperV1Api(req, res, url) {
 }
 
 async function handleApi(req, res, url) {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Telegram-Session, X-Session-Token, Range, X-File-Name");
+    res.setHeader("Access-Control-Expose-Headers", "Content-Range, Content-Length, Accept-Ranges");
+  }
+  if (req.method === "OPTIONS") {
+    res.writeHead(204);
+    return res.end();
+  }
   if (url.pathname.startsWith("/api/v1/")) {
     return handleDeveloperV1Api(req, res, url);
   }
@@ -2360,6 +2380,7 @@ async function handleApi(req, res, url) {
         user: publicUser(account),
         telegramConnected,
         telegramSessionToken: account.telegramSession || "",
+        sessionToken: res._sessionToken || "",
       });
     }
     return sendJson(res, 401, { error: "Login ID or password is incorrect. You can recover access with Telegram QR." });
