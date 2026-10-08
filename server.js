@@ -3172,6 +3172,11 @@ async function handleApi(req, res, url) {
     const file = fileForUser(user, match[1]);
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
     if (file.vault) requireVaultUnlocked(req, user);
+    if (url.searchParams.get("download") === "1" && file.telegramMessageId && url.searchParams.get("browser") !== "1") {
+      const tgUrl = `tg://openmessage?user_id=${encodeURIComponent(user.id)}&message_id=${encodeURIComponent(file.telegramMessageId)}`;
+      res.writeHead(302, { Location: tgUrl });
+      return res.end();
+    }
     return streamFromTelegram(req, res, user, file, url.searchParams.get("download") === "1");
   }
   if (match && req.method === "DELETE") {

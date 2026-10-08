@@ -1550,7 +1550,9 @@ function updateInspectorPane(file) {
   const shareUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   if (inspectorShareLink) inspectorShareLink.value = shareUrl;
   if (inspectorDownloadBtn) {
-    inspectorDownloadBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+    inspectorDownloadBtn.href = file.telegramMessageId
+      ? apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)
+      : apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
     inspectorDownloadBtn.setAttribute("download", file.name);
   }
 
@@ -2327,7 +2329,16 @@ function openFileActionSheet(file) {
       }
     );
   }
-  addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`, "Download", () => window.location.assign(apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`)));
+  addAction(
+    `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+    "Download (Telegram 10x Unlimited)",
+    () => {
+      const targetUrl = file.telegramMessageId
+        ? apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)
+        : apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+      window.location.assign(targetUrl);
+    }
+  );
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share link", () => shareFile(file));
   const isStarred = Boolean(file.starred);
   addAction(
@@ -2741,10 +2752,14 @@ async function renderTextDocumentPreview(file, previewUrl, container) {
 
 function openPreview(file) {
   previewTitle.textContent = file.name;
-  previewDownload.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+  const isTgSynced = Boolean(file.telegramMessageId);
+  previewDownload.href = isTgSynced
+    ? apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)
+    : apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+  previewDownload.textContent = isTgSynced ? "↓ Download (Telegram 10x Unlimited)" : "↓ Download";
   const tgStreamBtn = document.querySelector("#preview-tg-stream");
   if (tgStreamBtn) {
-    if (file.telegramMessageId) {
+    if (isTgSynced) {
       tgStreamBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`);
       tgStreamBtn.style.display = "inline-flex";
     } else {
@@ -2760,12 +2775,29 @@ function openPreview(file) {
     image.alt = file.name;
     previewContent.append(image);
   } else if (file.type.startsWith("video/")) {
+    if (isTgSynced) {
+      const tgBanner = document.createElement("div");
+      tgBanner.className = "tg-stream-hero-banner";
+      tgBanner.style.cssText = "background: linear-gradient(135deg, #0284c7, #2563eb); color: #fff; padding: 14px 18px; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 4px 16px rgba(2,132,199,0.3);";
+      tgBanner.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span style="font-size: 24px;">⚡</span>
+          <div>
+            <div style="font-weight: 700; font-size: 15px; letter-spacing: -0.2px;">Instant Telegram Direct Stream</div>
+            <div style="font-size: 12px; opacity: 0.9; margin-top: 2px;">100% Unlimited • 10x Speed • 0 MB Server Bandwidth Used</div>
+          </div>
+        </div>
+        <a href="${apiUrl(`/api/files/${encodeURIComponent(file.id)}/telegram`)}" style="background: #ffffff; color: #0284c7; padding: 9px 18px; border-radius: 8px; font-weight: 700; text-decoration: none; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 6px;">
+          ▶ Open in Telegram
+        </a>
+      `;
+      previewContent.append(tgBanner);
+    }
     const video = document.createElement("video");
     video.className = "preview-video";
     video.controls = true;
     video.preload = "auto";
     video.playsInline = true;
-    video.autoplay = true;
     video.crossOrigin = "anonymous";
     video.poster = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
     video.src = previewUrl;
