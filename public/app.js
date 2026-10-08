@@ -2177,7 +2177,28 @@ function createFileCard(file) {
 
   const miniTag = document.createElement("span");
   miniTag.className = `file-mini-tag ${category === "videos" ? "tag-video" : category === "photos" ? "tag-photo" : "tag-purple"}`;
-  miniTag.textContent = file._uploading ? "Uploading" : category === "videos" ? "Video" : category === "photos" ? "Photo" : "Doc";
+  miniTag.textContent = file._uploading ? "Uploading" : file.syncing ? "Syncing TG" : category === "videos" ? "Video" : category === "photos" ? "Photo" : "Doc";
+
+  if (file.syncing && !file._uploading && !file._syncPolling) {
+    file._syncPolling = true;
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/files/${file.id}/sync-status`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.synced) {
+            clearInterval(pollInterval);
+            file.syncing = false;
+            file.telegramMessageId = data.telegramMessageId;
+            miniTag.textContent = category === "videos" ? "Video" : category === "photos" ? "Photo" : "Doc";
+          }
+        }
+      } catch {
+        // silent
+      }
+    }, 4000);
+    setTimeout(() => clearInterval(pollInterval), 60000);
+  }
 
   bottomMeta.append(sizeSpan, miniTag);
   details.append(bottomMeta);
@@ -2802,8 +2823,11 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       resolve(success);
     };
 
-    // Fast direct upload for small files (<= 2MB)
-    if (file.size <= 2 * 1024 * 1024) {
+    // Telegram session token for authenticated MTProto uploads
+    const tgSession = localStorage.getItem("dgx_tg_session") || "";
+
+    // Fast direct upload for small files (<= 10MB)
+    if (file.size <= 10 * 1024 * 1024) {
       const xhr = new XMLHttpRequest();
       currentXhr = xhr;
       const params = new URLSearchParams();
@@ -2812,13 +2836,19 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       xhr.setRequestHeader("Content-Type", file.type || "application/octet-stream");
       xhr.setRequestHeader("X-File-Name", encodeURIComponent(file.name));
       if (relativePath) xhr.setRequestHeader("X-Folder-Path", encodeURIComponent(relativePath));
+      if (tgSession) xhr.setRequestHeader("X-Telegram-Session", tgSession);
 
       xhr.upload.addEventListener("progress", (event) => {
         if (!event.lengthComputable) return;
-        const percent = Math.round((event.loaded / event.total) * 100);
+        const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
         progress.value = percent;
         status.textContent = `Uploading ${percent}% · ${formatSize(event.loaded)} / ${formatSize(file.size)}`;
         onProgress(event.loaded);
+      });
+
+      xhr.upload.addEventListener("load", () => {
+        progress.removeAttribute("value");
+        status.textContent = "Syncing to Telegram Saved Messages…";
       });
 
       xhr.addEventListener("load", () => {
@@ -2826,7 +2856,14 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
         let result = {};
         try { result = JSON.parse(xhr.responseText); } catch {}
         if (xhr.status >= 200 && xhr.status < 300) {
-          item.remove();
+          progress.value = 100;
+          status.textContent = result.telegramSynced
+            ? "✓ Saved in Telegram Cloud!"
+            : "✓ Uploaded! Syncing in background…";
+          status.classList.remove("queue-error");
+          status.classList.add("queue-success");
+          cancelBtn.remove();
+          resumeBtn.remove();
           if (result.file) {
             const optIdx = allFiles.findIndex((f) => f._uploading && f.name === file.name);
             if (optIdx !== -1) allFiles.splice(optIdx, 1);
@@ -2834,6 +2871,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
             renderLibrary();
             renderHomeDashboard();
           }
+          setTimeout(() => item.remove(), 3500);
           finish(true);
         } else {
           status.textContent = result.error || "Upload failed";
@@ -2873,7 +2911,10 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
           status.textContent = "Preparing upload…";
           const initRes = await fetch("/api/upload/resumable/init", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              ...(tgSession ? { "X-Telegram-Session": tgSession } : {}),
+            },
             body: JSON.stringify({
               name: file.name,
               size: file.size,
@@ -2890,7 +2931,9 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
           uploadId = initData.uploadId;
           offset = initData.offset || 0;
         } else {
-          const statusRes = await fetch(`/api/upload/resumable/status?uploadId=${uploadId}`);
+          const statusRes = await fetch(`/api/upload/resumable/status?uploadId=${uploadId}`, {
+            headers: tgSession ? { "X-Telegram-Session": tgSession } : {},
+          });
           if (statusRes.ok) {
             const statusData = await statusRes.json();
             offset = statusData.offset || 0;
@@ -2908,6 +2951,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
             xhr.open("POST", `/api/upload/resumable/chunk?uploadId=${uploadId}`);
             xhr.setRequestHeader("X-Chunk-Offset", String(offset));
             xhr.setRequestHeader("Content-Type", "application/octet-stream");
+            if (tgSession) xhr.setRequestHeader("X-Telegram-Session", tgSession);
 
             xhr.upload.addEventListener("progress", (e) => {
               if (aborted) { xhr.abort(); return; }
@@ -2916,6 +2960,13 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
               progress.value = pct;
               status.textContent = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
               onProgress(transferred);
+            });
+
+            xhr.upload.addEventListener("load", () => {
+              if (chunkEnd >= file.size) {
+                progress.removeAttribute("value");
+                status.textContent = "Syncing to Telegram Saved Messages…";
+              }
             });
 
             xhr.addEventListener("load", () => {
@@ -2952,8 +3003,14 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
               if (res.completed && res.file) {
                 progress.value = 100;
                 onProgress(file.size);
-                status.textContent = "Complete!";
-                setTimeout(() => item.remove(), 400);
+                status.textContent = res.telegramSynced
+                  ? "✓ Saved in Telegram Cloud!"
+                  : "✓ Uploaded! Syncing in background…";
+                status.classList.remove("queue-error");
+                status.classList.add("queue-success");
+                cancelBtn.remove();
+                resumeBtn.remove();
+                setTimeout(() => item.remove(), 3500);
                 const optIdx = allFiles.findIndex((f) => f._uploading && f.name === file.name);
                 if (optIdx !== -1) allFiles.splice(optIdx, 1);
                 allFiles.unshift(res.file);
@@ -3020,6 +3077,9 @@ async function uploadMany(files, relativePathForFile = () => "") {
       e.stopPropagation();
       popover?.classList.add("hidden");
     };
+  }
+  if (popover) {
+    popover.classList.remove("hidden");
   }
   if (pill) {
     pill.classList.remove("hidden");
@@ -3091,20 +3151,23 @@ async function uploadMany(files, relativePathForFile = () => "") {
   }));
 
   if (pill && countSpan) {
-    countSpan.textContent = failed ? `${completed} done, ${failed} failed` : "All uploaded ✓";
+    countSpan.textContent = failed ? `${completed} done, ${failed} failed` : "All saved to Telegram ✓";
     setTimeout(() => {
       pill.classList.add("hidden");
       popover?.classList.add("hidden");
-    }, 2500);
+    }, 4000);
   }
   if (!failed) {
-    batch.remove();
+    summaryText.textContent = `All files saved to Telegram Cloud ✓`;
+    setTimeout(() => {
+      batch.remove();
+    }, 3500);
   } else {
-    summaryText.textContent = `Upload batch finished · ${completed} uploaded · ${failed} failed/cancelled`;
+    summaryText.textContent = `Upload finished · ${completed} uploaded · ${failed} failed/cancelled`;
     summaryProgress.remove();
     window.setTimeout(() => {
       if (!batchItems.childElementCount) batch.remove();
-    }, 5000);
+    }, 6000);
   }
   await loadFiles();
 }

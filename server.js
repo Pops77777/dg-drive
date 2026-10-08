@@ -1207,10 +1207,19 @@ function flowStatus(req, res) {
   return sendJson(res, 200, { step: flow.step, error: flow.error || null });
 }
 
-function enqueueTelegramUpload(file, user) {
+function enqueueTelegramUpload(file, user, sessionToken = null) {
   if (!file || !file.localPath || file.telegramMessageId) return;
-  if (!telegramUploadQueue.some((item) => item.fileId === file.id)) {
-    telegramUploadQueue.push({ fileId: file.id, user });
+  const token = sessionToken || user?.telegramSession || "";
+  const existing = telegramUploadQueue.find((item) => item.fileId === file.id);
+  if (!existing) {
+    telegramUploadQueue.push({
+      fileId: file.id,
+      userId: user.id,
+      sessionToken: token,
+      retries: 0,
+    });
+  } else if (token && !existing.sessionToken) {
+    existing.sessionToken = token;
   }
   processTelegramUploadQueue().catch((err) => {
     console.error("Telegram upload queue runner error:", err.message);
@@ -1222,32 +1231,59 @@ async function processTelegramUploadQueue() {
   isTelegramUploading = true;
   try {
     while (telegramUploadQueue.length > 0) {
-      const item = telegramUploadQueue.shift();
+      const item = telegramUploadQueue[0];
       const file = store.files[item.fileId];
-      if (!file || file.deletedAt || file.telegramMessageId) continue;
-      if (!file.localPath) continue;
+      if (!file || file.deletedAt || file.telegramMessageId) {
+        telegramUploadQueue.shift();
+        continue;
+      }
+      if (!file.localPath) {
+        telegramUploadQueue.shift();
+        continue;
+      }
       const exists = await fs.promises.access(file.localPath).then(() => true).catch(() => false);
-      if (!exists) continue;
+      if (!exists) {
+        telegramUploadQueue.shift();
+        continue;
+      }
+
+      const owner = store.users[item.userId];
+      if (!owner) {
+        console.warn(`Telegram upload queue: owner ${item.userId} not found for ${file.name}`);
+        telegramUploadQueue.shift();
+        continue;
+      }
 
       try {
-        const client = await getTelegramClient(item.user);
+        console.log(`Telegram queue uploading ${file.name} to Saved Messages...`);
+        const client = await getTelegramClient(owner, null, item.sessionToken);
+        const isVideo = typeof file.type === "string" && file.type.startsWith("video/");
         const result = await client.sendFile("me", {
           file: file.localPath,
           forceDocument: true,
           workers: 16,
+          supportsStreaming: isVideo,
+          attributes: [
+            new teleprotoApi.DocumentAttributeFilename({ fileName: file.name }),
+          ],
         });
         const message = Array.isArray(result) ? result[0] : result;
         if (message && message.id) {
           file.telegramMessageId = String(message.id);
           await saveStore();
-          console.log(`Telegram cloud backup complete for: ${file.name} (msg: ${message.id})`);
+          console.log(`✓ Telegram Saved Messages upload complete for: ${file.name} (msg: ${message.id})`);
         }
+        telegramUploadQueue.shift();
       } catch (err) {
-        console.error(`Telegram background sync failed for ${file.name}:`, err.message);
-        // Put back in queue to retry after a delay
-        telegramUploadQueue.push(item);
-        await new Promise((r) => setTimeout(r, 10000));
-        break;
+        item.retries = (item.retries || 0) + 1;
+        console.error(`Telegram queue sync failed for ${file.name} (attempt ${item.retries}):`, err.message);
+        telegramUploadQueue.shift();
+        if (item.retries < 3) {
+          telegramUploadQueue.push(item);
+          await new Promise((r) => setTimeout(r, 3000));
+        } else {
+          console.error(`Max retries reached for ${file.name}. Abandoning background sync.`);
+        }
       }
     }
   } finally {
@@ -1349,11 +1385,37 @@ async function uploadToTelegram(req, res, user, url) {
       throw saveError;
     }
 
-    // Instantly queue background Telegram sync
-    enqueueTelegramUpload(file, user);
+    const reqSessionToken = (typeof req.headers["x-telegram-session"] === "string" && req.headers["x-telegram-session"].trim())
+      || parseCookies(req.headers.cookie)["dgx_tg_session"]
+      || user.telegramSession
+      || "";
 
-    // Return IMMEDIATELY! Super-fast 0ms add!
-    return sendJson(res, 201, { file: publicFile(file), status: "ready" });
+    let telegramSynced = false;
+    try {
+      const client = await getTelegramClient(user, req, reqSessionToken);
+      const isVideo = typeof type === "string" && type.startsWith("video/");
+      const result = await client.sendFile("me", {
+        file: destPath,
+        forceDocument: true,
+        workers: 16,
+        supportsStreaming: isVideo,
+        attributes: [
+          new teleprotoApi.DocumentAttributeFilename({ fileName: name }),
+        ],
+      });
+      const message = Array.isArray(result) ? result[0] : result;
+      if (message && message.id) {
+        file.telegramMessageId = String(message.id);
+        await saveStore();
+        telegramSynced = true;
+        console.log(`✓ Direct Telegram Saved Messages upload complete for: ${file.name} (msg: ${message.id})`);
+      }
+    } catch (tgErr) {
+      console.warn(`Direct Telegram upload warning for ${file.name}, fallback to queue:`, tgErr.message);
+      enqueueTelegramUpload(file, user, reqSessionToken);
+    }
+
+    return sendJson(res, 201, { file: publicFile(file), status: "ready", telegramSynced });
   } catch (error) {
     if (output && !outputClosed) {
       await output.close().catch(() => {});
@@ -1469,10 +1531,39 @@ async function handleResumableChunk(req, res, user, url) {
     store.files[file.id] = file;
     await saveStore();
 
-    enqueueTelegramUpload(file, user);
+    const reqSessionToken = (typeof req.headers["x-telegram-session"] === "string" && req.headers["x-telegram-session"].trim())
+      || parseCookies(req.headers.cookie)["dgx_tg_session"]
+      || user.telegramSession
+      || "";
+
+    let telegramSynced = false;
+    try {
+      const client = await getTelegramClient(user, req, reqSessionToken);
+      const isVideo = typeof session.type === "string" && session.type.startsWith("video/");
+      const result = await client.sendFile("me", {
+        file: finalDestPath,
+        forceDocument: true,
+        workers: 16,
+        supportsStreaming: isVideo,
+        attributes: [
+          new teleprotoApi.DocumentAttributeFilename({ fileName: session.name }),
+        ],
+      });
+      const message = Array.isArray(result) ? result[0] : result;
+      if (message && message.id) {
+        file.telegramMessageId = String(message.id);
+        await saveStore();
+        telegramSynced = true;
+        console.log(`✓ Resumable Telegram Saved Messages upload complete for: ${file.name} (msg: ${message.id})`);
+      }
+    } catch (tgErr) {
+      console.warn(`Resumable Telegram upload fallback to background for ${file.name}:`, tgErr.message);
+      enqueueTelegramUpload(file, user, reqSessionToken);
+    }
+
     resumableUploads.delete(uploadId);
 
-    return sendJson(res, 201, { file: publicFile(file), completed: true });
+    return sendJson(res, 201, { file: publicFile(file), completed: true, telegramSynced });
   }
 
   return sendJson(res, 200, { offset: currentOffset, completed: false });
@@ -3029,6 +3120,17 @@ async function handleApi(req, res, url) {
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
   if (file.vault) requireVaultUnlocked(req, user);
   return sendThumbnail(res, user, file, url.searchParams.get("quality") === "low", req);
+  }
+
+  const syncMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/sync-status$/i);
+  if (syncMatch && req.method === "GET") {
+    const file = fileForUser(user, syncMatch[1]);
+    if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
+    return sendJson(res, 200, {
+      id: file.id,
+      telegramMessageId: file.telegramMessageId || null,
+      synced: Boolean(file.telegramMessageId),
+    });
   }
 
   const tgMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/telegram$/i);

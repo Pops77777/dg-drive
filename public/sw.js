@@ -12,11 +12,14 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  if (url.pathname.startsWith("/api/files/") || url.pathname.startsWith("/api/v1/stream/")) {
-    if (event.request.method === "GET" && !url.pathname.includes("/thumbnail")) {
-      event.respondWith(handleMediaRequest(event.request));
-      return;
-    }
+  const isStream = (url.pathname.match(/^\/api\/files\/[0-9a-f-]{36}$/i) || url.pathname.startsWith("/api/v1/stream/"))
+    && !url.pathname.includes("/thumbnail")
+    && !url.pathname.includes("/sync-status")
+    && !url.pathname.includes("/telegram");
+
+  if (isStream && event.request.method === "GET") {
+    event.respondWith(handleMediaRequest(event.request));
+    return;
   }
 
   event.respondWith(fetch(event.request));
