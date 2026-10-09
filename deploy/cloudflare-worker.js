@@ -4,7 +4,7 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const targetOrigin = "https://dgx-cloud-pmz8.onrender.com";
+    const targetOrigin = "https://dgx-cloud.onrender.com";
     const targetUrl = new URL(url.pathname + url.search, targetOrigin);
 
     const isMedia = url.pathname.startsWith("/api/files/") || url.pathname.startsWith("/api/v1/stream/");
@@ -20,7 +20,7 @@ export default {
 
     // Forward original request headers
     const newHeaders = new Headers(request.headers);
-    newHeaders.set("Host", "dgx-cloud-pmz8.onrender.com");
+    newHeaders.set("Host", "dgx-cloud.onrender.com");
     newHeaders.set("X-Forwarded-Host", url.host);
     newHeaders.set("X-Forwarded-Proto", "https");
     if (newHeaders.has("origin")) {

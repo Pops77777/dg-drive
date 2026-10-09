@@ -206,7 +206,7 @@ function resetPasswordToggles(container) {
   });
 }
 
-const RENDER_BACKEND_ORIGIN = "https://dgx-cloud-pmz8.onrender.com";
+const RENDER_BACKEND_ORIGIN = "https://dgx-cloud.onrender.com";
 
 function getBackendUrl() {
   const saved = localStorage.getItem("dgx_backend_url");

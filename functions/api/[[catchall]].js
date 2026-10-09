@@ -1,9 +1,9 @@
 // MASTER / PRIMARY RENDER SERVER (Handles Auth, Database, File Lists)
-const PRIMARY_BACKEND = "https://dgx-cloud-pmz8.onrender.com";
+const PRIMARY_BACKEND = "https://dgx-cloud.onrender.com";
 
 // POOL OF RENDER STREAMING NODES (Each node adds 100 GB Free Bandwidth = Up to 1 TB / Month!)
 export const STREAMING_NODES = [
-  "https://dgx-cloud-pmz8.onrender.com",
+  "https://dgx-cloud.onrender.com",
   // "https://dgx-cloud-node2.onrender.com",
   // "https://dgx-cloud-node3.onrender.com",
   // "https://dgx-cloud-node4.onrender.com",

@@ -9,8 +9,8 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>∞ DGx Cloud — Your personal cloud</title>
-    <link rel="stylesheet" href="/style.css?v=15.0">
-    <script src="/app.js?v=15.0" defer></script>
+    <link rel="stylesheet" href="/style.css?v=16.0">
+    <script src="/app.js?v=16.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -906,16 +906,16 @@
               </div>
               <div class="api-code-snippet-wrap">
                 <pre class="api-code-pre"><code id="api-code-snippet"># Upload a file via API
-curl -X POST "https://dgx-cloud-pmz8.onrender.com/api/v1/upload" \
+curl -X POST "https://dgx-cloud.onrender.com/api/v1/upload" \
   -H "Authorization: Bearer YOUR_API_KEY" \
   -H "X-File-Name: photo.jpg" \
   --data-binary "@photo.jpg"
 
 # Stream or Download a file
-curl "https://dgx-cloud-pmz8.onrender.com/api/v1/stream/FILE_ID?api_key=YOUR_API_KEY"
+curl "https://dgx-cloud.onrender.com/api/v1/stream/FILE_ID?api_key=YOUR_API_KEY"
 
 # List all files for this API key
-curl "https://dgx-cloud-pmz8.onrender.com/api/v1/files" \
+curl "https://dgx-cloud.onrender.com/api/v1/files" \
   -H "Authorization: Bearer YOUR_API_KEY"</code></pre>
                 <button class="button button-outline copy-snippet-btn" id="api-copy-snippet-btn" type="button">📋 Copy Snippet</button>
               </div>
