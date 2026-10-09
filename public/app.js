@@ -309,12 +309,11 @@ async function api(url, options = {}) {
       message = "This server is running an older version. Stop it and restart with `npm start` to enable Login ID/password.";
     }
     if (response.status === 401 && !url.includes("/login") && !url.includes("/telegram/status") && !url.includes("/account-lock") && !url.includes("/vault")) {
-      if (body?.code === "TELEGRAM_RECONNECT_REQUIRED") {
-        if (typeof showToast === "function") {
-          showToast("Telegram session expired. Scan QR once to reconnect your Telegram client.", "error");
-        }
-      } else if (typeof showLoggedOut === "function" && dashboardView && !dashboardView.classList.contains("hidden")) {
-        showLoggedOut();
+      console.warn("Session revoked or expired (401); transitioning live to signed out state.");
+      clearLocalSession();
+      showSignedOut(true);
+      if (body?.code === "SESSION_REVOKED" || body?.code === "TELEGRAM_RECONNECT_REQUIRED") {
+        setMessage(authMessage, "Your Telegram session was disconnected. Please sign in again.", true);
       }
     }
     const error = new Error(message);
@@ -419,20 +418,36 @@ function hideAllMainViews() {
   document.querySelector("#api-view")?.classList.add("hidden");
 }
 
-function openAuthModal() {
-  if (currentUser) return;
+function clearLocalSession() {
+  currentUser = null;
+  try {
+    localStorage.removeItem("dgx_user_session");
+    localStorage.removeItem("dgx_tg_session");
+    localStorage.removeItem("dgcloud-api-enabled");
+  } catch {}
+  document.cookie = "dgx_session=; Max-Age=0; path=/;";
+  document.cookie = "dgx_tg_session=; Max-Age=0; path=/;";
+}
+
+function openAuthModal(defaultMethod = "phone") {
   hideAllMainViews();
-  authView.classList.remove("hidden");
-  if (phoneMethodButton) {
+  if (authView) authView.classList.remove("hidden");
+  if (defaultMethod === "qr" && qrMethodButton) {
+    qrMethodButton.click();
+  } else if (defaultMethod === "password" && passwordMethodButton) {
+    passwordMethodButton.click();
+  } else if (phoneMethodButton) {
     phoneMethodButton.click();
   } else {
     startQrLogin();
   }
+  authView?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
 function showHome() {
   hideAllMainViews();
   if (homeDashboardView) homeDashboardView.classList.remove("hidden");
+  authView?.classList.add("hidden");
   document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
   document.querySelector("#topbar-search-wrap")?.classList.remove("hidden");
   updateNavActive("dashboard");
@@ -474,7 +489,7 @@ async function showLibrary() {
   }
 }
 
-function showSignedOut() {
+function showSignedOut(autoOpenLogin = true) {
   window.clearTimeout(pollTimer);
   loginStarted = false;
   currentUser = null;
@@ -483,7 +498,13 @@ function showSignedOut() {
   credentialResetAfterQr = false;
   startLoginButton.textContent = "Login with Telegram →";
   hideAllMainViews();
-  if (homeDashboardView) homeDashboardView.classList.remove("hidden");
+  if (autoOpenLogin) {
+    if (authView) authView.classList.remove("hidden");
+    if (homeDashboardView) homeDashboardView.classList.add("hidden");
+  } else {
+    if (homeDashboardView) homeDashboardView.classList.remove("hidden");
+    if (authView) authView.classList.add("hidden");
+  }
   logoutButton.classList.add("hidden");
   updateApiToggleUI(false);
 
@@ -525,6 +546,8 @@ function showSignedOut() {
   phoneLoginPanel?.classList.remove("hidden");
   otpStepPanel?.classList.add("hidden");
   qrLoginPanel?.classList.add("hidden");
+  credentialLoginForm?.classList.add("hidden");
+  authForm?.classList.remove("hidden");
   qrImage.removeAttribute("src");
   qrImage.classList.add("hidden");
   refreshQrButton.classList.remove("hidden");
@@ -866,7 +889,7 @@ let lastKnownRevision = 0;
 let isSilentlySyncing = false;
 async function silentSyncFiles() {
   if (isSilentlySyncing) return;
-  if (!dashboardView || dashboardView.classList.contains("hidden")) return;
+  if (!currentUser) return;
   if (uploadQueue && uploadQueue.children.length > 0) return;
   isSilentlySyncing = true;
   try {
@@ -884,12 +907,17 @@ async function silentSyncFiles() {
         allTrashItems = trash.items;
         updateVaultStats(vaultStatus);
         renderLibrary();
+        renderHomeDashboard();
+        renderCategories();
       }
     }
   } catch (error) {
     if (error.status === 401) {
-      if (typeof showLoggedOut === "function" && dashboardView && !dashboardView.classList.contains("hidden")) {
-        showLoggedOut();
+      console.warn("Live heartbeat detected sign-out or session revocation.");
+      clearLocalSession();
+      showSignedOut(true);
+      if (error.code === "SESSION_REVOKED") {
+        setMessage(authMessage, "Telegram session was disconnected from device. Please log in again.", true);
       }
     }
   } finally {
@@ -3992,10 +4020,12 @@ authForm.addEventListener("submit", async (event) => {
 logoutButton.addEventListener("click", async () => {
   try {
     await api("/api/logout", { method: "POST", body: "{}" });
-    showSignedOut();
   } catch (error) {
-    window.alert(error.message);
+    console.warn("Logout error:", error.message);
   }
+  clearLocalSession();
+  showSignedOut(true);
+  openAuthModal();
 });
 
 devicesButton.addEventListener("click", async () => {
@@ -5306,16 +5336,22 @@ async function initialize() {
       fileLimit.textContent = "";
       fileLimit.classList.add("hidden");
     }
-    if (result.user && !result.blocked) await showSignedIn(result.user);
-    else if (result.blocked) {
-      showSignedOut();
+    if (result.user && !result.blocked) {
+      await showSignedIn(result.user);
+    } else if (result.blocked) {
+      clearLocalSession();
+      showSignedOut(true);
       setMessage(authMessage, "This Telegram account has been disabled. Contact the site administrator.", true);
     } else {
-      showSignedOut();
+      clearLocalSession();
+      showSignedOut(true);
     }
   } catch (error) {
-    showSignedOut();
-    setMessage(authMessage, error.message, true);
+    clearLocalSession();
+    showSignedOut(true);
+    if (!error.message?.includes("failed") && !error.message?.includes("401")) {
+      setMessage(authMessage, error.message, true);
+    }
   }
 }
 

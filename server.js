@@ -176,14 +176,42 @@ function setSession(res, userId, req, authMethod = "telegram") {
   return cookieHeader(COOKIE_NAME, token, Math.floor(SESSION_TTL / 1000));
 }
 
+function isTelegramRevokedError(err) {
+  if (!err) return false;
+  const msg = `${err.errorMessage || ""} ${err.message || ""}`;
+  return /SESSION_REVOKED|AUTH_KEY_UNREGISTERED|USER_DEACTIVATED|SESSION_EXPIRED|AUTH_KEY_INVALID/i.test(msg);
+}
+
+function handleTelegramRevocation(userId, errorMsg = "SESSION_REVOKED") {
+  if (!userId) return;
+  const target = store.users[userId];
+  if (target) {
+    target.telegramSession = "";
+    void saveStore().catch((err) => console.error("Error saving store after session revocation:", err.message));
+  }
+  telegramClients.delete(userId);
+  for (const [token, session] of sessions.entries()) {
+    if (session.userId === userId) {
+      sessions.delete(token);
+    }
+  }
+  console.log(`[AUTH] Revoked active session for user ${userId} due to Telegram: ${errorMsg}`);
+}
+
 function clearSession(req, res) {
-  const token = parseCookies(req.headers.cookie)[COOKIE_NAME];
+  const cookies = parseCookies(req.headers.cookie || "");
+  const token = cookies[COOKIE_NAME];
   if (token) sessions.delete(token);
-  res.setHeader("Set-Cookie", cookieHeader(COOKIE_NAME, "", 0));
+  const headerToken = req.headers["x-session-token"];
+  if (headerToken) sessions.delete(headerToken);
+  res.setHeader("Set-Cookie", [
+    cookieHeader(COOKIE_NAME, "", 0),
+    cookieHeader("dgx_tg_session", "", 0),
+  ]);
 }
 
 function getUser(req) {
-  let token = parseCookies(req.headers.cookie)[COOKIE_NAME];
+  let token = parseCookies(req.headers.cookie || "")[COOKIE_NAME];
   if (!token) {
     const authHeader = req.headers.authorization || "";
     if (authHeader.startsWith("Bearer ")) token = authHeader.slice(7).trim();
@@ -196,7 +224,12 @@ function getUser(req) {
   }
   session.expiresAt = Date.now() + SESSION_TTL;
   session.lastSeenAt = Date.now();
-  return store.users[session.userId] || null;
+  const user = store.users[session.userId] || null;
+  if (user && !user.telegramSession) {
+    sessions.delete(token);
+    return null;
+  }
+  return user;
 }
 
 function isAdminUser(user) {
@@ -664,6 +697,9 @@ async function getTelegramClient(user, req = null, overrideToken = null) {
     } catch (reconnectErr) {
       console.warn(`Could not reconnect existing client for ${clientId}:`, reconnectErr.message);
       telegramClients.delete(clientId);
+      if (user && isTelegramRevokedError(reconnectErr)) {
+        handleTelegramRevocation(user.id, reconnectErr.message);
+      }
     }
   }
 
@@ -722,13 +758,20 @@ async function getTelegramClient(user, req = null, overrideToken = null) {
     } catch (err) {
       lastError = err;
       console.warn(`Connection attempt with session token failed for ${clientId}:`, err.message);
+      if (user && isTelegramRevokedError(err)) {
+        handleTelegramRevocation(user.id, err.message);
+      }
     }
   }
 
   const errorMsg = lastError?.errorMessage || lastError?.message || "Telegram connection expired. Please scan QR once to link Telegram.";
+  const isRevoked = isTelegramRevokedError(lastError);
+  if (user && isRevoked) {
+    handleTelegramRevocation(user.id, errorMsg);
+  }
   throw Object.assign(new Error(errorMsg), {
     statusCode: 401,
-    code: "TELEGRAM_RECONNECT_REQUIRED",
+    code: isRevoked ? "SESSION_REVOKED" : "TELEGRAM_RECONNECT_REQUIRED",
   });
 }
 
@@ -2347,16 +2390,33 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { config: publicSiteConfig() });
   }
   if (req.method === "GET" && url.pathname === "/api/me") {
+    const isValid = Boolean(user && user.telegramSession);
     return sendJson(res, 200, {
-      user: user ? publicUser(user) : null,
+      user: isValid ? publicUser(user) : null,
       blocked: Boolean(user?.blocked),
       maxFileSize: MAX_FILE_SIZE,
       telegramConfigured: true,
-      telegramSessionToken: user?.telegramSession || null,
+      telegramSessionToken: isValid ? (user?.telegramSession || null) : null,
     });
   }
   if (req.method === "GET" && url.pathname === "/api/sync-check") {
-    if (!user) return sendJson(res, 401, { error: "Session expired or signed out." });
+    if (!user || !user.telegramSession) {
+      return sendJson(res, 401, { error: "Session expired or signed out.", code: "SESSION_REVOKED" });
+    }
+    const now = Date.now();
+    if (!user._lastTgPing || now - user._lastTgPing > 20000) {
+      user._lastTgPing = now;
+      try {
+        const client = await getTelegramClient(user, req);
+        if (!client.connected) await client.connect();
+        await client.getMe();
+      } catch (tgErr) {
+        if (isTelegramRevokedError(tgErr)) {
+          handleTelegramRevocation(user.id, tgErr.message);
+          return sendJson(res, 401, { error: "Telegram session terminated.", code: "SESSION_REVOKED" });
+        }
+      }
+    }
     return sendJson(res, 200, {
       revision: globalRevision,
       time: Date.now(),
@@ -3337,8 +3397,14 @@ async function handleRequest(req, res) {
       if (/FLOOD_WAIT/i.test(error.errorMessage || error.message)) {
         return sendJson(res, 429, { error: "Telegram is temporarily limiting requests. Please wait and try again." });
       }
+      if (isTelegramRevokedError(error)) {
+        const u = getUser(req);
+        if (u) handleTelegramRevocation(u.id, error.message);
+        return sendJson(res, 401, { error: "Telegram session was terminated or revoked. Please log in again.", code: "SESSION_REVOKED" });
+      }
       sendJson(res, error.statusCode || 500, {
         error: error.statusCode ? error.message : "The request could not be completed.",
+        code: error.code || null,
       });
     } else {
       res.destroy(error);
@@ -3412,14 +3478,16 @@ function startTelegramClientsKeepAlive() {
         if (!client.connected) {
           console.log(`Reconnecting dropped Telegram client for user ${userId}...`);
           await client.connect();
-        } else {
-          await client.getMe().catch(() => {});
         }
+        await client.getMe();
       } catch (err) {
         console.warn(`Keep-alive check for Telegram client of user ${userId}:`, err.message);
+        if (isTelegramRevokedError(err)) {
+          handleTelegramRevocation(userId, err.message);
+        }
       }
     }
-  }, 2 * 60 * 1000);
+  }, 30 * 1000);
 }
 
   const server = http.createServer(handleRequest);
