@@ -251,21 +251,8 @@ function fileMediaUrl(file, download = false) {
   if (!file) return "";
   const params = new URLSearchParams();
   if (download) params.set("download", "1");
-  if (file.telegramMessageId) params.set("tgMsgId", file.telegramMessageId);
-  if (file.name) params.set("name", file.name);
-  if (file.size) params.set("size", file.size);
-  if (file.type) params.set("type", file.type);
-
-  const tgToken = (typeof currentUser !== "undefined" && (currentUser?.telegramSessionToken || currentUser?.telegramSession))
-    || localStorage.getItem("dgx_tg_session")
-    || "";
-  if (tgToken) params.set("tgSession", tgToken);
-
   const qs = params.toString();
-  const workerBase = getWorkerNodeForFile(file.id);
-  const targetBase = workerBase || apiUrl("");
-  const separator = targetBase.endsWith("/") ? "" : "/";
-  return `${targetBase}${separator}api/files/${encodeURIComponent(file.id)}${qs ? `?${qs}` : ""}`;
+  return apiUrl(`/api/files/${encodeURIComponent(file.id)}${qs ? `?${qs}` : ""}`);
 }
 
 async function api(url, options = {}) {
@@ -2257,6 +2244,24 @@ function createFileCard(file) {
   });
   details.append(name);
 
+  if (file._uploading) {
+    card.setAttribute("data-upload-name", file.name);
+    card.classList.add("is-uploading-card");
+
+    const uploadProgWrap = document.createElement("div");
+    uploadProgWrap.className = "card-upload-progress-wrap";
+    const uploadBar = document.createElement("div");
+    uploadBar.className = "card-upload-bar";
+    uploadBar.style.width = "2%";
+    uploadProgWrap.append(uploadBar);
+
+    const uploadStatusText = document.createElement("span");
+    uploadStatusText.className = "card-upload-status-text";
+    uploadStatusText.textContent = `Uploading 0% · Starting…`;
+
+    details.append(uploadProgWrap, uploadStatusText);
+  }
+
   // Mini tag pinned at the bottom of the card
   const bottomMeta = document.createElement("div");
   bottomMeta.className = "file-card-bottom-row";
@@ -2750,7 +2755,7 @@ async function renderTextDocumentPreview(file, previewUrl, container) {
   loading.textContent = "Loading document content…";
   container.append(loading);
   try {
-    const res = await fetch(previewUrl);
+    const res = await fetch(previewUrl, { credentials: "include" });
     if (!res.ok) throw new Error("Could not load document text.");
     const text = await res.text();
     loading.remove();
@@ -2810,6 +2815,9 @@ function openPreview(file) {
     image.className = "preview-image";
     image.src = previewUrl;
     image.alt = file.name;
+    image.onerror = () => {
+      image.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=high`);
+    };
     previewContent.append(image);
   } else if (file.type.startsWith("video/")) {
     const video = document.createElement("video");
@@ -2818,7 +2826,6 @@ function openPreview(file) {
     video.preload = "auto";
     video.playsInline = true;
     video.autoplay = true;
-    video.crossOrigin = "anonymous";
     video.poster = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
     video.src = previewUrl;
     previewContent.append(video);
@@ -2827,7 +2834,6 @@ function openPreview(file) {
     const audio = document.createElement("audio");
     audio.controls = true;
     audio.preload = "auto";
-    audio.crossOrigin = "anonymous";
     audio.src = previewUrl;
     previewContent.append(audio);
   } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
@@ -2839,8 +2845,8 @@ function openPreview(file) {
   } else if (file.name.toLowerCase().endsWith(".doc") || file.name.toLowerCase().endsWith(".docx")) {
     const frame = document.createElement("iframe");
     frame.className = "preview-pdf-frame";
-    const docUrl = encodeURIComponent(`${window.location.origin}${previewUrl}`);
-    frame.src = `https://docs.google.com/viewer?url=${docUrl}&embedded=true`;
+    const absoluteDocUrl = new URL(previewUrl, window.location.origin).href;
+    frame.src = `https://docs.google.com/viewer?url=${encodeURIComponent(absoluteDocUrl)}&embedded=true`;
     frame.title = `Document Preview: ${file.name}`;
     previewContent.append(frame);
   } else if (isTextDocument(file)) {
@@ -2853,6 +2859,56 @@ function openPreview(file) {
   }
   document.body.classList.add("preview-open");
   previewDialog.showModal();
+function updateFloatingUploadToast(fileName, percent, loaded, total, statusText = "") {
+  let toast = document.querySelector("#floating-upload-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "floating-upload-toast";
+    toast.className = "floating-upload-toast";
+    toast.innerHTML = `
+      <div class="floating-upload-toast-header">
+        <span class="floating-upload-toast-title">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#6366f1" stroke-width="2.5"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"></path></svg>
+          <span class="floating-upload-name"></span>
+        </span>
+        <span class="floating-upload-toast-pct">0%</span>
+      </div>
+      <div class="floating-upload-toast-progress">
+        <div class="floating-upload-toast-bar" style="width: 0%"></div>
+      </div>
+      <div class="floating-upload-toast-meta">
+        <span class="floating-upload-bytes">0 / 0</span>
+        <span class="floating-upload-speed">Live Uploading</span>
+      </div>
+    `;
+    document.body.append(toast);
+  }
+  const nameEl = toast.querySelector(".floating-upload-name");
+  const pctEl = toast.querySelector(".floating-upload-toast-pct");
+  const barEl = toast.querySelector(".floating-upload-toast-bar");
+  const bytesEl = toast.querySelector(".floating-upload-bytes");
+  const speedEl = toast.querySelector(".floating-upload-speed");
+
+  if (nameEl) nameEl.textContent = fileName;
+  if (pctEl) pctEl.textContent = `${percent}%`;
+  if (barEl) barEl.style.width = `${percent}%`;
+  if (bytesEl) bytesEl.textContent = `${formatSize(loaded)} / ${formatSize(total)}`;
+  if (speedEl && statusText) speedEl.textContent = statusText;
+}
+
+function removeFloatingUploadToast() {
+  const toast = document.querySelector("#floating-upload-toast");
+  if (toast) {
+    const bar = toast.querySelector(".floating-upload-toast-bar");
+    const pct = toast.querySelector(".floating-upload-toast-pct");
+    const speed = toast.querySelector(".floating-upload-speed");
+    if (bar) bar.style.width = "100%";
+    if (pct) pct.textContent = "100%";
+    if (speed) speed.textContent = "✓ Upload Complete!";
+    setTimeout(() => {
+      toast.remove();
+    }, 2000);
+  }
 }
 
 function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
@@ -2947,12 +3003,30 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
         const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
         progress.value = percent;
         status.textContent = `Uploading ${percent}% · ${formatSize(event.loaded)} / ${formatSize(file.size)}`;
+
+        const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
+        cards.forEach((card) => {
+          const bar = card.querySelector(".card-upload-bar");
+          const txt = card.querySelector(".card-upload-status-text");
+          if (bar) bar.style.width = `${percent}%`;
+          if (txt) txt.textContent = `Uploading ${percent}% · ${formatSize(event.loaded)} / ${formatSize(file.size)}`;
+        });
+        updateFloatingUploadToast(file.name, percent, event.loaded, file.size);
+
         onProgress(event.loaded);
       });
 
       xhr.upload.addEventListener("load", () => {
         progress.removeAttribute("value");
         status.textContent = "Syncing to Telegram Saved Messages…";
+        const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
+        cards.forEach((card) => {
+          const bar = card.querySelector(".card-upload-bar");
+          const txt = card.querySelector(".card-upload-status-text");
+          if (bar) bar.style.width = "100%";
+          if (txt) txt.textContent = "Syncing to Telegram Cloud…";
+        });
+        updateFloatingUploadToast(file.name, 100, file.size, file.size, "Syncing to Telegram Cloud…");
       });
 
       xhr.addEventListener("load", () => {
@@ -2968,6 +3042,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
           status.classList.add("queue-success");
           cancelBtn.remove();
           resumeBtn.remove();
+          removeFloatingUploadToast();
           if (result.file) {
             const optIdx = allFiles.findIndex((f) => f._uploading && f.name === file.name);
             if (optIdx !== -1) allFiles.splice(optIdx, 1);
@@ -3074,6 +3149,16 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
               const pct = Math.min(99, Math.round((transferred / file.size) * 100));
               progress.value = pct;
               status.textContent = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
+
+              const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
+              cards.forEach((card) => {
+                const bar = card.querySelector(".card-upload-bar");
+                const txt = card.querySelector(".card-upload-status-text");
+                if (bar) bar.style.width = `${pct}%`;
+                if (txt) txt.textContent = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
+              });
+              updateFloatingUploadToast(file.name, pct, transferred, file.size);
+
               onProgress(transferred);
             });
 
@@ -3081,6 +3166,14 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
               if (chunkEnd >= file.size) {
                 progress.removeAttribute("value");
                 status.textContent = "Syncing to Telegram Saved Messages…";
+                const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
+                cards.forEach((card) => {
+                  const bar = card.querySelector(".card-upload-bar");
+                  const txt = card.querySelector(".card-upload-status-text");
+                  if (bar) bar.style.width = "100%";
+                  if (txt) txt.textContent = "Syncing to Telegram Cloud…";
+                });
+                updateFloatingUploadToast(file.name, 100, file.size, file.size, "Syncing to Telegram Cloud…");
               }
             });
 
@@ -3125,6 +3218,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
                 status.classList.add("queue-success");
                 cancelBtn.remove();
                 resumeBtn.remove();
+                removeFloatingUploadToast();
                 setTimeout(() => item.remove(), 3500);
                 const optIdx = allFiles.findIndex((f) => f._uploading && f.name === file.name);
                 if (optIdx !== -1) allFiles.splice(optIdx, 1);

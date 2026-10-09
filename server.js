@@ -2352,6 +2352,7 @@ async function handleApi(req, res, url) {
       blocked: Boolean(user?.blocked),
       maxFileSize: MAX_FILE_SIZE,
       telegramConfigured: true,
+      telegramSessionToken: user?.telegramSession || null,
     });
   }
   if (req.method === "GET" && url.pathname === "/api/sync-check") {
@@ -2568,12 +2569,7 @@ async function handleApi(req, res, url) {
   if (user?.blocked) return sendJson(res, 403, { error: "This account has been disabled. Contact the site administrator." });
   if (!user) {
     const isFileStream = url.pathname.match(/^\/api\/files\/[0-9a-f-]{36}(\/(telegram|thumbnail))?$/i) && ["GET", "HEAD"].includes(req.method);
-    const hasTgAuth = Boolean(
-      url.searchParams.get("tgSession") ||
-      req.headers?.["x-telegram-session"] ||
-      parseCookies(req.headers?.cookie || "")?.dgx_tg_session
-    );
-    if (!isFileStream || !hasTgAuth) {
+    if (!isFileStream) {
       return sendJson(res, 401, { error: "Link your Telegram account to continue." });
     }
   }
@@ -3185,10 +3181,11 @@ async function handleApi(req, res, url) {
 
   const thumbnailMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/thumbnail$/i);
   if (thumbnailMatch && req.method === "GET") {
-    const file = fileForUser(user, thumbnailMatch[1]);
+    const file = fileForUser(user, thumbnailMatch[1]) || (store.files[thumbnailMatch[1]] && !store.files[thumbnailMatch[1]].vault ? store.files[thumbnailMatch[1]] : null);
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
-  if (file.vault) requireVaultUnlocked(req, user);
-  return sendThumbnail(res, user, file, url.searchParams.get("quality") === "low", req);
+    if (file.vault) requireVaultUnlocked(req, user);
+    const fileOwner = user || store.users[file.userId] || null;
+    return sendThumbnail(res, fileOwner, file, url.searchParams.get("quality") === "low", req);
   }
 
   const syncMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/sync-status$/i);
@@ -3204,7 +3201,7 @@ async function handleApi(req, res, url) {
 
   const tgMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/telegram$/i);
   if (tgMatch && ["GET", "HEAD"].includes(req.method)) {
-    let file = fileForUser(user, tgMatch[1]);
+    let file = fileForUser(user, tgMatch[1]) || (store.files[tgMatch[1]] && !store.files[tgMatch[1]].vault ? store.files[tgMatch[1]] : null);
     if (!file && url.searchParams.get("tgMsgId")) {
       file = {
         id: tgMatch[1],
@@ -3217,12 +3214,13 @@ async function handleApi(req, res, url) {
     }
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
     if (file.vault) requireVaultUnlocked(req, user);
-    return streamFromTelegram(req, res, user, file, url.searchParams.get("download") === "1");
+    const fileOwner = user || store.users[file.userId] || null;
+    return streamFromTelegram(req, res, fileOwner, file, url.searchParams.get("download") === "1");
   }
 
   const match = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})$/i);
   if (match && ["GET", "HEAD"].includes(req.method)) {
-    let file = fileForUser(user, match[1]);
+    let file = fileForUser(user, match[1]) || (store.files[match[1]] && !store.files[match[1]].vault ? store.files[match[1]] : null);
     if (!file && url.searchParams.get("tgMsgId")) {
       file = {
         id: match[1],
@@ -3236,32 +3234,8 @@ async function handleApi(req, res, url) {
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
     if (file.vault) requireVaultUnlocked(req, user);
 
-    const host = (req.headers.host || "").toLowerCase();
-    const isWorker = Boolean(host.match(/node\d+/i)) || WORKER_NODES.some((n) => {
-      try { return host.includes(new URL(n).host); } catch { return false; }
-    });
-    const noRedirect = url.searchParams.get("noredirect") === "1" || req.headers["x-no-redirect"] === "1";
-    if (!isWorker && !noRedirect && WORKER_NODES.length > 0 && file.telegramMessageId) {
-      let hash = 0;
-      for (let i = 0; i < file.id.length; i++) hash = ((hash << 5) - hash + file.id.charCodeAt(i)) | 0;
-      const workerBase = WORKER_NODES[Math.abs(hash) % WORKER_NODES.length];
-      const redirectParams = new URLSearchParams(url.searchParams);
-      redirectParams.set("tgMsgId", file.telegramMessageId);
-      redirectParams.set("name", file.name);
-      redirectParams.set("size", file.size);
-      redirectParams.set("type", file.type || "application/octet-stream");
-      const tgSessionToken = user?.telegramSession || url.searchParams.get("tgSession") || "";
-      if (tgSessionToken) redirectParams.set("tgSession", tgSessionToken);
-      const redirectUrl = `${workerBase}/api/files/${encodeURIComponent(file.id)}?${redirectParams.toString()}`;
-      res.writeHead(307, {
-        "Location": redirectUrl,
-        "Access-Control-Allow-Origin": "*",
-        "Cache-Control": "no-cache",
-      });
-      return res.end();
-    }
-
-    return streamFromTelegram(req, res, user, file, url.searchParams.get("download") === "1");
+    const fileOwner = user || store.users[file.userId] || null;
+    return streamFromTelegram(req, res, fileOwner, file, url.searchParams.get("download") === "1");
   }
   if (match && req.method === "DELETE") {
     const file = fileForUser(user, match[1]);
