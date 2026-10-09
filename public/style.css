@@ -6275,8 +6275,253 @@ html[data-theme="dark"] .floating-upload-toast-progress {
 }
 html[data-theme="dark"] .floating-upload-toast-meta {
   color: #94a3b8;
+/* ==========================================================
+   SHREECLOUD-INSPIRED "MAKKHAN" DESIGN SYSTEM & PDF VIEWER
+   ========================================================== */
+
+/* 1. Universal Typography & Smoothing */
+body, input, button, textarea, select {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
 }
 
+/* 2. ShreeCloud Modern Color Tokens & Elevated Theme */
+:root {
+  --sc-accent: #2563eb;
+  --sc-accent-hover: #1d4fd0;
+  --sc-accent-soft: #e8efff;
+  --sc-accent-grad: linear-gradient(135deg, #2563eb, #4f6bd8);
+  --sc-panel: #ffffff;
+  --sc-panel-2: #f0f3f8;
+  --sc-border: #dde3ee;
+  --sc-text: #141b2d;
+  --sc-text-dim: #55607a;
+  --sc-shadow: 0 8px 28px rgba(20, 27, 45, 0.08);
+}
+
+html[data-theme="dark"] {
+  --sc-accent: #6b9bff;
+  --sc-accent-hover: #8bb1ff;
+  --sc-accent-soft: #1b2a50;
+  --sc-accent-grad: linear-gradient(135deg, #6b9bff, #8aa4ff);
+  --sc-panel: #131a2c;
+  --sc-panel-2: #19223a;
+  --sc-border: #26324f;
+  --sc-text: #e8edf8;
+  --sc-text-dim: #a4b0cc;
+  --sc-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+/* 3. Ultra-Smooth Makkhan Micro-Interactions */
+button, a, .button, .sidebar-item, .dock-btn, .category-pill-card, .home-recent-card, .file-row {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+button:active:not(:disabled), .button:active:not(:disabled), .dock-btn:active {
+  transform: scale(0.97) !important;
+}
+
+/* 4. ShreeCloud-Grade Auth Segment Tabs */
+.auth-method-tabs {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 6px !important;
+  padding: 5px !important;
+  border-radius: 14px !important;
+  border: 1px solid rgba(221, 227, 238, 0.8) !important;
+  background: rgba(240, 243, 248, 0.85) !important;
+  backdrop-filter: blur(10px) !important;
+}
+html[data-theme="dark"] .auth-method-tabs {
+  border-color: rgba(38, 50, 79, 0.8) !important;
+  background: rgba(19, 26, 44, 0.85) !important;
+}
+.auth-method-tab {
+  min-height: 38px !important;
+  border: 0 !important;
+  border-radius: 10px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  user-select: none !important;
+}
+.auth-method-tab:hover:not(.is-active) {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+}
+html[data-theme="dark"] .auth-method-tab:hover:not(.is-active) {
+  color: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+}
+.auth-method-tab.is-active {
+  background: #ffffff !important;
+  color: #2563eb !important;
+  box-shadow: 0 3px 12px rgba(37, 99, 235, 0.15), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+}
+html[data-theme="dark"] .auth-method-tab.is-active {
+  background: #253147 !important;
+  color: #6b9bff !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 5. Sleek Form Inputs */
+.field-input, .phone-num-input, .phone-cc-input, .otp-code-input {
+  border-radius: 12px !important;
+  border: 1px solid #dde3ee !important;
+  background: #ffffff !important;
+  font-size: 14px !important;
+  transition: border-color 0.15s, box-shadow 0.15s !important;
+}
+html[data-theme="dark"] .field-input, 
+html[data-theme="dark"] .phone-num-input, 
+html[data-theme="dark"] .phone-cc-input, 
+html[data-theme="dark"] .otp-code-input {
+  border-color: #26324f !important;
+  background: #19223a !important;
+  color: #e8edf8 !important;
+}
+.field-input:focus, .phone-num-input:focus, .phone-cc-input:focus, .otp-code-input:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18) !important;
+}
+
+/* 6. Mobile & Desktop Native PDF Viewer (Canvas + PDF.js) */
+.dgx-pdf-viewer {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: min(78dvh, 750px) !important;
+  max-height: 86dvh !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
+  background: #1e293b !important;
+}
+.dgx-pdf-toolbar {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
+  flex-wrap: wrap !important;
+  padding: 10px 14px !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-bottom: 1px solid rgba(221, 227, 238, 0.9) !important;
+  backdrop-filter: blur(14px) !important;
+  z-index: 10 !important;
+}
+html[data-theme="dark"] .dgx-pdf-toolbar {
+  background: rgba(19, 26, 44, 0.96) !important;
+  border-bottom-color: rgba(38, 50, 79, 0.9) !important;
+}
+.dgx-pdf-toolbar-left,
+.dgx-pdf-toolbar-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+}
+.dgx-pdf-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 32px !important;
+  padding: 4px 11px !important;
+  border: 1px solid #d1d9e7 !important;
+  border-radius: 9px !important;
+  background: #ffffff !important;
+  color: #334155 !important;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+  user-select: none !important;
+}
+.dgx-pdf-btn:hover:not(:disabled) {
+  background: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+}
+.dgx-pdf-btn:disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+}
+.dgx-pdf-btn-primary {
+  background: linear-gradient(135deg, #2563eb, #4f6bd8) !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+.dgx-pdf-btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1d4fd0, #2563eb) !important;
+  color: #ffffff !important;
+}
+html[data-theme="dark"] .dgx-pdf-btn {
+  background: #253147 !important;
+  border-color: #384661 !important;
+  color: #e2e8f0 !important;
+}
+html[data-theme="dark"] .dgx-pdf-btn:hover:not(:disabled) {
+  background: #33425f !important;
+  color: #ffffff !important;
+}
+.dgx-pdf-page-indicator,
+.dgx-pdf-zoom-level {
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  color: #64748b !important;
+  padding: 0 4px !important;
+}
+html[data-theme="dark"] .dgx-pdf-page-indicator,
+html[data-theme="dark"] .dgx-pdf-zoom-level {
+  color: #94a3b8 !important;
+}
+.dgx-pdf-canvas-container {
+  flex: 1 !important;
+  overflow: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  padding: 18px 10px !important;
+  gap: 16px !important;
+  background: #3b4252 !important;
+}
+html[data-theme="dark"] .dgx-pdf-canvas-container {
+  background: #0f172a !important;
+}
+.dgx-pdf-canvas {
+  max-width: 100% !important;
+  height: auto !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+  border-radius: 6px !important;
+  background: #ffffff !important;
+}
+.dgx-pdf-loading {
+  color: #f8fafc !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 40px !important;
+}
+@media (max-width: 640px) {
+  .dgx-pdf-toolbar {
+    padding: 6px 8px !important;
+    gap: 4px !important;
+  }
+  .dgx-pdf-btn {
+    padding: 3px 7px !important;
+    font-size: 11px !important;
+    min-height: 28px !important;
+  }
+  .dgx-pdf-canvas-container {
+    padding: 10px 4px !important;
+  }
+}
 
 
 

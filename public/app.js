@@ -158,6 +158,7 @@ const trashToggle = document.querySelector("#trash-toggle");
 const emptyTrashButton = document.querySelector("#empty-trash");
 let maxFileSize = 2 * 1024 * 1024 * 1024;
 let loginStarted = false;
+let activeAuthMethod = "phone";
 let qrRecoveryPurpose = null;
 let pollTimer;
 let allFiles = [];
@@ -2830,6 +2831,138 @@ async function renderTextDocumentPreview(file, previewUrl, container) {
   }
 }
 
+async function renderPdfViewer(file, previewUrl, container) {
+  container.replaceChildren();
+
+  const pdfWrapper = document.createElement("div");
+  pdfWrapper.className = "dgx-pdf-viewer";
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "dgx-pdf-toolbar";
+  toolbar.innerHTML = `
+    <div class="dgx-pdf-toolbar-left">
+      <button type="button" class="dgx-pdf-btn" id="pdf-prev" title="Previous Page">◀</button>
+      <span class="dgx-pdf-page-indicator">Page <span id="pdf-curr-page">1</span> / <span id="pdf-total-pages">-</span></span>
+      <button type="button" class="dgx-pdf-btn" id="pdf-next" title="Next Page">▶</button>
+    </div>
+    <div class="dgx-pdf-toolbar-right">
+      <button type="button" class="dgx-pdf-btn" id="pdf-zoom-out" title="Zoom Out">−</button>
+      <span class="dgx-pdf-zoom-level" id="pdf-zoom-pct">100%</span>
+      <button type="button" class="dgx-pdf-btn" id="pdf-zoom-in" title="Zoom In">＋</button>
+      <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" class="dgx-pdf-btn dgx-pdf-link-btn" title="Open PDF in new tab">↗ New Tab</a>
+      <a href="${fileMediaUrl(file, true)}" download="${file.name}" class="dgx-pdf-btn dgx-pdf-btn-primary" title="Download PDF">↓ Save</a>
+    </div>
+  `;
+  pdfWrapper.append(toolbar);
+
+  const canvasScroll = document.createElement("div");
+  canvasScroll.className = "dgx-pdf-canvas-container";
+  pdfWrapper.append(canvasScroll);
+
+  const loadingMsg = document.createElement("div");
+  loadingMsg.className = "dgx-pdf-loading";
+  loadingMsg.textContent = "Loading PDF document...";
+  canvasScroll.append(loadingMsg);
+
+  container.append(pdfWrapper);
+
+  const currPageEl = toolbar.querySelector("#pdf-curr-page");
+  const totalPagesEl = toolbar.querySelector("#pdf-total-pages");
+  const zoomPctEl = toolbar.querySelector("#pdf-zoom-pct");
+  const prevBtn = toolbar.querySelector("#pdf-prev");
+  const nextBtn = toolbar.querySelector("#pdf-next");
+  const zoomInBtn = toolbar.querySelector("#pdf-zoom-in");
+  const zoomOutBtn = toolbar.querySelector("#pdf-zoom-out");
+
+  if (window.pdfjsLib) {
+    try {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      const loadingTask = window.pdfjsLib.getDocument({
+        url: previewUrl,
+        cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
+        cMapPacked: true,
+      });
+      const pdf = await loadingTask.promise;
+      totalPagesEl.textContent = pdf.numPages;
+      loadingMsg.remove();
+
+      let currentPage = 1;
+      let scale = window.innerWidth <= 640 ? 1.05 : 1.35;
+      let rendering = false;
+
+      async function renderPage(num) {
+        if (rendering) return;
+        rendering = true;
+        canvasScroll.replaceChildren();
+        currPageEl.textContent = num;
+        zoomPctEl.textContent = `${Math.round(scale * 100)}%`;
+        prevBtn.disabled = num <= 1;
+        nextBtn.disabled = num >= pdf.numPages;
+
+        try {
+          const page = await pdf.getPage(num);
+          const viewport = page.getViewport({ scale });
+          const canvas = document.createElement("canvas");
+          canvas.className = "dgx-pdf-canvas";
+          const ctx = canvas.getContext("2d", { alpha: false });
+
+          const dpr = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(viewport.width * dpr);
+          canvas.height = Math.floor(viewport.height * dpr);
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
+          ctx.scale(dpr, dpr);
+
+          canvasScroll.append(canvas);
+          await page.render({ canvasContext: ctx, viewport }).promise;
+        } catch (renderErr) {
+          console.warn("PDF page render warning:", renderErr);
+        } finally {
+          rendering = false;
+        }
+      }
+
+      prevBtn.onclick = () => {
+        if (currentPage > 1) {
+          currentPage--;
+          renderPage(currentPage);
+        }
+      };
+      nextBtn.onclick = () => {
+        if (currentPage < pdf.numPages) {
+          currentPage++;
+          renderPage(currentPage);
+        }
+      };
+      zoomInBtn.onclick = () => {
+        if (scale < 3.0) {
+          scale = Math.min(3.0, scale + 0.25);
+          renderPage(currentPage);
+        }
+      };
+      zoomOutBtn.onclick = () => {
+        if (scale > 0.5) {
+          scale = Math.max(0.5, scale - 0.25);
+          renderPage(currentPage);
+        }
+      };
+
+      await renderPage(currentPage);
+      return;
+    } catch (pdfErr) {
+      console.warn("PDF.js render failed, using fallback:", pdfErr);
+    }
+  }
+
+  // Fallback if PDF.js is unavailable
+  canvasScroll.replaceChildren();
+  const fallbackFrame = document.createElement("iframe");
+  fallbackFrame.className = "preview-pdf-frame";
+  fallbackFrame.src = previewUrl;
+  fallbackFrame.title = `PDF Document: ${file.name}`;
+  canvasScroll.append(fallbackFrame);
+}
+
 function openPreview(file) {
   previewTitle.textContent = file.name;
   previewDownload.href = fileMediaUrl(file, true);
@@ -2865,11 +2998,7 @@ function openPreview(file) {
     audio.src = previewUrl;
     previewContent.append(audio);
   } else if (file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")) {
-    const frame = document.createElement("iframe");
-    frame.className = "preview-pdf-frame";
-    frame.src = previewUrl;
-    frame.title = `Preview of ${file.name}`;
-    previewContent.append(frame);
+    void renderPdfViewer(file, previewUrl, previewContent);
   } else if (file.name.toLowerCase().endsWith(".doc") || file.name.toLowerCase().endsWith(".docx")) {
     const frame = document.createElement("iframe");
     frame.className = "preview-pdf-frame";
@@ -3659,6 +3788,10 @@ async function pollLoginStatus() {
       return;
     }
     if (result.step === "waiting_for_qr_scan") {
+      if (activeAuthMethod !== "qr") {
+        loginStarted = false;
+        return;
+      }
       document.querySelector("#phone-login-panel")?.classList.add("hidden");
       document.querySelector("#otp-step-panel")?.classList.add("hidden");
       qrLoginPanel?.classList.remove("hidden");
@@ -3676,11 +3809,23 @@ async function pollLoginStatus() {
       }
       refreshQrButton?.classList.add("hidden");
       setMessage(authMessage, `Scan with Telegram now. This QR expires in ${secondsRemaining} seconds.`);
-      pollTimer = window.setTimeout(pollLoginStatus, 900);
+      if (activeAuthMethod === "qr") {
+        pollTimer = window.setTimeout(pollLoginStatus, 900);
+      }
       return;
     }
-    setMessage(authMessage, result.step === "starting" ? "Connecting securely to Telegram…" : "Checking Telegram sign-in…");
-    pollTimer = window.setTimeout(pollLoginStatus, 700);
+    if (result.step === "waiting_for_phone_code") {
+      activeAuthMethod = "phone_otp";
+      document.querySelector("#phone-login-panel")?.classList.add("hidden");
+      document.querySelector("#otp-step-panel")?.classList.remove("hidden");
+      qrLoginPanel?.classList.add("hidden");
+      pollTimer = window.setTimeout(pollLoginStatus, 800);
+      return;
+    }
+    if (activeAuthMethod === "qr" || activeAuthMethod === "phone_otp") {
+      setMessage(authMessage, result.step === "starting" ? "Connecting securely to Telegram…" : "Checking Telegram sign-in…");
+      pollTimer = window.setTimeout(pollLoginStatus, 700);
+    }
   } catch (error) {
     setMessage(authMessage, error.message, true);
     loginStarted = false;
@@ -3689,7 +3834,8 @@ async function pollLoginStatus() {
 }
 
 async function startQrLogin() {
-  if (loginStarted) return;
+  activeAuthMethod = "qr";
+  window.clearTimeout(pollTimer);
   loginStarted = true;
   refreshQrButton.disabled = true;
   refreshQrButton.textContent = "Refresh QR code";
@@ -3703,7 +3849,9 @@ async function startQrLogin() {
       method: "POST",
       body: JSON.stringify(qrRecoveryPurpose ? { purpose: "account-recovery" } : {}),
     });
-    pollTimer = window.setTimeout(pollLoginStatus, 500);
+    if (activeAuthMethod === "qr") {
+      pollTimer = window.setTimeout(pollLoginStatus, 500);
+    }
   } catch (error) {
     loginStarted = false;
     setMessage(authMessage, error.message, true);
@@ -3715,6 +3863,7 @@ async function startQrLogin() {
 
 refreshQrButton.addEventListener("click", async () => {
   refreshQrButton.disabled = true;
+  activeAuthMethod = "qr";
   if (loginStarted) {
     try {
       await api("/api/telegram/cancel", { method: "POST", body: "{}" });
@@ -3740,6 +3889,11 @@ startLoginButton.addEventListener("click", async () => {
 });
 
 phoneMethodButton?.addEventListener("click", () => {
+  activeAuthMethod = "phone";
+  window.clearTimeout(pollTimer);
+  loginStarted = false;
+  api("/api/telegram/cancel", { method: "POST", body: "{}" }).catch(() => {});
+
   phoneMethodButton.classList.add("is-active");
   qrMethodButton.classList.remove("is-active");
   passwordMethodButton.classList.remove("is-active");
@@ -3749,18 +3903,23 @@ phoneMethodButton?.addEventListener("click", () => {
   credentialLoginForm.classList.add("hidden");
   authForm.classList.remove("hidden");
   qrLoginPanel.classList.add("hidden");
-  if (!passwordStep.classList.contains("hidden")) {
+  setMessage(authMessage, "");
+
+  if (otpStepPanel && !otpStepPanel.classList.contains("hidden")) {
     document.querySelector("#phone-login-panel")?.classList.add("hidden");
-    document.querySelector("#otp-step-panel")?.classList.add("hidden");
-  } else if (!document.querySelector("#otp-step-panel")?.classList.contains("hidden")) {
-    document.querySelector("#phone-login-panel")?.classList.add("hidden");
+    otpStepPanel.classList.remove("hidden");
   } else {
     document.querySelector("#phone-login-panel")?.classList.remove("hidden");
-    document.querySelector("#otp-step-panel")?.classList.add("hidden");
+    otpStepPanel?.classList.add("hidden");
+    passwordStep?.classList.add("hidden");
   }
 });
 
 qrMethodButton.addEventListener("click", async () => {
+  activeAuthMethod = "qr";
+  window.clearTimeout(pollTimer);
+  loginStarted = false;
+
   qrMethodButton.classList.add("is-active");
   phoneMethodButton?.classList.remove("is-active");
   passwordMethodButton.classList.remove("is-active");
@@ -3771,25 +3930,19 @@ qrMethodButton.addEventListener("click", async () => {
   authForm.classList.remove("hidden");
   document.querySelector("#phone-login-panel")?.classList.add("hidden");
   document.querySelector("#otp-step-panel")?.classList.add("hidden");
+  passwordStep?.classList.add("hidden");
   qrLoginPanel.classList.remove("hidden");
-  if (!passwordStep.classList.contains("hidden")) {
-    qrLoginPanel.classList.add("hidden");
-  } else if (!loginStarted) {
-    await startQrLogin();
-  }
+  setMessage(authMessage, "");
+
+  await startQrLogin();
 });
 
 passwordMethodButton.addEventListener("click", async () => {
-  if (loginStarted) {
-    try {
-      await api("/api/telegram/cancel", { method: "POST", body: "{}" });
-    } catch (error) {
-      setMessage(authMessage, error.message, true);
-      return;
-    }
-    window.clearTimeout(pollTimer);
-    loginStarted = false;
-  }
+  activeAuthMethod = "password";
+  window.clearTimeout(pollTimer);
+  loginStarted = false;
+  api("/api/telegram/cancel", { method: "POST", body: "{}" }).catch(() => {});
+
   passwordMethodButton.classList.add("is-active");
   phoneMethodButton?.classList.remove("is-active");
   qrMethodButton.classList.remove("is-active");
@@ -3798,7 +3951,8 @@ passwordMethodButton.addEventListener("click", async () => {
   qrMethodButton.setAttribute("aria-selected", "false");
   authForm.classList.add("hidden");
   credentialLoginForm.classList.remove("hidden");
-  document.querySelector("#credential-login-id").focus();
+  setMessage(credentialLoginMessage, "");
+  document.querySelector("#credential-login-id")?.focus();
 });
 
 phoneSubmitBtn?.addEventListener("click", startPhoneLogin);
