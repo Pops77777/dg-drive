@@ -1,45 +1,79 @@
+// MASTER / PRIMARY RENDER SERVER (Handles Auth, Database, File Lists)
+const PRIMARY_BACKEND = "https://dgx-cloud-pmz8.onrender.com";
+
+// POOL OF RENDER STREAMING NODES (Each node adds 100 GB Free Bandwidth = Up to 1 TB / Month!)
+// Add your 10 Render node URLs here:
+export const STREAMING_NODES = [
+  "https://dgx-cloud-pmz8.onrender.com",
+  // "https://dgx-cloud-node2.onrender.com",
+  // "https://dgx-cloud-node3.onrender.com",
+  // "https://dgx-cloud-node4.onrender.com",
+  // "https://dgx-cloud-node5.onrender.com",
+  // "https://dgx-cloud-node6.onrender.com",
+  // "https://dgx-cloud-node7.onrender.com",
+  // "https://dgx-cloud-node8.onrender.com",
+  // "https://dgx-cloud-node9.onrender.com",
+  // "https://dgx-cloud-node10.onrender.com",
+];
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith("/api/")) {
-      const backendUrl = new URL(url.pathname + url.search, "https://dgx-cloud-pmz8.onrender.com");
-      const reqHeaders = new Headers(request.headers);
-      reqHeaders.set("Host", "dgx-cloud-pmz8.onrender.com");
-      reqHeaders.set("X-Forwarded-Host", url.host);
-      reqHeaders.set("X-Forwarded-Proto", "https");
+      const isMedia = Boolean(url.pathname.match(/^\/api\/files\/[0-9a-f-]{36}/i)) && ["GET", "HEAD"].includes(request.method);
+      const targetNodes = isMedia && STREAMING_NODES.length > 0 ? STREAMING_NODES : [PRIMARY_BACKEND];
+      const startIndex = isMedia ? Math.floor(Math.random() * targetNodes.length) : 0;
 
-      try {
-        const isMedia = url.pathname.match(/^\/api\/files\/[0-9a-f-]{36}/i);
-        const fetchOptions = {
-          method: request.method,
-          headers: reqHeaders,
-          body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
-          redirect: "manual",
-        };
-        if (isMedia && ["GET", "HEAD"].includes(request.method)) {
-          fetchOptions.cf = {
-            cacheEverything: true,
-            cacheTtl: 86400 * 30, // 30 days edge cache
+      let lastResponse = null;
+
+      for (let i = 0; i < targetNodes.length; i++) {
+        const nodeBase = targetNodes[(startIndex + i) % targetNodes.length];
+        const backendUrl = new URL(url.pathname + url.search, nodeBase);
+        const reqHeaders = new Headers(request.headers);
+        reqHeaders.set("Host", backendUrl.host);
+        reqHeaders.set("X-Forwarded-Host", url.host);
+        reqHeaders.set("X-Forwarded-Proto", "https");
+
+        try {
+          const fetchOptions = {
+            method: request.method,
+            headers: reqHeaders,
+            body: ["GET", "HEAD"].includes(request.method) ? undefined : request.body,
+            redirect: "manual",
           };
+          if (isMedia) {
+            fetchOptions.cf = {
+              cacheEverything: true,
+              cacheTtl: 86400 * 30, // 30 days edge cache
+            };
+          }
+          const response = await fetch(backendUrl.toString(), fetchOptions);
+
+          // If node is rate limited (429) or down (502, 503, 504), failover to next node!
+          if (isMedia && [429, 502, 503, 504].includes(response.status) && targetNodes.length > 1) {
+            lastResponse = response;
+            continue;
+          }
+
+          const resHeaders = new Headers(response.headers);
+          resHeaders.set("Access-Control-Allow-Origin", url.origin);
+          resHeaders.set("Access-Control-Allow-Credentials", "true");
+
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers: resHeaders,
+          });
+        } catch (err) {
+          continue;
         }
-        const response = await fetch(backendUrl.toString(), fetchOptions);
-
-        const resHeaders = new Headers(response.headers);
-        resHeaders.set("Access-Control-Allow-Origin", url.origin);
-        resHeaders.set("Access-Control-Allow-Credentials", "true");
-
-        return new Response(response.body, {
-          status: response.status,
-          statusText: response.statusText,
-          headers: resHeaders,
-        });
-      } catch (err) {
-        return new Response(JSON.stringify({ error: "Backend connecting, please try again in a few seconds." }), {
-          status: 502,
-          headers: { "Content-Type": "application/json" },
-        });
       }
+
+      return lastResponse || new Response(JSON.stringify({ error: "Storage backend connecting, please retry in 5 seconds." }), {
+        status: 502,
+        headers: { "Content-Type": "application/json" },
+      });
     }
 
     return env.ASSETS.fetch(request);

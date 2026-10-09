@@ -3164,7 +3164,17 @@ async function handleApi(req, res, url) {
 
   const match = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})$/i);
   if (match && ["GET", "HEAD"].includes(req.method)) {
-    const file = fileForUser(user, match[1]);
+    let file = fileForUser(user, match[1]);
+    if (!file && url.searchParams.get("tgMsgId")) {
+      file = {
+        id: match[1],
+        name: cleanFileName(url.searchParams.get("name") || "download"),
+        size: Number(url.searchParams.get("size")) || 0,
+        type: url.searchParams.get("type") || "application/octet-stream",
+        telegramMessageId: Number(url.searchParams.get("tgMsgId")),
+        userId: user.id,
+      };
+    }
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
     if (file.vault) requireVaultUnlocked(req, user);
     return streamFromTelegram(req, res, user, file, url.searchParams.get("download") === "1");

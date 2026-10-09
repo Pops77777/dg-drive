@@ -222,6 +222,18 @@ function apiUrl(path) {
   return base ? `${base}${path.startsWith("/") ? "" : "/"}${path}` : path;
 }
 
+function fileMediaUrl(file, download = false) {
+  if (!file) return "";
+  const params = new URLSearchParams();
+  if (download) params.set("download", "1");
+  if (file.telegramMessageId) params.set("tgMsgId", file.telegramMessageId);
+  if (file.name) params.set("name", file.name);
+  if (file.size) params.set("size", file.size);
+  if (file.type) params.set("type", file.type);
+  const qs = params.toString();
+  return apiUrl(`/api/files/${encodeURIComponent(file.id)}${qs ? `?${qs}` : ""}`);
+}
+
 async function api(url, options = {}) {
   const tgToken = localStorage.getItem("dgx_tg_session") || "";
   const sessionToken = localStorage.getItem("dgx_user_session") || "";
@@ -1565,7 +1577,7 @@ function updateInspectorPane(file) {
   const shareUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   if (inspectorShareLink) inspectorShareLink.value = shareUrl;
   if (inspectorDownloadBtn) {
-    inspectorDownloadBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+    inspectorDownloadBtn.href = fileMediaUrl(file, true);
     inspectorDownloadBtn.setAttribute("download", file.name);
   }
 
@@ -2337,7 +2349,7 @@ function openFileActionSheet(file) {
     `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
     "Download",
     () => {
-      window.location.assign(apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`));
+      window.location.assign(fileMediaUrl(file, true));
     }
   );
   addAction(`<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>`, "Share link", () => shareFile(file));
@@ -2753,12 +2765,12 @@ async function renderTextDocumentPreview(file, previewUrl, container) {
 
 function openPreview(file) {
   previewTitle.textContent = file.name;
-  previewDownload.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+  previewDownload.href = fileMediaUrl(file, true);
   previewDownload.textContent = "↓ Download";
   const tgStreamBtn = document.querySelector("#preview-tg-stream");
   if (tgStreamBtn) tgStreamBtn.style.display = "none";
   previewContent.replaceChildren();
-  const previewUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
+  const previewUrl = fileMediaUrl(file, false);
   if (file.type.startsWith("image/") && file.type !== "image/svg+xml") {
     const image = document.createElement("img");
     image.className = "preview-image";
