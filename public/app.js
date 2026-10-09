@@ -1768,31 +1768,58 @@ function renderHomeDashboard() {
         const thumbWrap = document.createElement("div");
         thumbWrap.className = "recent-card-thumb-wrap";
 
-        const img = document.createElement("img");
-        img.className = "recent-card-thumb-img";
-        img.alt = file.name;
-        img.loading = "lazy";
-        if (isImg || isVid) {
-          img.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
-          img.onerror = () => {
-            img.style.display = "none";
-          };
-        } else {
-          img.style.display = "none";
-        }
-        thumbWrap.append(img);
+        const title = document.createElement("span");
+        title.className = "recent-card-title";
+        title.textContent = file.name;
+        title.title = file.name;
 
-        if (isVid) {
+        if (file._uploading) {
+          card.setAttribute("data-upload-name", file.name);
+          card.classList.add("is-uploading-card");
+
+          const progWrap = document.createElement("div");
+          progWrap.className = "card-upload-progress-wrap";
+          const progBar = document.createElement("div");
+          progBar.className = "card-upload-bar";
+          progBar.style.width = "2%";
+          progWrap.append(progBar);
+
+          const statusTxt = document.createElement("span");
+          statusTxt.className = "card-upload-status-text";
+          statusTxt.textContent = "Uploading 0% · Starting…";
+
+          const spinIcon = document.createElement("div");
+          spinIcon.className = "recent-uploading-spinner";
+          spinIcon.innerHTML = `<svg class="spin" viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#2563eb" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>`;
+          thumbWrap.append(spinIcon);
+
+          card.append(thumbWrap, title, progWrap, statusTxt);
+          homeRecentGrid.append(card);
+          continue;
+        }
+
+        if (!dataSaverEnabled && (isImg || isVid)) {
+          const img = document.createElement("img");
+          img.className = "recent-card-thumb-img";
+          img.alt = file.name;
+          img.loading = "lazy";
+          img.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
+          img.onerror = () => { img.style.display = "none"; };
+          thumbWrap.append(img);
+        } else {
+          // Data Saver mode or non-media: lightweight icon placeholder, 0 KB extra bandwidth used!
+          const placeholder = document.createElement("div");
+          placeholder.className = "ds-thumb-placeholder";
+          placeholder.innerHTML = isVid ? "🎬" : isImg ? "📸" : isPdf ? "📄" : "📁";
+          thumbWrap.append(placeholder);
+        }
+
+        if (isVid && !dataSaverEnabled) {
           const play = document.createElement("span");
           play.className = "recent-card-play-overlay";
           play.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
           thumbWrap.append(play);
         }
-
-        const title = document.createElement("span");
-        title.className = "recent-card-title";
-        title.textContent = file.name;
-        title.title = file.name;
 
         const type = document.createElement("span");
         type.className = "recent-card-type";
@@ -2233,26 +2260,34 @@ function createFileCard(file) {
   open.append(icon);
 
   if (!file._uploading) {
-    const thumbnail = document.createElement("img");
-    thumbnail.className = "file-thumbnail";
-    thumbnail.alt = "";
-    thumbnail.loading = "lazy";
-    thumbnail.decoding = "async";
-    thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
-    thumbnail.addEventListener("error", () => {
-      if (category === "videos") {
-        createVideoThumbnail(file, thumbnail);
-      } else if (category === "photos") {
-        thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
-        thumbnail.addEventListener("error", () => thumbnail.remove(), { once: true });
-      } else {
-        thumbnail.remove();
-      }
-    }, { once: true });
-    open.append(thumbnail);
+    if (!dataSaverEnabled) {
+      const thumbnail = document.createElement("img");
+      thumbnail.className = "file-thumbnail";
+      thumbnail.alt = "";
+      thumbnail.loading = "lazy";
+      thumbnail.decoding = "async";
+      thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
+      thumbnail.addEventListener("error", () => {
+        if (category === "videos") {
+          createVideoThumbnail(file, thumbnail);
+        } else if (category === "photos") {
+          thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
+          thumbnail.addEventListener("error", () => thumbnail.remove(), { once: true });
+        } else {
+          thumbnail.remove();
+        }
+      }, { once: true });
+      open.append(thumbnail);
+    } else {
+      // In Data Saver mode, display an ultra-lightweight tag and do not download heavy HD thumbnails
+      const dsTag = document.createElement("span");
+      dsTag.className = "data-saver-thumb-tag";
+      dsTag.textContent = "⚡ Data Saver";
+      open.append(dsTag);
+    }
   }
 
-  if (category === "videos" && !file._uploading) {
+  if (category === "videos" && !file._uploading && !dataSaverEnabled) {
     const play = document.createElement("span");
     play.className = "thumbnail-play";
     play.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
@@ -3157,22 +3192,34 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
         xhr.setRequestHeader("Authorization", `Bearer ${userSession}`);
       }
 
+      const speedTracker = { lastTime: performance.now(), lastLoaded: 0, speed: 0 };
       xhr.upload.addEventListener("progress", (event) => {
-        if (!event.lengthComputable) return;
-        const percent = Math.min(99, Math.round((event.loaded / event.total) * 100));
+        const loadedBytes = event.loaded || 0;
+        const totalBytes = (event.lengthComputable && event.total) ? event.total : file.size;
+        const percent = Math.min(99, Math.round((loadedBytes / totalBytes) * 100));
         progress.value = percent;
-        status.textContent = `Uploading ${percent}% · ${formatSize(event.loaded)} / ${formatSize(file.size)}`;
+
+        const now = performance.now();
+        const dt = (now - speedTracker.lastTime) / 1000;
+        if (dt >= 0.25) {
+          speedTracker.speed = Math.max(0, (loadedBytes - speedTracker.lastLoaded) / dt);
+          speedTracker.lastLoaded = loadedBytes;
+          speedTracker.lastTime = now;
+        }
+        const speedText = speedTracker.speed > 0 ? `${formatSize(speedTracker.speed)}/s` : "Uploading…";
+        const detailedText = `Uploading ${percent}% · ${formatSize(loadedBytes)} / ${formatSize(totalBytes)}`;
+        status.textContent = `${detailedText} (${speedText})`;
 
         const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
         cards.forEach((card) => {
           const bar = card.querySelector(".card-upload-bar");
           const txt = card.querySelector(".card-upload-status-text");
           if (bar) bar.style.width = `${percent}%`;
-          if (txt) txt.textContent = `Uploading ${percent}% · ${formatSize(event.loaded)} / ${formatSize(file.size)}`;
+          if (txt) txt.textContent = `${detailedText} (${speedText})`;
         });
-        updateFloatingUploadToast(file.name, percent, event.loaded, file.size);
+        updateFloatingUploadToast(file.name, percent, loadedBytes, totalBytes, speedText);
 
-        onProgress(event.loaded);
+        onProgress(loadedBytes);
       });
 
       xhr.upload.addEventListener("load", () => {
@@ -3302,21 +3349,32 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
               xhr.setRequestHeader("Authorization", `Bearer ${userSession}`);
             }
 
+            const chunkSpeedTracker = { lastTime: performance.now(), lastLoaded: 0, speed: 0 };
             xhr.upload.addEventListener("progress", (e) => {
               if (aborted) { xhr.abort(); return; }
-              const transferred = offset + (e.lengthComputable ? e.loaded : 0);
+              const transferred = offset + (e.loaded || 0);
               const pct = Math.min(99, Math.round((transferred / file.size) * 100));
               progress.value = pct;
-              status.textContent = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
+
+              const now = performance.now();
+              const dt = (now - chunkSpeedTracker.lastTime) / 1000;
+              if (dt >= 0.25) {
+                chunkSpeedTracker.speed = Math.max(0, ((e.loaded || 0) - chunkSpeedTracker.lastLoaded) / dt);
+                chunkSpeedTracker.lastLoaded = e.loaded || 0;
+                chunkSpeedTracker.lastTime = now;
+              }
+              const speedText = chunkSpeedTracker.speed > 0 ? `${formatSize(chunkSpeedTracker.speed)}/s` : "Uploading…";
+              const detailedText = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
+              status.textContent = `${detailedText} (${speedText})`;
 
               const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
               cards.forEach((card) => {
                 const bar = card.querySelector(".card-upload-bar");
                 const txt = card.querySelector(".card-upload-status-text");
                 if (bar) bar.style.width = `${pct}%`;
-                if (txt) txt.textContent = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
+                if (txt) txt.textContent = `${detailedText} (${speedText})`;
               });
-              updateFloatingUploadToast(file.name, pct, transferred, file.size);
+              updateFloatingUploadToast(file.name, pct, transferred, file.size, speedText);
 
               onProgress(transferred);
             });
@@ -4760,6 +4818,89 @@ vaultBackBtn?.addEventListener("click", () => {
 propertiesClose?.addEventListener("click", () => {
   document.querySelector("#properties-dialog")?.close();
 });
+
+// Data Saver Mode Logic & UI updates
+function updateDataSaverUI() {
+  const topText = document.querySelector("#data-saver-status-text");
+  const menuText = document.querySelector("#menu-ds-status");
+  const topBtn = document.querySelector("#data-saver-btn");
+  if (topText) topText.textContent = dataSaverEnabled ? "ON" : "OFF";
+  if (menuText) menuText.textContent = dataSaverEnabled ? "ON" : "OFF";
+  if (topBtn) topBtn.classList.toggle("is-active", dataSaverEnabled);
+  document.body.dataset.dataSaver = String(dataSaverEnabled);
+  if (dashboardView) dashboardView.dataset.dataSaver = String(dataSaverEnabled);
+}
+
+function toggleDataSaver() {
+  dataSaverEnabled = !dataSaverEnabled;
+  window.localStorage.setItem("dgcloud-data-saver", String(dataSaverEnabled));
+  updateDataSaverUI();
+  renderLibrary();
+  renderHomeDashboard();
+  showToast(dataSaverEnabled ? "⚡ Data Saver ON: HD thumbnails disabled to save internet data" : "Data Saver OFF: HD thumbnails enabled");
+}
+
+document.querySelector("#data-saver-btn")?.addEventListener("click", toggleDataSaver);
+document.querySelector("#menu-data-saver-btn")?.addEventListener("click", () => {
+  userMenuPopover?.classList.add("hidden");
+  toggleDataSaver();
+});
+updateDataSaverUI();
+
+// About & Security Dialog
+const aboutSecurityDialog = document.querySelector("#about-security-dialog");
+function openAboutSecurity() {
+  userMenuPopover?.classList.add("hidden");
+  aboutSecurityDialog?.showModal();
+}
+document.querySelector("#sidebar-security-btn")?.addEventListener("click", openAboutSecurity);
+document.querySelector("#menu-security-btn")?.addEventListener("click", openAboutSecurity);
+
+// API Endpoints Quick Copy & Live In-Browser Tester
+document.querySelectorAll(".ep-copy-btn").forEach((btn) => {
+  btn.addEventListener("click", async () => {
+    const text = btn.dataset.copy;
+    if (text) {
+      await navigator.clipboard.writeText(text).catch(() => {});
+      const original = btn.textContent;
+      btn.textContent = "✓ Copied!";
+      setTimeout(() => { btn.textContent = original; }, 2000);
+    }
+  });
+});
+
+const apiTesterRunBtn = document.querySelector("#api-tester-run-btn");
+if (apiTesterRunBtn) {
+  apiTesterRunBtn.addEventListener("click", async () => {
+    const endpoint = document.querySelector("#api-tester-endpoint")?.value || "/api/v1/files";
+    let key = document.querySelector("#api-tester-key")?.value?.trim();
+    if (!key) {
+      const activeKeyEl = document.querySelector(".api-key-code");
+      if (activeKeyEl) key = activeKeyEl.textContent.trim();
+    }
+    const wrap = document.querySelector("#api-tester-response-wrap");
+    const codeEl = document.querySelector("#api-tester-status-code");
+    const bodyEl = document.querySelector("#api-tester-response-body");
+    if (!key) {
+      alert("Please generate or enter an API key to test the endpoint.");
+      return;
+    }
+    wrap?.classList.remove("hidden");
+    if (codeEl) codeEl.textContent = "Connecting…";
+    if (bodyEl) bodyEl.textContent = "Sending request to endpoint…";
+    try {
+      const res = await fetch(apiUrl(endpoint), {
+        headers: { "Authorization": `Bearer ${key}` }
+      });
+      const data = await res.json().catch(() => ({}));
+      if (codeEl) codeEl.textContent = `${res.status} ${res.statusText}`;
+      if (bodyEl) bodyEl.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      if (codeEl) codeEl.textContent = "Connection Error";
+      if (bodyEl) bodyEl.textContent = String(err.message);
+    }
+  });
+}
 
 document.querySelector("#action-sheet-close-btn")?.addEventListener("click", () => {
   document.querySelector("#action-sheet-dialog")?.close();

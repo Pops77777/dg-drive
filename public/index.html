@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <link rel="stylesheet" href="/style.css?v=22.0">
-    <script src="/app.js?v=22.0" defer></script>
+    <link rel="stylesheet" href="/style.css?v=23.0">
+    <script src="/app.js?v=23.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -209,9 +209,13 @@
               <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
               <span class="sidebar-label">Private Vault</span>
             </button>
-            <button class="sidebar-item hidden" id="sidebar-api-btn" type="button">
+            <button class="sidebar-item" id="sidebar-api-btn" type="button">
               <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
               <span class="sidebar-label">Developer API</span>
+            </button>
+            <button class="sidebar-item" id="sidebar-security-btn" type="button">
+              <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+              <span class="sidebar-label">About &amp; Security</span>
             </button>
             <button class="sidebar-item" id="sidebar-profile-btn" type="button">
               <span class="sidebar-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
@@ -274,6 +278,12 @@
               <span class="admin-btn-text">Admin</span>
             </button>
 
+            <!-- Data Saver toggle pill -->
+            <button class="topbar-pill-btn data-saver-btn" id="data-saver-btn" type="button" title="Toggle Data Saver (Save internet data by hiding HD thumbnails)">
+              <span class="ds-icon">⚡</span>
+              <span class="ds-text">Data Saver: <b id="data-saver-status-text">OFF</b></span>
+            </button>
+
             <!-- Dark / Light theme toggle -->
             <button class="icon-round-btn theme-toggle-btn" id="theme-toggle" type="button" title="Switch theme">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
@@ -297,6 +307,8 @@
                   <span id="user-menu-sub">@user</span>
                 </div>
                 <hr class="user-menu-divider">
+                <button class="user-menu-item" id="menu-data-saver-btn" type="button">⚡ Data Saver (<span id="menu-ds-status">OFF</span>)</button>
+                <button class="user-menu-item" id="menu-security-btn" type="button">🛡️ About &amp; Security</button>
                 <button class="user-menu-item" id="menu-profile-btn" type="button">Profile &amp; Passwords</button>
                 <button class="user-menu-item" id="menu-vault-btn" type="button">Private Vault</button>
                 <button class="user-menu-item hidden" id="menu-admin-btn" type="button">Admin Console</button>
@@ -924,6 +936,77 @@ curl "https://dgx-cloud.onrender.com/api/v1/files" \
                 <button class="button button-outline copy-snippet-btn" id="api-copy-snippet-btn" type="button">📋 Copy Snippet</button>
               </div>
             </section>
+
+            <!-- Simple Core API Endpoints Overview -->
+            <section class="master-glass-card api-endpoints-panel">
+              <div class="master-card-title-row">
+                <h3>Simple Core Endpoints (Ready to use)</h3>
+                <span class="api-endpoints-badge">REST API · v1</span>
+              </div>
+              <div class="api-endpoints-grid">
+                <div class="api-endpoint-card">
+                  <div class="ep-method-row">
+                    <span class="ep-badge ep-post">POST</span>
+                    <code>/api/v1/upload</code>
+                  </div>
+                  <p>Upload any file directly to your private cloud storage. Returns file ID, direct link &amp; status.</p>
+                  <button class="button button-outline button-small ep-copy-btn" data-copy="curl -X POST &quot;https://dgx-cloud.onrender.com/api/v1/upload&quot; -H &quot;Authorization: Bearer YOUR_KEY&quot; -H &quot;X-File-Name: file.jpg&quot; --data-binary &quot;@file.jpg&quot;" type="button">Copy cURL</button>
+                </div>
+
+                <div class="api-endpoint-card">
+                  <div class="ep-method-row">
+                    <span class="ep-badge ep-get">GET</span>
+                    <code>/api/v1/stream/:id</code>
+                  </div>
+                  <p>Fast streaming and download with HTTP 206 partial content support for videos, music, and docs.</p>
+                  <button class="button button-outline button-small ep-copy-btn" data-copy="https://dgx-cloud.onrender.com/api/v1/stream/FILE_ID?api_key=YOUR_KEY" type="button">Copy Stream URL</button>
+                </div>
+
+                <div class="api-endpoint-card">
+                  <div class="ep-method-row">
+                    <span class="ep-badge ep-get">GET</span>
+                    <code>/api/v1/files</code>
+                  </div>
+                  <p>Get a clean JSON list of all files uploaded under this API key, including sizes and mime types.</p>
+                  <button class="button button-outline button-small ep-copy-btn" data-copy="curl &quot;https://dgx-cloud.onrender.com/api/v1/files&quot; -H &quot;Authorization: Bearer YOUR_KEY&quot;" type="button">Copy cURL</button>
+                </div>
+
+                <div class="api-endpoint-card">
+                  <div class="ep-method-row">
+                    <span class="ep-badge ep-delete">DELETE</span>
+                    <code>/api/v1/files/:id</code>
+                  </div>
+                  <p>Permanently remove a file from your storage folder whenever you need.</p>
+                  <button class="button button-outline button-small ep-copy-btn" data-copy="curl -X DELETE &quot;https://dgx-cloud.onrender.com/api/v1/files/FILE_ID&quot; -H &quot;Authorization: Bearer YOUR_KEY&quot;" type="button">Copy cURL</button>
+                </div>
+              </div>
+            </section>
+
+            <!-- Live In-Browser API Tester -->
+            <section class="master-glass-card api-tester-panel">
+              <div class="master-card-title-row">
+                <h3>Live API Tester (Test your Key Instantly)</h3>
+                <span class="api-endpoints-badge">Interactive</span>
+              </div>
+              <div class="api-tester-controls">
+                <div class="api-tester-input-group">
+                  <label class="field-label" for="api-tester-endpoint">Select Endpoint to Test</label>
+                  <select class="field-select" id="api-tester-endpoint">
+                    <option value="/api/v1/files">GET /api/v1/files (List Files)</option>
+                    <option value="/api/v1/auth/status">GET /api/v1/auth/status (Verify API Key)</option>
+                  </select>
+                </div>
+                <div class="api-tester-input-group">
+                  <label class="field-label" for="api-tester-key">Active API Key</label>
+                  <input type="text" class="field-input" id="api-tester-key" placeholder="Paste your API key here (dgx_live_...)" />
+                </div>
+                <button class="button button-primary" id="api-tester-run-btn" type="button">⚡ Send Test Request</button>
+              </div>
+              <div class="api-tester-response-wrap hidden" id="api-tester-response-wrap">
+                <span class="api-tester-response-label">Response Status: <strong id="api-tester-status-code">200 OK</strong></span>
+                <pre class="api-code-pre"><code id="api-tester-response-body">{}</code></pre>
+              </div>
+            </section>
           </section>
         </main>
       </div>
@@ -1070,6 +1153,61 @@ curl "https://dgx-cloud.onrender.com/api/v1/files" \
         <h2 id="site-popup-title">A note from DG Cloud</h2>
         <p id="site-popup-message"></p>
         <div class="dialog-actions"><button class="button button-primary" type="submit">Got it</button></div>
+      </form>
+    </dialog>
+
+    <!-- ABOUT & SECURITY / END-TO-END DATA PRIVACY MODAL -->
+    <dialog class="library-dialog about-security-dialog" id="about-security-dialog">
+      <form method="dialog">
+        <button class="dialog-close" type="submit" aria-label="Close">×</button>
+        <div class="security-modal-badge">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#2563eb" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>End-to-End Privacy &amp; Data Shield</span>
+        </div>
+        <h2 class="security-modal-title">Military-Grade Cloud Security</h2>
+        <p class="security-modal-sub">Aapka sara data aapke personal Telegram account me safe rehta hai — Zero centralized plain-text risks.</p>
+
+        <div class="security-pillars-grid">
+          <div class="security-pillar-card">
+            <div class="pillar-icon-box">🛡️</div>
+            <div>
+              <strong>User's Personal Account Storage</strong>
+              <p>All files are saved directly into your personal Telegram Saved Messages / Cloud. They are never kept on our servers or exposed on public disks. Even if our servers restart, your files remain 100% safe inside your Telegram.</p>
+            </div>
+          </div>
+
+          <div class="security-pillar-card">
+            <div class="pillar-icon-box">🔒</div>
+            <div>
+              <strong>MTProto 2.0 &amp; AES-256 Encryption</strong>
+              <p>Every single byte uploaded or streamed is encrypted end-to-end via Telegram MTProto 2.0 cryptographic channel. No hacker, middleman, or ISP can snoop or access your private photos, videos, or documents.</p>
+            </div>
+          </div>
+
+          <div class="security-pillar-card">
+            <div class="pillar-icon-box">⚡</div>
+            <div>
+              <strong>Zero-Knowledge Architecture</strong>
+              <p>No passwords stored without cryptographic Argon/Bcrypt hashing. Private Vault files require a secondary local PIN. We never sell, scan, analyze, or train AI models on your files.</p>
+            </div>
+          </div>
+
+          <div class="security-pillar-card">
+            <div class="pillar-icon-box">🔑</div>
+            <div>
+              <strong>Instant Revocation &amp; Safe Sharing</strong>
+              <p>Public links use cryptographically secure 128-bit random tokens that you can disable, revoke, or delete at any time with a single click.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="security-modal-footer">
+          <div class="security-status-pill">
+            <span class="status-dot-pulse"></span>
+            <span>Security Engine Active · Encrypted Cloud</span>
+          </div>
+          <button class="button button-primary" type="submit">Got it, Stay Protected</button>
+        </div>
       </form>
     </dialog>
 
