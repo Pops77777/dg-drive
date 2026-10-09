@@ -54,6 +54,24 @@ const ADMIN_TELEGRAM_USERNAME = (process.env.ADMIN_TELEGRAM_USERNAME || "Kingsma
   .replace(/^@/, "")
   .toLocaleLowerCase("en-US");
 
+const WORKER_NODES = (process.env.STREAMING_NODES || process.env.WORKER_NODES || "")
+  .split(",")
+  .map((s) => s.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
+
+if (WORKER_NODES.length === 0) {
+  WORKER_NODES.push(
+    "https://dgx-cloud-node2.onrender.com",
+    "https://dgx-cloud-node3.onrender.com",
+    "https://dgx-cloud-node4.onrender.com",
+    "https://dgx-cloud-node5.onrender.com",
+    "https://dgx-cloud-node6.onrender.com",
+    "https://dgx-cloud-node7.onrender.com",
+    "https://dgx-cloud-node8.onrender.com",
+    "https://dgx-cloud-node9.onrender.com"
+  );
+}
+
 if (!Number.isSafeInteger(MAX_FILE_SIZE) || MAX_FILE_SIZE < 1) {
   throw new Error("MAX_FILE_SIZE_BYTES must be a positive safe integer.");
 }
@@ -99,7 +117,7 @@ function setSecurityHeaders(res) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "same-origin");
   res.setHeader("X-Frame-Options", "SAMEORIGIN");
-  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob:; frame-src 'self' blob:; connect-src 'self'; object-src 'self'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: blob:; media-src 'self' blob: https:; frame-src 'self' blob: https:; connect-src 'self' https:; object-src 'self'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'");
   if (IS_PRODUCTION) res.setHeader("Strict-Transport-Security", "max-age=31536000");
 }
 
@@ -204,6 +222,7 @@ function publicSiteConfig() {
     popupRevision: text(config.popupRevision),
     adImage: text(config.adImage),
     adLink: text(config.adLink),
+    workerNodes: WORKER_NODES,
   };
 }
 
@@ -293,6 +312,11 @@ function encryptSession(session) {
 }
 
 function decryptSession(value) {
+  if (typeof value !== "string") throw new Error("Saved Telegram session is invalid.");
+  if (!value.includes(".")) {
+    if (value.length > 50) return value;
+    throw new Error("Saved Telegram session is invalid.");
+  }
   const [encodedIv, encodedTag, encodedData] = value.split(".");
   if (!encodedIv || !encodedTag || !encodedData) throw new Error("Saved Telegram session is invalid.");
   try {
@@ -427,11 +451,13 @@ function publicFile(file) {
 }
 
 function fileForUser(user, id) {
+  if (!user) return null;
   const file = store.files[id];
   return file && file.userId === user.id ? file : null;
 }
 
 function folderForUser(user, id) {
+  if (!user) return null;
   const folder = store.folders.find((item) => item.id === id && item.userId === user.id);
   return folder || null;
 }
@@ -568,6 +594,9 @@ function vaultIsUnlocked(req, userId) {
 }
 
 function requireVaultUnlocked(req, user) {
+  if (!user) {
+    throw Object.assign(new Error("Sign in to unlock your Vault."), { statusCode: 401 });
+  }
   if (!vaultIsUnlocked(req, user.id)) {
     throw Object.assign(new Error("Unlock your Vault to continue."), { statusCode: 423 });
   }
@@ -624,15 +653,16 @@ async function assignLoginCredentials(user, body, req) {
 }
 
 async function getTelegramClient(user, req = null, overrideToken = null) {
-  let current = telegramClients.get(user.id);
+  const clientId = user?.id || (req ? parseCookies(req.headers?.cookie || "")[COOKIE_NAME] || req.headers?.["x-session-token"] || "guest" : "anonymous");
+  let current = telegramClients.get(clientId);
   if (current) {
     if (current.connected) return current;
     try {
       await current.connect();
       if (current.connected) return current;
     } catch (reconnectErr) {
-      console.warn(`Could not reconnect existing client for ${user.id}:`, reconnectErr.message);
-      telegramClients.delete(user.id);
+      console.warn(`Could not reconnect existing client for ${clientId}:`, reconnectErr.message);
+      telegramClients.delete(clientId);
     }
   }
 
@@ -641,6 +671,13 @@ async function getTelegramClient(user, req = null, overrideToken = null) {
     candidateTokens.push(overrideToken.trim());
   }
   if (req) {
+    try {
+      const parsedReqUrl = new URL(req.url, "http://localhost");
+      const queryToken = parsedReqUrl.searchParams.get("tgSession");
+      if (queryToken && typeof queryToken === "string" && queryToken.trim() && !candidateTokens.includes(queryToken.trim())) {
+        candidateTokens.push(queryToken.trim());
+      }
+    } catch {}
     const headerToken = req.headers?.["x-telegram-session"];
     if (typeof headerToken === "string" && headerToken.trim() && !candidateTokens.includes(headerToken.trim())) {
       candidateTokens.push(headerToken.trim());
@@ -675,15 +712,15 @@ async function getTelegramClient(user, req = null, overrideToken = null) {
       );
       await client.connect();
       await client.getMe();
-      telegramClients.set(user.id, client);
-      if (user.telegramSession !== token) {
+      telegramClients.set(clientId, client);
+      if (user && user.telegramSession !== token) {
         user.telegramSession = token;
         void saveStore().catch((err) => console.error("Error persisting updated session:", err.message));
       }
       return client;
     } catch (err) {
       lastError = err;
-      console.warn(`Connection attempt with session token failed for ${user.id}:`, err.message);
+      console.warn(`Connection attempt with session token failed for ${clientId}:`, err.message);
     }
   }
 
@@ -2528,7 +2565,17 @@ async function handleApi(req, res, url) {
     return sendJson(res, 200, { ok: true });
   }
   if (user?.blocked) return sendJson(res, 403, { error: "This account has been disabled. Contact the site administrator." });
-  if (!user) return sendJson(res, 401, { error: "Link your Telegram account to continue." });
+  if (!user) {
+    const isFileStream = url.pathname.match(/^\/api\/files\/[0-9a-f-]{36}(\/(telegram|thumbnail))?$/i) && ["GET", "HEAD"].includes(req.method);
+    const hasTgAuth = Boolean(
+      url.searchParams.get("tgSession") ||
+      req.headers?.["x-telegram-session"] ||
+      parseCookies(req.headers?.cookie || "")?.dgx_tg_session
+    );
+    if (!isFileStream || !hasTgAuth) {
+      return sendJson(res, 401, { error: "Link your Telegram account to continue." });
+    }
+  }
 
   if (req.method === "GET" && url.pathname === "/api/account-lock/status") {
     const session = sessionForRequest(req);
@@ -3156,7 +3203,17 @@ async function handleApi(req, res, url) {
 
   const tgMatch = url.pathname.match(/^\/api\/files\/([0-9a-f-]{36})\/telegram$/i);
   if (tgMatch && ["GET", "HEAD"].includes(req.method)) {
-    const file = fileForUser(user, tgMatch[1]);
+    let file = fileForUser(user, tgMatch[1]);
+    if (!file && url.searchParams.get("tgMsgId")) {
+      file = {
+        id: tgMatch[1],
+        name: cleanFileName(url.searchParams.get("name") || "download"),
+        size: Number(url.searchParams.get("size")) || 0,
+        type: url.searchParams.get("type") || "application/octet-stream",
+        telegramMessageId: Number(url.searchParams.get("tgMsgId")),
+        userId: user ? user.id : "anonymous",
+      };
+    }
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
     if (file.vault) requireVaultUnlocked(req, user);
     return streamFromTelegram(req, res, user, file, url.searchParams.get("download") === "1");
@@ -3172,11 +3229,37 @@ async function handleApi(req, res, url) {
         size: Number(url.searchParams.get("size")) || 0,
         type: url.searchParams.get("type") || "application/octet-stream",
         telegramMessageId: Number(url.searchParams.get("tgMsgId")),
-        userId: user.id,
+        userId: user ? user.id : "anonymous",
       };
     }
     if (!file || file.deletedAt) return sendJson(res, 404, { error: "File not found." });
     if (file.vault) requireVaultUnlocked(req, user);
+
+    const host = (req.headers.host || "").toLowerCase();
+    const isWorker = host.includes("node2") || host.includes("node3") || host.includes("node4") ||
+                     host.includes("node5") || host.includes("node6") || host.includes("node7") ||
+                     host.includes("node8") || host.includes("node9");
+    const noRedirect = url.searchParams.get("noredirect") === "1" || req.headers["x-no-redirect"] === "1";
+    if (!isWorker && !noRedirect && WORKER_NODES.length > 0 && file.telegramMessageId) {
+      let hash = 0;
+      for (let i = 0; i < file.id.length; i++) hash = ((hash << 5) - hash + file.id.charCodeAt(i)) | 0;
+      const workerBase = WORKER_NODES[Math.abs(hash) % WORKER_NODES.length];
+      const redirectParams = new URLSearchParams(url.searchParams);
+      redirectParams.set("tgMsgId", file.telegramMessageId);
+      redirectParams.set("name", file.name);
+      redirectParams.set("size", file.size);
+      redirectParams.set("type", file.type || "application/octet-stream");
+      const tgSessionToken = user?.telegramSession || url.searchParams.get("tgSession") || "";
+      if (tgSessionToken) redirectParams.set("tgSession", tgSessionToken);
+      const redirectUrl = `${workerBase}/api/files/${encodeURIComponent(file.id)}?${redirectParams.toString()}`;
+      res.writeHead(307, {
+        "Location": redirectUrl,
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache",
+      });
+      return res.end();
+    }
+
     return streamFromTelegram(req, res, user, file, url.searchParams.get("download") === "1");
   }
   if (match && req.method === "DELETE") {
@@ -3328,19 +3411,21 @@ async function start() {
   }
 
 function startKeepAlive() {
-  const externalUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
-  if (!externalUrl) return;
-  const pingUrl = `${externalUrl.replace(/\/+$/, "")}/ping`;
-  console.log(`Keep-alive auto-pinger enabled for: ${pingUrl}`);
+  const externalUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL || "https://dgx-cloud.onrender.com";
+  const allTargets = Array.from(new Set([externalUrl, ...WORKER_NODES])).filter(Boolean);
+  console.log(`Keep-alive auto-pinger enabled for ${allTargets.length} nodes:`, allTargets.join(", "));
   setInterval(async () => {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
-      const response = await fetch(pingUrl, { signal: controller.signal });
-      clearTimeout(timeout);
-      console.log(`Keep-alive ping sent to ${pingUrl} (status: ${response.status})`);
-    } catch (error) {
-      console.warn(`Keep-alive ping error: ${error.message}`);
+    for (const target of allTargets) {
+      try {
+        const pingUrl = `${target.replace(/\/+$/, "")}/ping`;
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+        const response = await fetch(pingUrl, { signal: controller.signal });
+        clearTimeout(timeout);
+        console.log(`Keep-alive ping sent to ${pingUrl} (status: ${response.status})`);
+      } catch (error) {
+        console.warn(`Keep-alive ping warning for ${target}: ${error.message}`);
+      }
     }
   }, 8 * 60 * 1000);
 }

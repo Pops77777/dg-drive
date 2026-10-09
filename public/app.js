@@ -222,6 +222,30 @@ function apiUrl(path) {
   return base ? `${base}${path.startsWith("/") ? "" : "/"}${path}` : path;
 }
 
+const WORKER_NODES = [
+  "https://dgx-cloud-node2.onrender.com",
+  "https://dgx-cloud-node3.onrender.com",
+  "https://dgx-cloud-node4.onrender.com",
+  "https://dgx-cloud-node5.onrender.com",
+  "https://dgx-cloud-node6.onrender.com",
+  "https://dgx-cloud-node7.onrender.com",
+  "https://dgx-cloud-node8.onrender.com",
+  "https://dgx-cloud-node9.onrender.com"
+];
+
+function getWorkerNodeForFile(fileId) {
+  const nodes = (window.__siteConfig && Array.isArray(window.__siteConfig.workerNodes) && window.__siteConfig.workerNodes.length > 0)
+    ? window.__siteConfig.workerNodes
+    : WORKER_NODES;
+  if (!nodes || !nodes.length) return "";
+  let hash = 0;
+  const str = String(fileId || "");
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash + str.charCodeAt(i)) | 0;
+  }
+  return nodes[Math.abs(hash) % nodes.length].replace(/\/+$/, "");
+}
+
 function fileMediaUrl(file, download = false) {
   if (!file) return "";
   const params = new URLSearchParams();
@@ -230,8 +254,17 @@ function fileMediaUrl(file, download = false) {
   if (file.name) params.set("name", file.name);
   if (file.size) params.set("size", file.size);
   if (file.type) params.set("type", file.type);
+
+  const tgToken = (typeof currentUser !== "undefined" && (currentUser?.telegramSessionToken || currentUser?.telegramSession))
+    || localStorage.getItem("dgx_tg_session")
+    || "";
+  if (tgToken) params.set("tgSession", tgToken);
+
   const qs = params.toString();
-  return apiUrl(`/api/files/${encodeURIComponent(file.id)}${qs ? `?${qs}` : ""}`);
+  const workerBase = getWorkerNodeForFile(file.id);
+  const targetBase = workerBase || apiUrl("");
+  const separator = targetBase.endsWith("/") ? "" : "/";
+  return `${targetBase}${separator}api/files/${encodeURIComponent(file.id)}${qs ? `?${qs}` : ""}`;
 }
 
 async function api(url, options = {}) {
@@ -2119,7 +2152,7 @@ function downloadSelectedFiles() {
   if (!files.length) return;
   for (const file of files) {
     const link = document.createElement("a");
-    link.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+    link.href = fileMediaUrl(file, true);
     link.download = file.name;
     link.style.display = "none";
     document.body.append(link);
@@ -2483,7 +2516,7 @@ function createVideoThumbnail(file, thumbnail) {
     video.muted = true;
     video.playsInline = true;
     video.preload = "metadata";
-    video.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
+    video.src = fileMediaUrl(file, false);
     const releaseVideo = () => {
       video.removeAttribute("src");
       video.load();
@@ -2646,7 +2679,7 @@ function showFileProperties(file) {
   const downloadBtn = document.querySelector("#properties-download-btn");
   if (!dialog || !grid) return;
   title.textContent = file.name;
-  downloadBtn.href = apiUrl(`/api/files/${encodeURIComponent(file.id)}?download=1`);
+  downloadBtn.href = fileMediaUrl(file, true);
   const shareUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
   copyBtn.onclick = async () => {
     try {
