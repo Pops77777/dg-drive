@@ -230,7 +230,8 @@ const WORKER_NODES = [
   "https://dgx-cloud-node6.onrender.com",
   "https://dgx-cloud-node7.onrender.com",
   "https://dgx-cloud-node8.onrender.com",
-  "https://dgx-cloud-node9.onrender.com"
+  "https://dgx-cloud-node9.onrender.com",
+  "https://dgx-cloud-node10.onrender.com"
 ];
 
 function getWorkerNodeForFile(fileId) {

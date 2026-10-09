@@ -68,7 +68,8 @@ if (WORKER_NODES.length === 0) {
     "https://dgx-cloud-node6.onrender.com",
     "https://dgx-cloud-node7.onrender.com",
     "https://dgx-cloud-node8.onrender.com",
-    "https://dgx-cloud-node9.onrender.com"
+    "https://dgx-cloud-node9.onrender.com",
+    "https://dgx-cloud-node10.onrender.com"
   );
 }
 
@@ -3236,9 +3237,9 @@ async function handleApi(req, res, url) {
     if (file.vault) requireVaultUnlocked(req, user);
 
     const host = (req.headers.host || "").toLowerCase();
-    const isWorker = host.includes("node2") || host.includes("node3") || host.includes("node4") ||
-                     host.includes("node5") || host.includes("node6") || host.includes("node7") ||
-                     host.includes("node8") || host.includes("node9");
+    const isWorker = Boolean(host.match(/node\d+/i)) || WORKER_NODES.some((n) => {
+      try { return host.includes(new URL(n).host); } catch { return false; }
+    });
     const noRedirect = url.searchParams.get("noredirect") === "1" || req.headers["x-no-redirect"] === "1";
     if (!isWorker && !noRedirect && WORKER_NODES.length > 0 && file.telegramMessageId) {
       let hash = 0;
