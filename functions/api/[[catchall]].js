@@ -4,15 +4,15 @@ const PRIMARY_BACKEND = "https://dgx-cloud.onrender.com";
 // POOL OF RENDER STREAMING NODES (Each node adds 100 GB Free Bandwidth = Up to 1 TB / Month!)
 export const STREAMING_NODES = [
   "https://dgx-cloud.onrender.com",
-  // "https://dgx-cloud-node2.onrender.com",
-  // "https://dgx-cloud-node3.onrender.com",
-  // "https://dgx-cloud-node4.onrender.com",
-  // "https://dgx-cloud-node5.onrender.com",
-  // "https://dgx-cloud-node6.onrender.com",
-  // "https://dgx-cloud-node7.onrender.com",
-  // "https://dgx-cloud-node8.onrender.com",
-  // "https://dgx-cloud-node9.onrender.com",
-  // "https://dgx-cloud-node10.onrender.com",
+  "https://dgx-cloud-node2.onrender.com",
+  "https://dgx-cloud-node3.onrender.com",
+  "https://dgx-cloud-node4.onrender.com",
+  "https://dgx-cloud-node5.onrender.com",
+  "https://dgx-cloud-node6.onrender.com",
+  "https://dgx-cloud-node7.onrender.com",
+  "https://dgx-cloud-node8.onrender.com",
+  "https://dgx-cloud-node9.onrender.com",
+  "https://dgx-cloud-node10.onrender.com",
 ];
 
 export async function onRequest(context) {

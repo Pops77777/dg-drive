@@ -5,15 +5,15 @@ const PRIMARY_BACKEND = "https://dgx-cloud.onrender.com";
 // Add your 10 Render node URLs here:
 export const STREAMING_NODES = [
   "https://dgx-cloud.onrender.com",
-  // "https://dgx-cloud-node2.onrender.com",
-  // "https://dgx-cloud-node3.onrender.com",
-  // "https://dgx-cloud-node4.onrender.com",
-  // "https://dgx-cloud-node5.onrender.com",
-  // "https://dgx-cloud-node6.onrender.com",
-  // "https://dgx-cloud-node7.onrender.com",
-  // "https://dgx-cloud-node8.onrender.com",
-  // "https://dgx-cloud-node9.onrender.com",
-  // "https://dgx-cloud-node10.onrender.com",
+  "https://dgx-cloud-node2.onrender.com",
+  "https://dgx-cloud-node3.onrender.com",
+  "https://dgx-cloud-node4.onrender.com",
+  "https://dgx-cloud-node5.onrender.com",
+  "https://dgx-cloud-node6.onrender.com",
+  "https://dgx-cloud-node7.onrender.com",
+  "https://dgx-cloud-node8.onrender.com",
+  "https://dgx-cloud-node9.onrender.com",
+  "https://dgx-cloud-node10.onrender.com",
 ];
 
 export default {
