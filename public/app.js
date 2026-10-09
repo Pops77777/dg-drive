@@ -2887,6 +2887,8 @@ function openPreview(file) {
   }
   document.body.classList.add("preview-open");
   previewDialog.showModal();
+}
+
 function updateFloatingUploadToast(fileName, percent, loaded, total, statusText = "") {
   let toast = document.querySelector("#floating-upload-toast");
   if (!toast) {
