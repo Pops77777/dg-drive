@@ -2896,7 +2896,7 @@ async function renderPdfViewer(file, previewUrl, container) {
 
   const loadingMsg = document.createElement("div");
   loadingMsg.className = "dgx-pdf-loading";
-  loadingMsg.textContent = "Loading PDF document...";
+  loadingMsg.textContent = "Loading PDF document in-memory...";
   canvasScroll.append(loadingMsg);
 
   container.append(pdfWrapper);
@@ -2909,20 +2909,45 @@ async function renderPdfViewer(file, previewUrl, container) {
   const zoomInBtn = toolbar.querySelector("#pdf-zoom-in");
   const zoomOutBtn = toolbar.querySelector("#pdf-zoom-out");
 
-  if (window.pdfjsLib) {
+  // Step 1: Pre-fetch PDF as ArrayBuffer to bypass mobile worker CORS and credential issues
+  let pdfBytes = null;
+  try {
+    const res = await fetch(previewUrl, { credentials: "include" });
+    if (res.ok) {
+      const buf = await res.arrayBuffer();
+      pdfBytes = new Uint8Array(buf);
+    }
+  } catch (fetchErr) {
+    console.warn("Direct PDF buffer fetch failed, will try URL:", fetchErr);
+  }
+
+  // Step 2: Attempt rendering with PDF.js via Canvas
+  if (window.pdfjsLib && (pdfBytes || previewUrl)) {
     try {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-      const loadingTask = window.pdfjsLib.getDocument({
-        url: previewUrl,
-        cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
-        cMapPacked: true,
-      });
+      if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+      }
+
+      const docParams = pdfBytes
+        ? {
+            data: pdfBytes,
+            cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
+            cMapPacked: true,
+          }
+        : {
+            url: previewUrl,
+            withCredentials: true,
+            cMapUrl: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/cmaps/",
+            cMapPacked: true,
+          };
+
+      const loadingTask = window.pdfjsLib.getDocument(docParams);
       const pdf = await loadingTask.promise;
       totalPagesEl.textContent = pdf.numPages;
       loadingMsg.remove();
 
       let currentPage = 1;
-      let scale = window.innerWidth <= 640 ? 1.05 : 1.35;
+      let userZoom = 1.0;
       let rendering = false;
 
       async function renderPage(num) {
@@ -2930,18 +2955,25 @@ async function renderPdfViewer(file, previewUrl, container) {
         rendering = true;
         canvasScroll.replaceChildren();
         currPageEl.textContent = num;
-        zoomPctEl.textContent = `${Math.round(scale * 100)}%`;
+        zoomPctEl.textContent = `${Math.round(userZoom * 100)}%`;
         prevBtn.disabled = num <= 1;
         nextBtn.disabled = num >= pdf.numPages;
 
         try {
           const page = await pdf.getPage(num);
-          const viewport = page.getViewport({ scale });
+          const baseViewport = page.getViewport({ scale: 1.0 });
+
+          // Auto-fit to mobile screen container width
+          const containerWidth = Math.max(260, (canvasScroll.clientWidth || window.innerWidth) - 24);
+          const autoScale = (containerWidth / baseViewport.width) * userZoom;
+          const finalScale = Math.max(0.4, Math.min(3.5, autoScale));
+          const viewport = page.getViewport({ scale: finalScale });
+
           const canvas = document.createElement("canvas");
           canvas.className = "dgx-pdf-canvas";
           const ctx = canvas.getContext("2d", { alpha: false });
 
-          const dpr = window.devicePixelRatio || 1;
+          const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
           canvas.width = Math.floor(viewport.width * dpr);
           canvas.height = Math.floor(viewport.height * dpr);
           canvas.style.width = `${Math.floor(viewport.width)}px`;
@@ -2951,7 +2983,7 @@ async function renderPdfViewer(file, previewUrl, container) {
           canvasScroll.append(canvas);
           await page.render({ canvasContext: ctx, viewport }).promise;
         } catch (renderErr) {
-          console.warn("PDF page render warning:", renderErr);
+          console.warn("PDF page render error:", renderErr);
         } finally {
           rendering = false;
         }
@@ -2970,14 +3002,14 @@ async function renderPdfViewer(file, previewUrl, container) {
         }
       };
       zoomInBtn.onclick = () => {
-        if (scale < 3.0) {
-          scale = Math.min(3.0, scale + 0.25);
+        if (userZoom < 2.5) {
+          userZoom = Math.min(2.5, userZoom + 0.25);
           renderPage(currentPage);
         }
       };
       zoomOutBtn.onclick = () => {
-        if (scale > 0.5) {
-          scale = Math.max(0.5, scale - 0.25);
+        if (userZoom > 0.5) {
+          userZoom = Math.max(0.5, userZoom - 0.25);
           renderPage(currentPage);
         }
       };
@@ -2985,17 +3017,37 @@ async function renderPdfViewer(file, previewUrl, container) {
       await renderPage(currentPage);
       return;
     } catch (pdfErr) {
-      console.warn("PDF.js render failed, using fallback:", pdfErr);
+      console.warn("PDF.js render failed, switching to safe mobile reader:", pdfErr);
     }
   }
 
-  // Fallback if PDF.js is unavailable
+  // Step 3: Safe Fallback that NEVER triggers mobile auto-download!
   canvasScroll.replaceChildren();
-  const fallbackFrame = document.createElement("iframe");
-  fallbackFrame.className = "preview-pdf-frame";
-  fallbackFrame.src = previewUrl;
-  fallbackFrame.title = `PDF Document: ${file.name}`;
-  canvasScroll.append(fallbackFrame);
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) || window.innerWidth <= 768;
+
+  if (isMobile) {
+    // Never load <iframe src="pdfUrl"> on mobile because mobile Chrome triggers auto-download!
+    const mobContainer = document.createElement("div");
+    mobContainer.style.cssText = "display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 16px;text-align:center;gap:16px;width:100%;max-width:380px;margin:auto;";
+    mobContainer.innerHTML = `
+      <div style="font-size:44px;line-height:1;">📄</div>
+      <div style="font-size:15px;font-weight:700;color:#f8fafc;word-break:break-word;">${escapeHtml(file.name)}</div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.5;">Mobile PDF Viewer ready. View inside Google Docs reader or open directly in your phone's default reader app.</div>
+      <div style="display:flex;flex-direction:column;gap:10px;width:100%;margin-top:6px;">
+        <a href="https://docs.google.com/viewer?url=${encodeURIComponent(new URL(previewUrl, window.location.origin).href)}&embedded=true" target="_blank" rel="noopener noreferrer" class="dgx-pdf-btn dgx-pdf-btn-primary" style="padding:10px 16px;font-size:13px;font-weight:700;">📖 Open in Google Docs Viewer</a>
+        <a href="${previewUrl}" target="_blank" rel="noopener noreferrer" class="dgx-pdf-btn" style="padding:10px 16px;font-size:13px;font-weight:600;">↗ Open in System PDF App</a>
+        <a href="${fileMediaUrl(file, true)}" download="${file.name}" class="dgx-pdf-btn" style="padding:10px 16px;font-size:13px;font-weight:600;">↓ Save / Download PDF</a>
+      </div>
+    `;
+    canvasScroll.append(mobContainer);
+  } else {
+    // Desktop: safe embedded iframe preview
+    const fallbackFrame = document.createElement("iframe");
+    fallbackFrame.className = "preview-pdf-frame";
+    fallbackFrame.src = previewUrl;
+    fallbackFrame.title = `PDF Document: ${file.name}`;
+    canvasScroll.append(fallbackFrame);
+  }
 }
 
 function openPreview(file) {
@@ -3175,8 +3227,8 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
     const tgSession = localStorage.getItem("dgx_tg_session") || "";
     const userSession = localStorage.getItem("dgx_user_session") || "";
 
-    // Fast direct upload for small files (<= 10MB)
-    if (file.size <= 10 * 1024 * 1024) {
+    // Fast direct upload for very small files (<= 1MB)
+    if (file.size <= 1024 * 1024) {
       const xhr = new XMLHttpRequest();
       currentXhr = xhr;
       const params = new URLSearchParams();
@@ -3201,8 +3253,9 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
 
         const now = performance.now();
         const dt = (now - speedTracker.lastTime) / 1000;
-        if (dt >= 0.25) {
-          speedTracker.speed = Math.max(0, (loadedBytes - speedTracker.lastLoaded) / dt);
+        if (dt >= 0.08 && loadedBytes > speedTracker.lastLoaded) {
+          const instantSpeed = (loadedBytes - speedTracker.lastLoaded) / dt;
+          speedTracker.speed = speedTracker.speed === 0 ? instantSpeed : (speedTracker.speed * 0.65 + instantSpeed * 0.35);
           speedTracker.lastLoaded = loadedBytes;
           speedTracker.lastTime = now;
         }
@@ -3223,16 +3276,16 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       });
 
       xhr.upload.addEventListener("load", () => {
-        progress.removeAttribute("value");
-        status.textContent = "Syncing to Telegram Saved Messages…";
+        progress.value = 99;
+        status.textContent = "Syncing with Telegram Cloud…";
         const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
         cards.forEach((card) => {
           const bar = card.querySelector(".card-upload-bar");
           const txt = card.querySelector(".card-upload-status-text");
-          if (bar) bar.style.width = "100%";
-          if (txt) txt.textContent = "Syncing to Telegram Cloud…";
+          if (bar) bar.style.width = "99%";
+          if (txt) txt.textContent = "Syncing with Telegram Cloud…";
         });
-        updateFloatingUploadToast(file.name, 100, file.size, file.size, "Syncing to Telegram Cloud…");
+        updateFloatingUploadToast(file.name, 99, file.size, file.size, "Syncing Telegram Cloud…");
       });
 
       xhr.addEventListener("load", () => {
@@ -3284,10 +3337,11 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       return;
     }
 
-    // Chunked Resumable Upload for files > 2MB (8MB chunks for 2x faster throughput)
-    const CHUNK_SIZE = 8 * 1024 * 1024;
+    // Chunked Resumable Upload for files > 1MB (1MB chunks for real-time live byte-by-byte progression & speedometer)
+    const CHUNK_SIZE = 1 * 1024 * 1024;
     let uploadId = null;
     let offset = 0;
+    const chunkSpeedTracker = { lastTime: performance.now(), lastLoaded: 0, speed: 0 };
 
     const startOrResumeUpload = async () => {
       if (aborted) return;
@@ -3349,18 +3403,18 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
               xhr.setRequestHeader("Authorization", `Bearer ${userSession}`);
             }
 
-            const chunkSpeedTracker = { lastTime: performance.now(), lastLoaded: 0, speed: 0 };
             xhr.upload.addEventListener("progress", (e) => {
               if (aborted) { xhr.abort(); return; }
-              const transferred = offset + (e.loaded || 0);
+              const transferred = Math.min(file.size, offset + (e.loaded || 0));
               const pct = Math.min(99, Math.round((transferred / file.size) * 100));
               progress.value = pct;
 
               const now = performance.now();
               const dt = (now - chunkSpeedTracker.lastTime) / 1000;
-              if (dt >= 0.25) {
-                chunkSpeedTracker.speed = Math.max(0, ((e.loaded || 0) - chunkSpeedTracker.lastLoaded) / dt);
-                chunkSpeedTracker.lastLoaded = e.loaded || 0;
+              if (dt >= 0.08 && transferred > chunkSpeedTracker.lastLoaded) {
+                const instantSpeed = (transferred - chunkSpeedTracker.lastLoaded) / dt;
+                chunkSpeedTracker.speed = chunkSpeedTracker.speed === 0 ? instantSpeed : (chunkSpeedTracker.speed * 0.65 + instantSpeed * 0.35);
+                chunkSpeedTracker.lastLoaded = transferred;
                 chunkSpeedTracker.lastTime = now;
               }
               const speedText = chunkSpeedTracker.speed > 0 ? `${formatSize(chunkSpeedTracker.speed)}/s` : "Uploading…";
@@ -3381,16 +3435,16 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
 
             xhr.upload.addEventListener("load", () => {
               if (chunkEnd >= file.size) {
-                progress.removeAttribute("value");
-                status.textContent = "Syncing to Telegram Saved Messages…";
+                progress.value = 99;
+                status.textContent = "Syncing with Telegram Cloud…";
                 const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
                 cards.forEach((card) => {
                   const bar = card.querySelector(".card-upload-bar");
                   const txt = card.querySelector(".card-upload-status-text");
-                  if (bar) bar.style.width = "100%";
-                  if (txt) txt.textContent = "Syncing to Telegram Cloud…";
+                  if (bar) bar.style.width = "99%";
+                  if (txt) txt.textContent = "Syncing with Telegram Cloud…";
                 });
-                updateFloatingUploadToast(file.name, 100, file.size, file.size, "Syncing to Telegram Cloud…");
+                updateFloatingUploadToast(file.name, 99, file.size, file.size, "Syncing Telegram Cloud…");
               }
             });
 
@@ -3541,11 +3595,11 @@ async function uploadMany(files, relativePathForFile = () => "") {
     const transferred = [...loadedBytes.values()].reduce((sum, value) => sum + value, 0);
     const percent = validTotal ? Math.min(100, Math.round(transferred / validTotal * 100)) : 0;
     summaryProgress.value = percent;
-    summaryText.textContent = `${percent}% · ${completed}/${totalFiles} uploaded`;
+    summaryText.textContent = `${percent}% · ${formatSize(transferred)} / ${formatSize(validTotal)} · ${completed}/${totalFiles} uploaded`;
     if (pill && countSpan) {
       if (uploading > 0 || queue.length > 0) {
         pill.classList.remove("hidden");
-        countSpan.textContent = `Uploading ${uploading} (${percent}%)`;
+        countSpan.textContent = `Uploading ${percent}% (${formatSize(transferred)} / ${formatSize(validTotal)})`;
       }
     }
   };

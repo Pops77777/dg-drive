@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <link rel="stylesheet" href="/style.css?v=23.0">
-    <script src="/app.js?v=23.0" defer></script>
+    <link rel="stylesheet" href="/style.css?v=24.0">
+    <script src="/app.js?v=24.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -276,12 +276,6 @@
             <button class="admin-header-btn hidden" id="admin-header-btn" type="button" title="Open Admin Control Room">
               <svg class="admin-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
               <span class="admin-btn-text">Admin</span>
-            </button>
-
-            <!-- Data Saver toggle pill -->
-            <button class="topbar-pill-btn data-saver-btn" id="data-saver-btn" type="button" title="Toggle Data Saver (Save internet data by hiding HD thumbnails)">
-              <span class="ds-icon">⚡</span>
-              <span class="ds-text">Data Saver: <b id="data-saver-status-text">OFF</b></span>
             </button>
 
             <!-- Dark / Light theme toggle -->
@@ -565,13 +559,23 @@
           <section class="master-library-view hidden" id="dashboard-view">
             <!-- Breadcrumbs Toolbar -->
             <div class="master-library-header-row">
-              <button class="breadcrumb-back-btn hidden" id="folder-back-btn" type="button" aria-label="Go to parent folder">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                <span>Back</span>
-              </button>
-              <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path">
-                <span>Root</span>
-              </nav>
+              <div class="master-breadcrumbs-left">
+                <button class="breadcrumb-back-btn hidden" id="folder-back-btn" type="button" aria-label="Go to parent folder">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                  <span>Back</span>
+                </button>
+                <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path">
+                  <span>Root</span>
+                </nav>
+              </div>
+              <div class="master-breadcrumbs-right">
+                <!-- Premium Data Saver Toggle Next to Root Folder -->
+                <button class="premium-data-saver-btn data-saver-btn" id="data-saver-btn" type="button" title="Data Saver Mode: Save mobile internet by disabling heavy HD thumbnails">
+                  <span class="pds-dot"></span>
+                  <span class="pds-icon">⚡</span>
+                  <span class="pds-label">Data Saver: <b id="data-saver-status-text">OFF</b></span>
+                </button>
+              </div>
               <div class="hidden">
                 <input id="file-search" type="search" placeholder="Search files…">
                 <button id="devices-button" type="button">Devices</button>
