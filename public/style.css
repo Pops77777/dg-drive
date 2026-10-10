@@ -4326,8 +4326,11 @@ html[data-theme="dark"] .share-box-row input {
 }
 
 /* Mobile Bottom Dock (Matching Mobile View Mockups) */
-.mobile-bottom-dock {
-  display: none;
+@media (min-width: 901px) {
+  .mobile-bottom-dock,
+  .upload-speed-dial {
+    display: none !important;
+  }
 }
 
 .mobile-brand-box {
@@ -4402,55 +4405,7 @@ html[data-theme="dark"] .share-box-row input {
     width: 100% !important;
     position: static !important;
   }
-  /* Mobile bottom dock unified at root */
-  .dock-btn {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 3px !important;
-    background: transparent !important;
-    border: none !important;
-    color: #64748b !important;
-    font-size: 10.5px !important;
-    font-weight: 600 !important;
-    padding: 6px 12px !important;
-    border-radius: 14px !important;
-    cursor: pointer !important;
-  }
-  .dock-btn.hidden {
-    display: none !important;
-  }
-  html[data-theme="dark"] .dock-btn {
-    color: #94a3b8 !important;
-  }
-  .dock-btn.is-active {
-    color: #3b82f6 !important;
-    font-weight: 700 !important;
-  }
-  html[data-theme="dark"] .dock-btn.is-active {
-    color: #60a5fa !important;
-  }
-  .dock-btn-upload {
-    position: relative !important;
-    top: -12px !important;
-    background: linear-gradient(135deg, #d946ef 0%, #06b6d4 100%) !important;
-    color: #ffffff !important;
-    width: 52px !important;
-    height: 52px !important;
-    border-radius: 50% !important;
-    box-shadow: 0 6px 20px rgba(217, 70, 239, 0.45) !important;
-    display: grid !important;
-    place-items: center !important;
-  }
-  .dock-icon-plus {
-    font-size: 24px !important;
-    font-weight: 700 !important;
-    line-height: 1 !important;
-  }
-  .dock-btn-upload .dock-label {
-    display: none !important;
-  }
+  /* Mobile bottom dock styles defined centrally */
 }
 
 /* Master Frosted Mock Cards & Library Grid Items */
@@ -5293,64 +5248,7 @@ html[data-theme="dark"] .vault-dialog {
   .master-inspector-pane {
     display: none !important; /* Hide inspector on mobile to match mockup */
   }
-  /* Mobile bottom dock unified at root */
-  .dock-btn {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 3px !important;
-    background: transparent !important;
-    border: none !important;
-    color: #64748b !important;
-    font-size: 11.5px !important;
-    font-weight: 700 !important;
-    padding: 6px 8px !important;
-    border-radius: 14px !important;
-    cursor: pointer !important;
-    touch-action: manipulation !important;
-  }
-  .dock-btn.hidden {
-    display: none !important;
-  }
-  .dock-btn svg {
-    width: 24px !important;
-    height: 24px !important;
-    display: block;
-  }
-  .dock-btn.is-active {
-    color: #2563eb !important;
-    font-weight: 800 !important;
-  }
-  html[data-theme="dark"] .dock-btn.is-active {
-    color: #60a5fa !important;
-  }
-  .dock-btn-upload {
-    display: inline-flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px !important;
-    background: linear-gradient(135deg, #d946ef 0%, #06b6d4 100%) !important;
-    color: #ffffff !important;
-    padding: 0 18px !important;
-    height: 44px !important;
-    border-radius: 24px !important;
-    box-shadow: 0 4px 18px rgba(217, 70, 239, 0.45) !important;
-    border: none !important;
-    top: 0 !important;
-    width: auto !important;
-  }
-  .dock-btn-upload svg {
-    width: 16px !important;
-    height: 16px !important;
-    stroke: #ffffff !important;
-  }
-  .dock-btn-upload .dock-label {
-    color: #ffffff !important;
-    font-size: 13px !important;
-    font-weight: 800 !important;
-  }
+  /* Mobile bottom dock styles defined centrally */
 
   @media (max-width: 480px) {
     .master-recents-grid-4col {
@@ -7238,29 +7136,35 @@ html[data-theme="dark"] .toolbar-icon-btn.is-active {
 
 /* 4. Sleek Compact Mobile Bottom Dock with Auto-Hide on Scroll */
 .mobile-bottom-dock {
-  height: 44px !important;
-  max-width: 250px !important;
-  margin: 0 auto !important;
-  bottom: 12px !important;
+  display: flex !important;
+  position: fixed !important;
+  bottom: 14px !important;
   left: 50% !important;
   right: auto !important;
   transform: translateX(-50%) translateY(0) !important;
+  height: 48px !important;
+  width: max-content !important;
+  min-width: 250px !important;
+  max-width: 280px !important;
+  margin: 0 !important;
   border-radius: 999px !important;
-  padding: 0 8px !important;
-  display: flex !important;
+  padding: 0 10px !important;
   align-items: center !important;
   justify-content: space-around !important;
   background: #ffffff !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1) !important;
-  z-index: 1000 !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18) !important;
+  z-index: 999999 !important;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 html[data-theme="dark"] .mobile-bottom-dock {
   background: #141b2d !important;
-  border-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6) !important;
 }
 
 /* Auto-hide while scrolling in either direction */
@@ -7271,9 +7175,9 @@ html[data-theme="dark"] .mobile-bottom-dock {
 }
 
 .dock-btn {
-  width: 32px !important;
-  height: 32px !important;
-  min-width: 32px !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
   border-radius: 50% !important;
   padding: 0 !important;
   display: flex !important;
@@ -7292,40 +7196,53 @@ html[data-theme="dark"] .dock-btn {
 
 .dock-btn.is-active {
   color: #2563eb !important;
-  background: rgba(37, 99, 235, 0.1) !important;
+  background: rgba(37, 99, 235, 0.12) !important;
 }
 
 html[data-theme="dark"] .dock-btn.is-active {
   color: #60a5fa !important;
-  background: rgba(96, 165, 250, 0.15) !important;
+  background: rgba(96, 165, 250, 0.18) !important;
 }
 
 .dock-btn svg {
-  width: 17px !important;
-  height: 17px !important;
+  width: 18px !important;
+  height: 18px !important;
+  display: block !important;
 }
 
 .dock-btn-upload {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 50% !important;
   background: #2563eb !important;
   color: #ffffff !important;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 .dock-btn-upload:hover,
 .dock-btn-upload:active {
   background: #1d4ed8 !important;
 }
+.dock-btn-upload svg {
+  width: 18px !important;
+  height: 18px !important;
+  stroke: #ffffff !important;
+}
 
 /* Floating Upload Speed Dial (Folder & File floating pills directly above + button) */
 .upload-speed-dial {
   position: fixed !important;
-  bottom: 64px !important;
+  bottom: 70px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   gap: 8px !important;
-  z-index: 1005 !important;
+  z-index: 1000000 !important;
   animation: speedDialFadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 @keyframes speedDialFadeUp {
