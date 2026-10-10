@@ -476,8 +476,8 @@ async function showLibrary() {
   }
   hideAllMainViews();
   dashboardView?.classList.remove("hidden");
-  document.querySelector("#topbar-breadcrumb-pill")?.classList.remove("hidden");
-  document.querySelector("#topbar-search-wrap")?.classList.add("hidden");
+  document.querySelector("#topbar-breadcrumb-pill")?.classList.add("hidden");
+  document.querySelector("#topbar-search-wrap")?.classList.remove("hidden");
   if (activeCategory === "starred") {
     updateNavActive("starred");
   } else {
@@ -4340,11 +4340,13 @@ logoutButton.addEventListener("click", async () => {
   openAuthModal();
 });
 
-devicesButton.addEventListener("click", async () => {
+async function openDevicesDialog() {
+  if (!devicesDialog) return;
   devicesDialog.showModal();
   await loadSignedInDevices();
-});
-document.querySelector("#devices-refresh").addEventListener("click", loadSignedInDevices);
+}
+devicesButton?.addEventListener("click", () => void openDevicesDialog());
+document.querySelector("#devices-refresh")?.addEventListener("click", loadSignedInDevices);
 devicesSignOutOthers.addEventListener("click", async () => {
   const otherSessions = signedInSessions.filter((session) => !session.current);
   if (!otherSessions.length) return;
@@ -4462,15 +4464,15 @@ vaultSelectedButton.addEventListener("click", async () => {
   }
 });
 
-document.querySelector("#upload-files-button").addEventListener("click", () => {
+document.querySelector("#upload-files-button")?.addEventListener("click", () => {
   if (!checkCanUpload()) return;
   filePicker.click();
 });
-document.querySelector("#upload-folder-button").addEventListener("click", () => {
+document.querySelector("#upload-folder-button")?.addEventListener("click", () => {
   if (!checkCanUpload()) return;
   folderPicker.click();
 });
-document.querySelector("#new-folder-button").addEventListener("click", createNewFolder);
+document.querySelector("#new-folder-button")?.addEventListener("click", createNewFolder);
 document.querySelector("#refresh-button").addEventListener("click", loadFiles);
 trashToggle.addEventListener("click", async () => {
   trashMode = !trashMode;
@@ -5240,13 +5242,46 @@ document.querySelector("#dock-files-btn")?.addEventListener("click", () => {
   showLibrary();
 });
 
-document.querySelector("#dock-upload-btn")?.addEventListener("click", () => {
+const uploadSheetDialog = document.querySelector("#upload-sheet-dialog");
+const uploadSheetFilesBtn = document.querySelector("#upload-sheet-files-btn");
+const uploadSheetFolderBtn = document.querySelector("#upload-sheet-folder-btn");
+const uploadSheetNewFolderBtn = document.querySelector("#upload-sheet-new-folder-btn");
+const uploadSheetCloseBtn = document.querySelector("#upload-sheet-close-btn");
+
+function openUploadSheet() {
   if (!currentUser) {
-    startLoginButton.click();
+    startLoginButton?.click();
     return;
   }
   if (!checkCanUpload()) return;
+  uploadSheetDialog?.showModal();
+}
+
+document.querySelector("#dock-upload-btn")?.addEventListener("click", () => {
+  openUploadSheet();
+});
+
+uploadSheetCloseBtn?.addEventListener("click", () => {
+  uploadSheetDialog?.close();
+});
+
+uploadSheetDialog?.addEventListener("click", (e) => {
+  if (e.target === uploadSheetDialog) uploadSheetDialog.close();
+});
+
+uploadSheetFilesBtn?.addEventListener("click", () => {
+  uploadSheetDialog?.close();
   filePicker.click();
+});
+
+uploadSheetFolderBtn?.addEventListener("click", () => {
+  uploadSheetDialog?.close();
+  folderPicker.click();
+});
+
+uploadSheetNewFolderBtn?.addEventListener("click", () => {
+  uploadSheetDialog?.close();
+  void createNewFolder();
 });
 
 document.querySelector("#dock-vault-btn")?.addEventListener("click", () => {

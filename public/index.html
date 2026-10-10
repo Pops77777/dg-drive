@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <link rel="stylesheet" href="/style.css?v=26.1">
-    <script src="/app.js?v=26.1" defer></script>
+    <link rel="stylesheet" href="/style.css?v=28.0">
+    <script src="/app.js?v=28.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -251,17 +251,12 @@
               <span class="sidebar-brand-title">DGx Cloud</span>
             </div>
 
-            <!-- Long Search Pill -->
+            <!-- Universal search wrap -->
             <div class="topbar-search-wrap" id="topbar-search-wrap">
               <div class="universal-search-box">
                 <span class="search-icon">⌕</span>
                 <input type="search" id="universal-search" placeholder="Search all files..." autocomplete="off">
               </div>
-            </div>
-
-            <!-- Breadcrumbs pill for Files View -->
-            <div class="topbar-breadcrumb-pill hidden" id="topbar-breadcrumb-pill">
-              <span class="bc-crumb" id="topbar-bc-root">Root</span> <span class="bc-sep">/</span> <span class="bc-crumb" id="topbar-bc-folder">Projects</span> <span class="bc-sep">/</span> <span class="bc-current" id="topbar-bc-current">2026_Media</span>
             </div>
           </div>
 
@@ -586,14 +581,8 @@
             <!-- Toolbar Pills Row -->
             <div class="master-library-actions-bar" id="drive-sticky-toolbar">
               <div class="actions-pills-cluster">
-                <button class="toolbar-pill-btn pill-btn-gradient" id="upload-files-button" type="button" title="Upload files">
-                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span> Upload
-                </button>
                 <button class="toolbar-pill-btn" id="new-folder-button" type="button" title="Create folder">
                   <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> New Folder
-                </button>
-                <button class="toolbar-pill-btn" id="upload-folder-button" type="button" title="Upload folder">
-                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"/><polyline points="12 11 12 17"/><polyline points="9 14 12 11 15 14"/></svg></span> Folder
                 </button>
                 <button class="toolbar-pill-btn" id="trash-toggle" type="button" title="Trash bin">
                   <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span> Trash
@@ -1112,6 +1101,46 @@ curl "https://dgx-cloud.onrender.com/api/v1/files" \
           <button class="action-sheet-close-btn" id="folder-action-sheet-close-btn" type="button" aria-label="Close">✕</button>
         </div>
         <div class="action-sheet-actions" id="folder-action-sheet-actions"></div>
+      </div>
+    <!-- Upload Action Sheet Dialog for Mobile Dock '+' and Desktop -->
+    <dialog class="action-sheet-dialog upload-sheet-dialog" id="upload-sheet-dialog" aria-labelledby="upload-sheet-title">
+      <div class="action-sheet-panel">
+        <div class="action-sheet-drag-handle"></div>
+        <div class="action-sheet-header">
+          <div class="action-sheet-thumb-wrap">
+            <span class="action-sheet-file-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16,16 12,12 8,16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
+            </span>
+          </div>
+          <div class="action-sheet-details">
+            <strong class="action-sheet-name" id="upload-sheet-title">Upload to DGx Cloud</strong>
+            <span class="action-sheet-meta">Telegram MTProto 2.0 Encrypted Storage</span>
+          </div>
+          <button class="action-sheet-close-btn" id="upload-sheet-close-btn" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="action-sheet-actions">
+          <button class="upload-sheet-action-item" id="upload-sheet-files-btn" type="button">
+            <span class="action-item-icon">📄</span>
+            <div class="action-item-content">
+              <strong>Upload Files</strong>
+              <span>Select photos, videos, music, or documents from device</span>
+            </div>
+          </button>
+          <button class="upload-sheet-action-item" id="upload-sheet-folder-btn" type="button">
+            <span class="action-item-icon">📁</span>
+            <div class="action-item-content">
+              <strong>Upload Entire Folder</strong>
+              <span>Upload complete folder with subfolders batch</span>
+            </div>
+          </button>
+          <button class="upload-sheet-action-item" id="upload-sheet-new-folder-btn" type="button">
+            <span class="action-item-icon">➕</span>
+            <div class="action-item-content">
+              <strong>Create New Folder</strong>
+              <span>Create an empty folder in current directory</span>
+            </div>
+          </button>
+        </div>
       </div>
     </dialog>
 
