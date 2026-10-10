@@ -1915,7 +1915,11 @@ function renderLibrary() {
   dashboardView.dataset.dataSaver = String(dataSaverEnabled);
   renderCategories();
   renderBreadcrumbs();
-  if (trashToggle) trashToggle.textContent = trashMode ? "← Back to files" : "Trash";
+  if (trashToggle) {
+    trashToggle.title = trashMode ? "Back to files" : "Trash bin";
+    trashToggle.setAttribute("aria-label", trashMode ? "Back to files" : "Trash bin");
+    trashToggle.classList.toggle("is-active", trashMode);
+  }
   if (emptyTrashButton) {
     emptyTrashButton.classList.toggle("hidden", !trashMode);
     emptyTrashButton.disabled = !allTrashItems.length;
@@ -2227,6 +2231,19 @@ async function toggleFileStar(file) {
   }
 }
 
+const thumbObserver = typeof IntersectionObserver !== "undefined" ? new IntersectionObserver((entries) => {
+  for (const entry of entries) {
+    if (entry.isIntersecting) {
+      const img = entry.target;
+      if (img.dataset.src) {
+        img.src = img.dataset.src;
+        delete img.dataset.src;
+      }
+      thumbObserver.unobserve(img);
+    }
+  }
+}, { rootMargin: "150px" }) : null;
+
 function createFileCard(file) {
   const card = document.createElement("article");
   card.className = "library-file-card";
@@ -2266,7 +2283,13 @@ function createFileCard(file) {
     thumbnail.alt = "";
     thumbnail.loading = "lazy";
     thumbnail.decoding = "async";
-    thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
+    const srcUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
+    if (thumbObserver) {
+      thumbnail.dataset.src = srcUrl;
+      thumbObserver.observe(thumbnail);
+    } else {
+      thumbnail.src = srcUrl;
+    }
     thumbnail.addEventListener("error", () => {
       thumbnail.remove();
     }, { once: true });
@@ -5225,6 +5248,18 @@ document.querySelector("#sidebar-trash-btn")?.addEventListener("click", async ()
   }
   updateNavActive("trash");
 });
+
+// Auto-hide bottom dock on scroll (slides down when scrolling, reappears when scroll stops)
+let dockScrollTimer = null;
+window.addEventListener("scroll", () => {
+  const dock = document.querySelector("#mobile-bottom-dock");
+  if (!dock) return;
+  dock.classList.add("dock-scrolling-hidden");
+  window.clearTimeout(dockScrollTimer);
+  dockScrollTimer = window.setTimeout(() => {
+    dock.classList.remove("dock-scrolling-hidden");
+  }, 450);
+}, { passive: true });
 
 // Mobile Bottom Dock Actions
 document.querySelector("#dock-dash-btn")?.addEventListener("click", () => {

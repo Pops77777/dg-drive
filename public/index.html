@@ -13,8 +13,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <link rel="stylesheet" href="/style.css?v=28.1">
-    <script src="/app.js?v=28.1" defer></script>
+    <link rel="stylesheet" href="/style.css?v=29.0">
+    <script src="/app.js?v=29.0" defer></script>
   </head>
   <body>
     <!-- Hidden legacy anchors so app.js never throws -->
@@ -552,49 +552,37 @@
 
           <!-- MASTER LIBRARY / ALL FILES VIEW (100% Matching dgx_cloud_master_lib) -->
           <section class="master-library-view hidden" id="dashboard-view">
-            <!-- Breadcrumbs Toolbar -->
-            <div class="master-library-header-row">
-              <div class="master-breadcrumbs-left">
-                <button class="breadcrumb-back-btn hidden" id="folder-back-btn" type="button" aria-label="Go to parent folder">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-                  <span>Back</span>
-                </button>
-                <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path">
-                  <span>Root</span>
-                </nav>
-              </div>
-              <div class="master-breadcrumbs-right">
-                <!-- Premium Data Saver Toggle Next to Root Folder -->
-                <button class="premium-data-saver-btn data-saver-btn" id="data-saver-btn" type="button" title="Data Saver Mode: Save mobile internet by disabling heavy HD thumbnails">
-                  <span class="pds-dot"></span>
-                  <span class="pds-icon">⚡</span>
-                  <span class="pds-label">Data Saver: <b id="data-saver-status-text">OFF</b></span>
-                </button>
-              </div>
-              <div class="hidden">
-                <input id="file-search" type="search" placeholder="Search files…">
-                <button id="devices-button" type="button">Devices</button>
-                <button id="refresh-button" type="button">Refresh</button>
-              </div>
+            <!-- Hidden breadcrumbs & system anchors to preserve JS compatibility -->
+            <div class="hidden">
+              <nav class="master-breadcrumbs" id="breadcrumbs" aria-label="Folder path"></nav>
+              <button class="data-saver-btn" id="data-saver-btn" type="button"><b id="data-saver-status-text">OFF</b></button>
+              <input id="file-search" type="search" placeholder="Search files…">
+              <button id="devices-button" type="button">Devices</button>
+              <button id="refresh-button" type="button">Refresh</button>
             </div>
 
-            <!-- Toolbar Pills Row -->
+            <!-- Compact Sticky Toolbar Row (New Folder, Trash, Grid/View, Sort/Name) -->
             <div class="master-library-actions-bar" id="drive-sticky-toolbar">
               <div class="actions-pills-cluster">
-                <button class="toolbar-pill-btn" id="new-folder-button" type="button" title="Create folder">
-                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span> New Folder
+                <button class="toolbar-icon-btn hidden" id="folder-back-btn" type="button" title="Back to parent folder" aria-label="Go to parent folder">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
                 </button>
-                <button class="toolbar-pill-btn" id="trash-toggle" type="button" title="Trash bin">
-                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span> Trash
+                <button class="toolbar-icon-btn" id="new-folder-button" type="button" title="Create folder" aria-label="Create folder">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
                 </button>
-                <button class="toolbar-pill-btn pill-btn-danger hidden" id="empty-trash" type="button" title="Empty trash">
-                  <span class="pill-btn-icon">✕</span> Delete all
+                <button class="toolbar-icon-btn" id="trash-toggle" type="button" title="Trash bin" aria-label="Trash bin">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                 </button>
-                <button class="toolbar-pill-btn" id="view-mode-toggle" type="button" title="View mode">
-                  <span class="pill-btn-icon" id="view-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> <span id="view-mode-label">Large View</span>
+                <button class="toolbar-icon-btn pill-btn-danger hidden" id="empty-trash" type="button" title="Empty trash" aria-label="Empty trash">
+                  ✕
                 </button>
-                <button class="toolbar-pill-btn" id="sort-mode-toggle" type="button" title="Sort files">
-                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/></svg></span> <span id="sort-mode-label">Sort: Newest ▾</span>
+                <button class="toolbar-icon-btn" id="view-mode-toggle" type="button" title="View mode" aria-label="View mode">
+                  <span class="pill-btn-icon" id="view-mode-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span>
+                  <span class="hidden" id="view-mode-label"></span>
+                </button>
+                <button class="toolbar-icon-btn" id="sort-mode-toggle" type="button" title="Sort files" aria-label="Sort files">
+                  <span class="pill-btn-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="7 15 12 20 17 15"/><polyline points="7 9 12 4 17 9"/></svg></span>
+                  <span class="hidden" id="sort-mode-label"></span>
                 </button>
               </div>
               <div class="actions-meta-cluster">
@@ -1109,38 +1097,17 @@ curl "https://dgx-cloud.onrender.com/api/v1/files" \
       <div class="action-sheet-panel">
         <div class="action-sheet-drag-handle"></div>
         <div class="action-sheet-header">
-          <div class="action-sheet-thumb-wrap">
-            <span class="action-sheet-file-icon" style="background: rgba(37,99,235,0.1); color: #2563eb;">
-              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16,16 12,12 8,16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"/></svg>
-            </span>
-          </div>
-          <div class="action-sheet-details">
-            <strong class="action-sheet-name" id="upload-sheet-title">Upload to DGx Cloud</strong>
-            <span class="action-sheet-meta">Telegram MTProto 2.0 Encrypted Storage</span>
-          </div>
+          <strong class="action-sheet-name" id="upload-sheet-title">Upload</strong>
           <button class="action-sheet-close-btn" id="upload-sheet-close-btn" type="button" aria-label="Close">✕</button>
         </div>
-        <div class="action-sheet-actions">
-          <button class="upload-sheet-action-item" id="upload-sheet-files-btn" type="button">
-            <span class="action-item-icon">📄</span>
-            <div class="action-item-content">
-              <strong>Upload Files</strong>
-              <span>Select photos, videos, music, or documents from device</span>
-            </div>
+        <div class="upload-options-simple-grid">
+          <button class="upload-simple-card" id="upload-sheet-folder-btn" type="button">
+            <span class="upload-simple-icon">📁</span>
+            <span class="upload-simple-label">Folder</span>
           </button>
-          <button class="upload-sheet-action-item" id="upload-sheet-folder-btn" type="button">
-            <span class="action-item-icon">📁</span>
-            <div class="action-item-content">
-              <strong>Upload Entire Folder</strong>
-              <span>Upload complete folder with subfolders batch</span>
-            </div>
-          </button>
-          <button class="upload-sheet-action-item" id="upload-sheet-new-folder-btn" type="button">
-            <span class="action-item-icon">➕</span>
-            <div class="action-item-content">
-              <strong>Create New Folder</strong>
-              <span>Create an empty folder in current directory</span>
-            </div>
+          <button class="upload-simple-card" id="upload-sheet-files-btn" type="button">
+            <span class="upload-simple-icon">📄</span>
+            <span class="upload-simple-label">Files</span>
           </button>
         </div>
       </div>
@@ -1247,30 +1214,25 @@ curl "https://dgx-cloud.onrender.com/api/v1/files" \
     </dialog>
 
     <!-- Mobile Bottom Dock (Matching mobile view mockup) -->
+    <!-- Mobile Bottom Dock (Icon-only compact) -->
     <nav class="mobile-bottom-dock" id="mobile-bottom-dock">
-      <button class="dock-btn is-active" id="dock-dash-btn" type="button" title="Dashboard">
+      <button class="dock-btn is-active" id="dock-dash-btn" type="button" title="Dashboard" aria-label="Dashboard">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12L12 3l9 9"/><path d="M5 10v9a1 1 0 001 1h4v-5h4v5h4a1 1 0 001-1v-9"/></svg></span>
-        <span class="dock-label">Dashboard</span>
       </button>
-      <button class="dock-btn" id="dock-files-btn" type="button" title="Files">
+      <button class="dock-btn" id="dock-files-btn" type="button" title="Files" aria-label="Files">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg></span>
-        <span class="dock-label">Files</span>
       </button>
-      <button class="dock-btn dock-btn-upload" id="dock-upload-btn" type="button" title="Upload file">
-        <span class="dock-icon-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
-        <span class="dock-label">Upload</span>
+      <button class="dock-btn dock-btn-upload" id="dock-upload-btn" type="button" title="Upload" aria-label="Upload">
+        <span class="dock-icon-plus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
       </button>
-      <button class="dock-btn" id="dock-vault-btn" type="button" title="Vault">
+      <button class="dock-btn" id="dock-vault-btn" type="button" title="Vault" aria-label="Vault">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></span>
-        <span class="dock-label">Vault</span>
       </button>
-      <button class="dock-btn hidden" id="dock-api-btn" type="button" title="Developer API">
+      <button class="dock-btn hidden" id="dock-api-btn" type="button" title="Developer API" aria-label="Developer API">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
-        <span class="dock-label">API</span>
       </button>
-      <button class="dock-btn" id="dock-profile-btn" type="button" title="Profile">
+      <button class="dock-btn" id="dock-profile-btn" type="button" title="Profile" aria-label="Profile">
         <span class="dock-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
-        <span class="dock-label">Profile</span>
       </button>
     </nav>
   </body>
