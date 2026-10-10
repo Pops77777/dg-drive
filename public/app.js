@@ -176,7 +176,7 @@ let clipboardItems = null;
 let currentUser = null;
 let libraryViewMode = window.localStorage.getItem("dgcloud-library-view") || "medium";
 let librarySortMode = window.localStorage.getItem("dgcloud-library-sort") || "name";
-let dataSaverEnabled = window.localStorage.getItem("dgcloud-data-saver") === "true";
+let dataSaverEnabled = window.localStorage.getItem("dgcloud-data-saver") !== "false";
 let adminSearchTimer;
 let adminViewedAccount = null;
 let adminViewedLibrary = null;
@@ -580,7 +580,9 @@ async function showSignedIn(user, justAuthenticatedWithTelegram = false) {
   accountBadge.classList.remove("hidden");
   accountAvatarImage.classList.add("hidden");
   accountAvatarFallback.classList.remove("hidden");
-  accountAvatarImage.src = apiUrl(`/api/profile-photo?v=${Date.now()}`);
+  if (!dataSaverEnabled) {
+    accountAvatarImage.src = apiUrl(`/api/profile-photo?v=${Date.now()}`);
+  }
   accountBadge.disabled = false;
   accountBadge.title = "Open account profile";
 
@@ -1633,9 +1635,13 @@ function updateInspectorPane(file) {
 
   if (isVid) {
     if (inspectorImg) {
-      inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
-      inspectorImg.style.display = "block";
-      inspectorImg.classList.remove("hidden");
+      if (!dataSaverEnabled) {
+        inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
+        inspectorImg.style.display = "block";
+        inspectorImg.classList.remove("hidden");
+      } else {
+        inspectorImg.style.display = "none";
+      }
     }
     if (inspectorVideo) inspectorVideo.classList.add("hidden");
     if (inspectorPlay) {
@@ -1644,9 +1650,13 @@ function updateInspectorPane(file) {
     }
   } else if (isImg) {
     if (inspectorImg) {
-      inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=high`);
-      inspectorImg.style.display = "block";
-      inspectorImg.classList.remove("hidden");
+      if (!dataSaverEnabled) {
+        inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=high`);
+        inspectorImg.style.display = "block";
+        inspectorImg.classList.remove("hidden");
+      } else {
+        inspectorImg.style.display = "none";
+      }
     }
     if (inspectorVideo) inspectorVideo.classList.add("hidden");
     if (inspectorPlay) inspectorPlay.classList.add("hidden");
@@ -2268,14 +2278,7 @@ function createFileCard(file) {
       thumbnail.decoding = "async";
       thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
       thumbnail.addEventListener("error", () => {
-        if (category === "videos") {
-          createVideoThumbnail(file, thumbnail);
-        } else if (category === "photos") {
-          thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}`);
-          thumbnail.addEventListener("error", () => thumbnail.remove(), { once: true });
-        } else {
-          thumbnail.remove();
-        }
+        thumbnail.remove();
       }, { once: true });
       open.append(thumbnail);
     } else {
@@ -3851,20 +3854,24 @@ async function cancelPhoneLoginAndChange() {
 async function pollLoginStatus() {
   try {
     const result = await api("/api/telegram/status");
-    if (result.step === "waiting_for_code") {
+    if (result.step === "waiting_for_code" || result.step === "waiting_for_phone_code") {
+      activeAuthMethod = "phone_otp";
       document.querySelector("#phone-login-panel")?.classList.add("hidden");
       qrLoginPanel?.classList.add("hidden");
       document.querySelector("#otp-step-panel")?.classList.remove("hidden");
       passwordStep?.classList.add("hidden");
       authSubmit?.classList.add("hidden");
       const phoneDisplay = document.querySelector("#otp-phone-display");
-      if (phoneDisplay && result.phone) {
-        phoneDisplay.textContent = result.phone;
+      const phoneInput = document.querySelector("#phone-number-input");
+      const countryInput = document.querySelector("#phone-country-code");
+      const resolvedPhone = result.phone || (phoneInput && phoneInput.value ? `${countryInput?.value || ""}${phoneInput.value}` : null);
+      if (phoneDisplay && resolvedPhone) {
+        phoneDisplay.textContent = resolvedPhone;
       }
       if (result.error) {
         setMessage(authMessage, result.error, true);
       } else {
-        setMessage(authMessage, "Verification code sent to your Telegram app.");
+        setMessage(authMessage, "Verification code sent to your Telegram app. Enter it below.");
       }
       startOtpCountdown(result.resendIn || 60);
       const otpBtn = document.querySelector("#otp-submit-btn");
@@ -3988,15 +3995,7 @@ async function pollLoginStatus() {
       }
       return;
     }
-    if (result.step === "waiting_for_phone_code") {
-      activeAuthMethod = "phone_otp";
-      document.querySelector("#phone-login-panel")?.classList.add("hidden");
-      document.querySelector("#otp-step-panel")?.classList.remove("hidden");
-      qrLoginPanel?.classList.add("hidden");
-      pollTimer = window.setTimeout(pollLoginStatus, 800);
-      return;
-    }
-    if (activeAuthMethod === "qr" || activeAuthMethod === "phone_otp") {
+    if (activeAuthMethod === "qr" || activeAuthMethod === "phone_otp" || activeAuthMethod === "phone") {
       setMessage(authMessage, result.step === "starting" ? "Connecting securely to Telegram…" : "Checking Telegram sign-in…");
       pollTimer = window.setTimeout(pollLoginStatus, 700);
     }
