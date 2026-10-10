@@ -175,7 +175,7 @@ let selectedItems = new Set();
 let clipboardItems = null;
 let currentUser = null;
 let libraryViewMode = window.localStorage.getItem("dgcloud-library-view") || "medium";
-let librarySortMode = window.localStorage.getItem("dgcloud-library-sort") || "name";
+let librarySortMode = window.localStorage.getItem("dgcloud-library-sort") || "date-desc";
 let dataSaverEnabled = window.localStorage.getItem("dgcloud-data-saver") !== "false";
 let adminSearchTimer;
 let adminViewedAccount = null;
@@ -2284,12 +2284,7 @@ function createFileCard(file) {
     thumbnail.loading = "lazy";
     thumbnail.decoding = "async";
     const srcUrl = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
-    if (thumbObserver) {
-      thumbnail.dataset.src = srcUrl;
-      thumbObserver.observe(thumbnail);
-    } else {
-      thumbnail.src = srcUrl;
-    }
+    thumbnail.src = srcUrl;
     thumbnail.addEventListener("error", () => {
       thumbnail.remove();
     }, { once: true });
@@ -3115,55 +3110,14 @@ function openPreview(file) {
 }
 
 function updateFloatingUploadToast(fileName, percent, loaded, total, statusText = "") {
-  let toast = document.querySelector("#floating-upload-toast");
-  if (!toast) {
-    toast = document.createElement("div");
-    toast.id = "floating-upload-toast";
-    toast.className = "floating-upload-toast";
-    toast.innerHTML = `
-      <div class="floating-upload-toast-header">
-        <span class="floating-upload-toast-title">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#6366f1" stroke-width="2.5"><polyline points="16 16 12 12 8 16"></polyline><line x1="12" y1="12" x2="12" y2="21"></line><path d="M20.39 18.39A5 5 0 0018 9h-1.26A8 8 0 103 16.3"></path></svg>
-          <span class="floating-upload-name"></span>
-        </span>
-        <span class="floating-upload-toast-pct">0%</span>
-      </div>
-      <div class="floating-upload-toast-progress">
-        <div class="floating-upload-toast-bar" style="width: 0%"></div>
-      </div>
-      <div class="floating-upload-toast-meta">
-        <span class="floating-upload-bytes">0 / 0</span>
-        <span class="floating-upload-speed">Live Uploading</span>
-      </div>
-    `;
-    document.body.append(toast);
-  }
-  const nameEl = toast.querySelector(".floating-upload-name");
-  const pctEl = toast.querySelector(".floating-upload-toast-pct");
-  const barEl = toast.querySelector(".floating-upload-toast-bar");
-  const bytesEl = toast.querySelector(".floating-upload-bytes");
-  const speedEl = toast.querySelector(".floating-upload-speed");
-
-  if (nameEl) nameEl.textContent = fileName;
-  if (pctEl) pctEl.textContent = `${percent}%`;
-  if (barEl) barEl.style.width = `${percent}%`;
-  if (bytesEl) bytesEl.textContent = `${formatSize(loaded)} / ${formatSize(total)}`;
-  if (speedEl && statusText) speedEl.textContent = statusText;
+  // Intrusive bottom toast suppressed: upload status is tracked via topbar upload pill and on-demand popover
+  const toast = document.querySelector("#floating-upload-toast");
+  if (toast) toast.remove();
 }
 
 function removeFloatingUploadToast() {
   const toast = document.querySelector("#floating-upload-toast");
-  if (toast) {
-    const bar = toast.querySelector(".floating-upload-toast-bar");
-    const pct = toast.querySelector(".floating-upload-toast-pct");
-    const speed = toast.querySelector(".floating-upload-speed");
-    if (bar) bar.style.width = "100%";
-    if (pct) pct.textContent = "100%";
-    if (speed) speed.textContent = "✓ Upload Complete!";
-    setTimeout(() => {
-      toast.remove();
-    }, 2000);
-  }
+  if (toast) toast.remove();
 }
 
 // Live Upload Controller: High-Frequency 50ms Interpolation & Speedometer
@@ -3630,7 +3584,7 @@ async function uploadMany(files, relativePathForFile = () => "") {
     };
   }
   if (popover) {
-    popover.classList.remove("hidden");
+    popover.classList.add("hidden");
   }
   if (pill) {
     pill.classList.remove("hidden");
@@ -4645,11 +4599,12 @@ function updateControlsUI() {
         : "Grid view (click for Large)";
   }
 
-  if (librarySortSelect) librarySortSelect.value = ["name", "date-desc", "date-asc"].includes(librarySortMode) ? librarySortMode : "name";
+  if (librarySortSelect) librarySortSelect.value = ["date-desc", "date-asc", "name"].includes(librarySortMode) ? librarySortMode : "date-desc";
   if (sortModeLabel) {
-    sortModeLabel.textContent = librarySortMode === "name" ? "Name"
-      : librarySortMode === "date-desc" ? "Newest"
-      : "Oldest";
+    sortModeLabel.textContent = librarySortMode === "date-asc" ? "Old" : "New";
+  }
+  if (sortModeToggle) {
+    sortModeToggle.title = librarySortMode === "date-asc" ? "Sorted: Oldest (click for New)" : "Sorted: Newest (click for Old)";
   }
 
   if (dataSaverToggle) dataSaverToggle.checked = dataSaverEnabled;
@@ -4673,8 +4628,7 @@ viewModeToggle?.addEventListener("click", () => {
 });
 
 sortModeToggle?.addEventListener("click", () => {
-  const nextSort = librarySortMode === "name" ? "date-desc" : librarySortMode === "date-desc" ? "date-asc" : "name";
-  librarySortMode = nextSort;
+  librarySortMode = librarySortMode === "date-asc" ? "date-desc" : "date-asc";
   window.localStorage.setItem("dgcloud-library-sort", librarySortMode);
   updateControlsUI();
   renderLibrary();
@@ -5249,17 +5203,23 @@ document.querySelector("#sidebar-trash-btn")?.addEventListener("click", async ()
   updateNavActive("trash");
 });
 
-// Auto-hide bottom dock on scroll (slides down when scrolling, reappears when scroll stops)
+// Auto-hide bottom dock on scroll (slides down when scrolling, reappears when scrolling stops)
 let dockScrollTimer = null;
-window.addEventListener("scroll", () => {
+const handleDockScrollHide = () => {
   const dock = document.querySelector("#mobile-bottom-dock");
+  const speedDial = document.querySelector("#upload-speed-dial");
+  if (speedDial && !speedDial.classList.contains("hidden")) {
+    speedDial.classList.add("hidden");
+  }
   if (!dock) return;
   dock.classList.add("dock-scrolling-hidden");
   window.clearTimeout(dockScrollTimer);
   dockScrollTimer = window.setTimeout(() => {
     dock.classList.remove("dock-scrolling-hidden");
-  }, 450);
-}, { passive: true });
+  }, 380);
+};
+window.addEventListener("scroll", handleDockScrollHide, { passive: true, capture: true });
+document.addEventListener("scroll", handleDockScrollHide, { passive: true, capture: true });
 
 // Mobile Bottom Dock Actions
 document.querySelector("#dock-dash-btn")?.addEventListener("click", () => {
@@ -5277,46 +5237,45 @@ document.querySelector("#dock-files-btn")?.addEventListener("click", () => {
   showLibrary();
 });
 
-const uploadSheetDialog = document.querySelector("#upload-sheet-dialog");
-const uploadSheetFilesBtn = document.querySelector("#upload-sheet-files-btn");
-const uploadSheetFolderBtn = document.querySelector("#upload-sheet-folder-btn");
-const uploadSheetNewFolderBtn = document.querySelector("#upload-sheet-new-folder-btn");
-const uploadSheetCloseBtn = document.querySelector("#upload-sheet-close-btn");
+// Floating Speed Dial for Upload (+ Button)
+const uploadSpeedDial = document.querySelector("#upload-speed-dial");
+const speedDialFolderBtn = document.querySelector("#speed-dial-folder-btn");
+const speedDialFilesBtn = document.querySelector("#speed-dial-files-btn");
 
-function openUploadSheet() {
+function toggleUploadSpeedDial() {
   if (!currentUser) {
     startLoginButton?.click();
     return;
   }
   if (!checkCanUpload()) return;
-  uploadSheetDialog?.showModal();
+  uploadSpeedDial?.classList.toggle("hidden");
 }
 
-document.querySelector("#dock-upload-btn")?.addEventListener("click", () => {
-  openUploadSheet();
+function closeUploadSpeedDial() {
+  uploadSpeedDial?.classList.add("hidden");
+}
+
+document.querySelector("#dock-upload-btn")?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  toggleUploadSpeedDial();
 });
 
-uploadSheetCloseBtn?.addEventListener("click", () => {
-  uploadSheetDialog?.close();
+speedDialFolderBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  closeUploadSpeedDial();
+  if (folderPicker) folderPicker.click();
 });
 
-uploadSheetDialog?.addEventListener("click", (e) => {
-  if (e.target === uploadSheetDialog) uploadSheetDialog.close();
+speedDialFilesBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  closeUploadSpeedDial();
+  if (filePicker) filePicker.click();
 });
 
-uploadSheetFilesBtn?.addEventListener("click", () => {
-  uploadSheetDialog?.close();
-  filePicker.click();
-});
-
-uploadSheetFolderBtn?.addEventListener("click", () => {
-  uploadSheetDialog?.close();
-  folderPicker.click();
-});
-
-uploadSheetNewFolderBtn?.addEventListener("click", () => {
-  uploadSheetDialog?.close();
-  void createNewFolder();
+document.addEventListener("click", (e) => {
+  if (uploadSpeedDial && !uploadSpeedDial.contains(e.target) && !e.target.closest("#dock-upload-btn")) {
+    closeUploadSpeedDial();
+  }
 });
 
 document.querySelector("#dock-vault-btn")?.addEventListener("click", () => {

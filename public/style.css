@@ -383,8 +383,7 @@ html[data-theme="dark"] .dialog-close, html[data-theme="dark"] .preview-dialog .
 .topnav a:hover { color: #4968e1; }
 .header-actions { margin-left: 0; }
 .file-preview { position: relative; overflow: hidden; padding: 0; border: 0; color: inherit; cursor: pointer; }
-.file-thumbnail { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: auto; background: #f3f5fb; }
-.file-thumbnail:not([src]), .file-thumbnail[src=""] { display: none; }
+.file-thumbnail { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: auto; background: rgba(140, 160, 200, 0.08); border-radius: 9px; }
 .thumbnail-play { position: absolute; right: 4px; bottom: 4px; display: grid; width: 19px; height: 19px; place-items: center; border: 1px solid rgba(255,255,255,.8); border-radius: 50%; background: rgba(24,37,62,.72); color: #fff; font-size: 8px; }
 .library-dialog, .preview-dialog { width: min(460px, calc(100% - 32px)); max-width: none; padding: 27px; border: 1px solid #e5eaf3; border-radius: 17px; background: #fff; color: var(--ink); box-shadow: 0 24px 90px rgba(22,35,65,.22); }
 .library-dialog::backdrop, .preview-dialog::backdrop { background: rgba(18,27,45,.55); backdrop-filter: blur(3px); }
@@ -4403,29 +4402,7 @@ html[data-theme="dark"] .share-box-row input {
     width: 100% !important;
     position: static !important;
   }
-  .mobile-bottom-dock {
-    display: flex !important;
-    position: fixed !important;
-    bottom: 12px !important;
-    left: 12px !important;
-    right: 12px !important;
-    height: 64px !important;
-    background: rgba(255, 255, 255, 0.88) !important;
-    backdrop-filter: blur(28px) saturate(200%) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(200%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.85) !important;
-    border-radius: 36px !important;
-    box-shadow: 0 10px 32px rgba(15, 23, 42, 0.14) !important;
-    align-items: center !important;
-    justify-content: space-around !important;
-    padding: 0 8px !important;
-    z-index: 1000 !important;
-  }
-  html[data-theme="dark"] .mobile-bottom-dock {
-    background: rgba(18, 24, 38, 0.88) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45) !important;
-  }
+  /* Mobile bottom dock unified at root */
   .dock-btn {
     display: flex !important;
     flex-direction: column !important;
@@ -5316,31 +5293,7 @@ html[data-theme="dark"] .vault-dialog {
   .master-inspector-pane {
     display: none !important; /* Hide inspector on mobile to match mockup */
   }
-  .mobile-bottom-dock {
-    display: flex !important;
-    position: fixed !important;
-    bottom: 12px !important;
-    left: 12px !important;
-    right: 12px !important;
-    height: 74px !important;
-    background: rgba(255, 255, 255, 0.94) !important;
-    backdrop-filter: blur(20px) saturate(190%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(190%) !important;
-    border: 1.5px solid rgba(255, 255, 255, 0.95) !important;
-    border-radius: 40px !important;
-    box-shadow: 0 10px 32px rgba(15, 23, 42, 0.16) !important;
-    align-items: center !important;
-    justify-content: space-around !important;
-    padding: 0 8px !important;
-    z-index: 9999 !important;
-    transform: translateZ(0);
-    will-change: transform;
-  }
-  html[data-theme="dark"] .mobile-bottom-dock {
-    background: rgba(18, 24, 38, 0.94) !important;
-    border-color: rgba(255, 255, 255, 0.12) !important;
-    box-shadow: 0 10px 32px rgba(0, 0, 0, 0.45) !important;
-  }
+  /* Mobile bottom dock unified at root */
   .dock-btn {
     display: flex !important;
     flex-direction: column !important;
@@ -7265,46 +7218,61 @@ html[data-theme="dark"] .toolbar-icon-btn.is-active {
 }
 
 .toolbar-icon-btn svg {
-  width: 16px !important;
-  height: 16px !important;
+  width: 15px !important;
+  height: 15px !important;
+}
+
+.sort-toolbar-btn {
+  width: auto !important;
+  min-width: 58px !important;
+  padding: 0 8px !important;
+  gap: 5px !important;
+}
+.sort-mode-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.2px !important;
+  line-height: 1 !important;
 }
 
 /* 4. Sleek Compact Mobile Bottom Dock with Auto-Hide on Scroll */
 .mobile-bottom-dock {
-  height: 48px !important;
-  max-width: 290px !important;
+  height: 44px !important;
+  max-width: 250px !important;
   margin: 0 auto !important;
-  bottom: 14px !important;
+  bottom: 12px !important;
   left: 50% !important;
+  right: auto !important;
   transform: translateX(-50%) translateY(0) !important;
   border-radius: 999px !important;
-  padding: 0 10px !important;
+  padding: 0 8px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: space-around !important;
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1) !important;
   z-index: 1000 !important;
-  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease !important;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease !important;
 }
 
 html[data-theme="dark"] .mobile-bottom-dock {
   background: #141b2d !important;
   border-color: rgba(255, 255, 255, 0.1) !important;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.5) !important;
 }
 
 /* Auto-hide while scrolling in either direction */
 .mobile-bottom-dock.dock-scrolling-hidden {
-  transform: translateX(-50%) translateY(140%) !important;
+  transform: translateX(-50%) translateY(160%) !important;
   opacity: 0 !important;
   pointer-events: none !important;
 }
 
 .dock-btn {
-  width: 36px !important;
-  height: 36px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
   border-radius: 50% !important;
   padding: 0 !important;
   display: flex !important;
@@ -7314,6 +7282,7 @@ html[data-theme="dark"] .mobile-bottom-dock {
   border: none !important;
   color: #64748b !important;
   cursor: pointer !important;
+  transition: color 0.12s, background-color 0.12s !important;
 }
 
 html[data-theme="dark"] .dock-btn {
@@ -7331,17 +7300,75 @@ html[data-theme="dark"] .dock-btn.is-active {
 }
 
 .dock-btn svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 17px !important;
+  height: 17px !important;
 }
 
 .dock-btn-upload {
   background: #2563eb !important;
   color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35) !important;
 }
 .dock-btn-upload:hover,
 .dock-btn-upload:active {
   background: #1d4ed8 !important;
+}
+
+/* Floating Upload Speed Dial (Folder & File floating pills directly above + button) */
+.upload-speed-dial {
+  position: fixed !important;
+  bottom: 64px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+  z-index: 1005 !important;
+  animation: speedDialFadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+@keyframes speedDialFadeUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.94); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+.upload-speed-dial.hidden {
+  display: none !important;
+}
+.speed-dial-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 6px 14px !important;
+  border-radius: 999px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #1e293b !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12) !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  transition: transform 0.12s ease, background 0.12s ease !important;
+}
+.speed-dial-btn:hover,
+.speed-dial-btn:active {
+  transform: scale(1.04) !important;
+  background: #f1f5f9 !important;
+}
+html[data-theme="dark"] .speed-dial-btn {
+  background: #141b2d !important;
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  color: #f1f5f9 !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5) !important;
+}
+html[data-theme="dark"] .speed-dial-btn:hover,
+html[data-theme="dark"] .speed-dial-btn:active {
+  background: #1e293b !important;
+}
+.speed-dial-btn svg {
+  width: 17px !important;
+  height: 17px !important;
+  color: #3b82f6 !important;
 }
 
 /* 5. Clean 2-Card Upload Sheet Modal (Folder & Files) */
