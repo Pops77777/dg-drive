@@ -7086,7 +7086,8 @@ html[data-theme="dark"] .ep-delete { background: #7f1d1d; color: #fca5a5; }
 .master-inspector-pane,
 #drive-sticky-toolbar,
 .toolbar-pill-btn,
-.sidebar-brand-box {
+.sidebar-brand-box,
+.mobile-bottom-dock {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -7106,20 +7107,22 @@ html[data-theme="dark"] body {
 .media-categories-panel,
 .recent-uploads-panel,
 .category-pill-card,
-.library-file-card {
+.library-file-card,
+.mobile-bottom-dock {
   background: #ffffff !important;
   border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
 }
 
 html[data-theme="dark"] .master-glass-card,
 html[data-theme="dark"] .media-categories-panel,
 html[data-theme="dark"] .recent-uploads-panel,
 html[data-theme="dark"] .category-pill-card,
-html[data-theme="dark"] .library-file-card {
+html[data-theme="dark"] .library-file-card,
+html[data-theme="dark"] .mobile-bottom-dock {
   background: #141b2d !important;
   border-color: rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
 }
 
 /* 3. PERMANENT STICKY TOOLBAR (New Folder, Trash, Grid/View, Name/Sort) */
