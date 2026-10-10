@@ -3157,6 +3157,94 @@ function removeFloatingUploadToast() {
   }
 }
 
+// Live Upload Controller: High-Frequency 50ms Interpolation & Speedometer
+class UploadProgressTracker {
+  constructor(fileName, totalSize, onUpdate) {
+    this.fileName = fileName;
+    this.totalSize = Math.max(1, totalSize);
+    this.onUpdate = onUpdate;
+    this.targetBytes = 0;
+    this.displayedBytes = 0;
+    this.lastTime = performance.now();
+    this.speed = 0;
+    this.isSyncing = false;
+    this.isDone = false;
+
+    // Fire initial state immediately
+    this.tick();
+    // Continuous 50ms smooth interpolation loop
+    this.timer = setInterval(() => this.tick(), 50);
+  }
+
+  setTarget(bytes, speed) {
+    this.targetBytes = Math.min(this.totalSize, Math.max(this.targetBytes, bytes));
+    if (speed > 0) this.speed = speed;
+  }
+
+  setSyncing() {
+    this.isSyncing = true;
+    this.targetBytes = Math.floor(this.totalSize * 0.98);
+  }
+
+  setDone(success = true) {
+    this.isDone = true;
+    this.isSyncing = false;
+    this.targetBytes = this.totalSize;
+    this.displayedBytes = this.totalSize;
+    this.tick();
+    clearInterval(this.timer);
+  }
+
+  tick() {
+    const now = performance.now();
+    const dt = Math.max(0.016, (now - this.lastTime) / 1000);
+    this.lastTime = now;
+
+    if (!this.isDone) {
+      if (this.displayedBytes < this.targetBytes) {
+        const step = Math.max((this.targetBytes - this.displayedBytes) * 0.45, (this.speed || 300000) * dt);
+        this.displayedBytes = Math.min(this.targetBytes, this.displayedBytes + step);
+      } else if (this.isSyncing && this.displayedBytes < this.totalSize * 0.98) {
+        this.displayedBytes = Math.min(this.totalSize * 0.98, this.displayedBytes + (this.totalSize * 0.02 * dt));
+      }
+    }
+
+    const pct = Math.min(this.isDone ? 100 : 98, Math.round((this.displayedBytes / this.totalSize) * 100));
+    const speedStr = this.isDone
+      ? "✓ Completed"
+      : this.isSyncing
+        ? "Syncing Telegram Cloud…"
+        : this.speed > 0
+          ? `${formatSize(this.speed)}/s`
+          : "Uploading…";
+
+    const detailedText = this.isDone
+      ? `100% · ${formatSize(this.totalSize)} / ${formatSize(this.totalSize)}`
+      : this.isSyncing
+        ? `Syncing 98% · ${formatSize(this.totalSize)} / ${formatSize(this.totalSize)}`
+        : `Uploading ${pct}% · ${formatSize(this.displayedBytes)} / ${formatSize(this.totalSize)}`;
+
+    const statusMessage = this.isDone
+      ? "✓ Saved in Telegram Cloud!"
+      : this.isSyncing
+        ? "Syncing with Telegram Cloud…"
+        : `${detailedText} (${speedStr})`;
+
+    this.onUpdate({
+      percent: this.isDone ? 100 : Math.max(1, pct),
+      displayedBytes: Math.round(this.displayedBytes),
+      totalBytes: this.totalSize,
+      speedText: speedStr,
+      detailedText,
+      statusMessage,
+    });
+  }
+
+  destroy() {
+    clearInterval(this.timer);
+  }
+}
+
 function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
   return new Promise((resolve) => {
     if (!checkCanUpload()) {
@@ -3174,7 +3262,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
     status.textContent = "Waiting…";
     const progress = document.createElement("progress");
     progress.max = 100;
-    progress.value = 0;
+    progress.value = 1;
 
     let aborted = false;
     let resumeFn = null;
@@ -3182,6 +3270,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
 
     const cancelBtn = createButton("Cancel", "queue-cancel", () => {
       aborted = true;
+      if (tracker) tracker.destroy();
       if (currentXhr) currentXhr.abort();
       status.textContent = "Cancelled";
       status.classList.add("queue-error");
@@ -3218,17 +3307,34 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
     const finish = (success) => {
       if (settled) return;
       settled = true;
+      if (tracker) tracker.destroy();
       cancelBtn.disabled = true;
       resumeBtn.classList.add("hidden");
       resolve(success);
     };
 
-    // Telegram session token for authenticated MTProto uploads
+    // Live continuous tracker for byte-by-byte updates & speedometer
+    const tracker = new UploadProgressTracker(file.name, file.size, (info) => {
+      progress.value = info.percent;
+      status.textContent = info.statusMessage;
+
+      const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
+      cards.forEach((card) => {
+        const bar = card.querySelector(".card-upload-bar");
+        const txt = card.querySelector(".card-upload-status-text");
+        if (bar) bar.style.width = `${info.percent}%`;
+        if (txt) txt.textContent = info.statusMessage;
+      });
+
+      updateFloatingUploadToast(file.name, info.percent, info.displayedBytes, info.totalBytes, info.speedText);
+      onProgress(info.displayedBytes);
+    });
+
     const tgSession = localStorage.getItem("dgx_tg_session") || "";
     const userSession = localStorage.getItem("dgx_user_session") || "";
 
-    // Fast direct upload for very small files (<= 1MB)
-    if (file.size <= 1024 * 1024) {
+    // Files <= 512KB use fast direct upload
+    if (file.size <= 512 * 1024) {
       const xhr = new XMLHttpRequest();
       currentXhr = xhr;
       const params = new URLSearchParams();
@@ -3244,48 +3350,25 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
         xhr.setRequestHeader("Authorization", `Bearer ${userSession}`);
       }
 
-      const speedTracker = { lastTime: performance.now(), lastLoaded: 0, speed: 0 };
+      let lastTime = performance.now();
+      let lastLoaded = 0;
+      let currentSpeed = 0;
+
       xhr.upload.addEventListener("progress", (event) => {
         const loadedBytes = event.loaded || 0;
-        const totalBytes = (event.lengthComputable && event.total) ? event.total : file.size;
-        const percent = Math.min(99, Math.round((loadedBytes / totalBytes) * 100));
-        progress.value = percent;
-
         const now = performance.now();
-        const dt = (now - speedTracker.lastTime) / 1000;
-        if (dt >= 0.08 && loadedBytes > speedTracker.lastLoaded) {
-          const instantSpeed = (loadedBytes - speedTracker.lastLoaded) / dt;
-          speedTracker.speed = speedTracker.speed === 0 ? instantSpeed : (speedTracker.speed * 0.65 + instantSpeed * 0.35);
-          speedTracker.lastLoaded = loadedBytes;
-          speedTracker.lastTime = now;
+        const dt = (now - lastTime) / 1000;
+        if (dt >= 0.05 && loadedBytes > lastLoaded) {
+          const instantSpeed = (loadedBytes - lastLoaded) / dt;
+          currentSpeed = currentSpeed === 0 ? instantSpeed : (currentSpeed * 0.6 + instantSpeed * 0.4);
+          lastLoaded = loadedBytes;
+          lastTime = now;
         }
-        const speedText = speedTracker.speed > 0 ? `${formatSize(speedTracker.speed)}/s` : "Uploading…";
-        const detailedText = `Uploading ${percent}% · ${formatSize(loadedBytes)} / ${formatSize(totalBytes)}`;
-        status.textContent = `${detailedText} (${speedText})`;
-
-        const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
-        cards.forEach((card) => {
-          const bar = card.querySelector(".card-upload-bar");
-          const txt = card.querySelector(".card-upload-status-text");
-          if (bar) bar.style.width = `${percent}%`;
-          if (txt) txt.textContent = `${detailedText} (${speedText})`;
-        });
-        updateFloatingUploadToast(file.name, percent, loadedBytes, totalBytes, speedText);
-
-        onProgress(loadedBytes);
+        tracker.setTarget(loadedBytes, currentSpeed);
       });
 
       xhr.upload.addEventListener("load", () => {
-        progress.value = 99;
-        status.textContent = "Syncing with Telegram Cloud…";
-        const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
-        cards.forEach((card) => {
-          const bar = card.querySelector(".card-upload-bar");
-          const txt = card.querySelector(".card-upload-status-text");
-          if (bar) bar.style.width = "99%";
-          if (txt) txt.textContent = "Syncing with Telegram Cloud…";
-        });
-        updateFloatingUploadToast(file.name, 99, file.size, file.size, "Syncing Telegram Cloud…");
+        tracker.setSyncing();
       });
 
       xhr.addEventListener("load", () => {
@@ -3293,10 +3376,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
         let result = {};
         try { result = JSON.parse(xhr.responseText); } catch {}
         if (xhr.status >= 200 && xhr.status < 300) {
-          progress.value = 100;
-          status.textContent = result.telegramSynced
-            ? "✓ Saved in Telegram Cloud!"
-            : "✓ Uploaded! Syncing in background…";
+          tracker.setDone(true);
           status.classList.remove("queue-error");
           status.classList.add("queue-success");
           cancelBtn.remove();
@@ -3312,6 +3392,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
           setTimeout(() => item.remove(), 3500);
           finish(true);
         } else {
+          tracker.destroy();
           status.textContent = result.error || "Upload failed";
           status.classList.add("queue-error");
           finish(false);
@@ -3320,6 +3401,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
 
       xhr.addEventListener("error", () => {
         currentXhr = null;
+        tracker.destroy();
         status.textContent = "Network error";
         status.classList.add("queue-error");
         finish(false);
@@ -3327,6 +3409,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
 
       xhr.addEventListener("abort", () => {
         currentXhr = null;
+        tracker.destroy();
         status.textContent = "Cancelled";
         status.classList.add("queue-error");
         progress.remove();
@@ -3337,11 +3420,13 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
       return;
     }
 
-    // Chunked Resumable Upload for files > 1MB (1MB chunks for real-time live byte-by-byte progression & speedometer)
-    const CHUNK_SIZE = 1 * 1024 * 1024;
+    // Chunked Resumable Upload for files > 512KB (512KB chunks for high-resolution live progress & speedometer)
+    const CHUNK_SIZE = 512 * 1024;
     let uploadId = null;
     let offset = 0;
-    const chunkSpeedTracker = { lastTime: performance.now(), lastLoaded: 0, speed: 0 };
+    let currentSpeed = 0;
+    let lastLoadedTime = performance.now();
+    let lastLoadedBytes = 0;
 
     const startOrResumeUpload = async () => {
       if (aborted) return;
@@ -3406,45 +3491,20 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
             xhr.upload.addEventListener("progress", (e) => {
               if (aborted) { xhr.abort(); return; }
               const transferred = Math.min(file.size, offset + (e.loaded || 0));
-              const pct = Math.min(99, Math.round((transferred / file.size) * 100));
-              progress.value = pct;
-
               const now = performance.now();
-              const dt = (now - chunkSpeedTracker.lastTime) / 1000;
-              if (dt >= 0.08 && transferred > chunkSpeedTracker.lastLoaded) {
-                const instantSpeed = (transferred - chunkSpeedTracker.lastLoaded) / dt;
-                chunkSpeedTracker.speed = chunkSpeedTracker.speed === 0 ? instantSpeed : (chunkSpeedTracker.speed * 0.65 + instantSpeed * 0.35);
-                chunkSpeedTracker.lastLoaded = transferred;
-                chunkSpeedTracker.lastTime = now;
+              const dt = (now - lastLoadedTime) / 1000;
+              if (dt >= 0.05 && transferred > lastLoadedBytes) {
+                const instantSpeed = (transferred - lastLoadedBytes) / dt;
+                currentSpeed = currentSpeed === 0 ? instantSpeed : (currentSpeed * 0.6 + instantSpeed * 0.4);
+                lastLoadedBytes = transferred;
+                lastLoadedTime = now;
               }
-              const speedText = chunkSpeedTracker.speed > 0 ? `${formatSize(chunkSpeedTracker.speed)}/s` : "Uploading…";
-              const detailedText = `Uploading ${pct}% · ${formatSize(transferred)} / ${formatSize(file.size)}`;
-              status.textContent = `${detailedText} (${speedText})`;
-
-              const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
-              cards.forEach((card) => {
-                const bar = card.querySelector(".card-upload-bar");
-                const txt = card.querySelector(".card-upload-status-text");
-                if (bar) bar.style.width = `${pct}%`;
-                if (txt) txt.textContent = `${detailedText} (${speedText})`;
-              });
-              updateFloatingUploadToast(file.name, pct, transferred, file.size, speedText);
-
-              onProgress(transferred);
+              tracker.setTarget(transferred, currentSpeed);
             });
 
             xhr.upload.addEventListener("load", () => {
               if (chunkEnd >= file.size) {
-                progress.value = 99;
-                status.textContent = "Syncing with Telegram Cloud…";
-                const cards = document.querySelectorAll(`[data-upload-name="${CSS.escape(file.name)}"]`);
-                cards.forEach((card) => {
-                  const bar = card.querySelector(".card-upload-bar");
-                  const txt = card.querySelector(".card-upload-status-text");
-                  if (bar) bar.style.width = "99%";
-                  if (txt) txt.textContent = "Syncing with Telegram Cloud…";
-                });
-                updateFloatingUploadToast(file.name, 99, file.size, file.size, "Syncing Telegram Cloud…");
+                tracker.setSyncing();
               }
             });
 
@@ -3479,12 +3539,10 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
               const res = await uploadChunk();
               offset = chunkEnd;
               chunkSuccess = true;
+              tracker.setTarget(offset, currentSpeed);
+
               if (res.completed && res.file) {
-                progress.value = 100;
-                onProgress(file.size);
-                status.textContent = res.telegramSynced
-                  ? "✓ Saved in Telegram Cloud!"
-                  : "✓ Uploaded! Syncing in background…";
+                tracker.setDone(true);
                 status.classList.remove("queue-error");
                 status.classList.add("queue-success");
                 cancelBtn.remove();
@@ -3513,6 +3571,7 @@ function uploadOne(file, relativePath = "", batchItems, onProgress = () => {}) {
         }
       } catch (uploadError) {
         if (aborted) return;
+        tracker.destroy();
         status.textContent = `Error: ${uploadError.message || "Upload paused"}`;
         status.classList.add("queue-error");
         resumeBtn.classList.remove("hidden");
@@ -3545,6 +3604,9 @@ async function uploadMany(files, relativePathForFile = () => "") {
   }
   renderLibrary();
   renderHomeDashboard();
+  if (queue[0]) {
+    updateFloatingUploadToast(queue[0].name, 1, 0, queue[0].size, "Starting upload…");
+  }
 
   // 2. Topbar progress pill and popover setup
   const pill = document.querySelector("#upload-status-pill");
