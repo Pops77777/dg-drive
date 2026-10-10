@@ -7398,6 +7398,193 @@ html[data-theme="dark"] .upload-simple-label {
 .brand-infinity-glow,
 .infinity-svg-icon {
   animation: none !important;
-  filter: none !important;
 }
+
+/* =========================================================================
+   VIBRANT COLORFUL THEME & HEADER ADMIN HIDE (v35.0)
+   ========================================================================= */
+
+/* 1. Strictly hide Admin button from top header (accessible only via Profile & Account menu) */
+#admin-header-btn,
+.admin-header-btn {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* 2. Vibrant Colorful Background Aurora Mesh for Light & Dark Themes */
+body {
+  background:
+    radial-gradient(ellipse 55% 45% at 10% 8%, rgba(99, 102, 241, 0.14), transparent 70%),
+    radial-gradient(ellipse 50% 40% at 90% 15%, rgba(236, 72, 153, 0.12), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 50% 65%, rgba(16, 185, 129, 0.09), transparent 70%),
+    var(--page) !important;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 8%, rgba(99, 102, 241, 0.22), transparent 70%),
+    radial-gradient(ellipse 55% 45% at 90% 15%, rgba(236, 72, 153, 0.18), transparent 70%),
+    radial-gradient(ellipse 65% 55% at 50% 70%, rgba(16, 185, 129, 0.13), transparent 70%),
+    #0c1220 !important;
+}
+
+/* 3. Colorful Glowing Frosted Glass Cards */
+.master-glass-card {
+  background: rgba(255, 255, 255, 0.88) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(226, 232, 240, 0.85) !important;
+  box-shadow: 0 12px 32px rgba(30, 41, 59, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+html[data-theme="dark"] .master-glass-card {
+  background: rgba(21, 30, 48, 0.85) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45) !important;
+}
+
+/* 4. Radiant Colorful Category Tiles (Photos, Videos, Vault, Documents) */
+.category-pill-card {
+  border-radius: 18px !important;
+  transition: transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.18s ease, border-color 0.18s ease !important;
+  cursor: pointer !important;
+}
+
+/* Photos: Vivid Azure & Cyan */
+.category-pill-card[data-category="photos"] {
+  background: linear-gradient(135deg, rgba(238, 246, 255, 0.95), rgba(224, 242, 254, 0.90)) !important;
+  border: 1.5px solid rgba(147, 197, 253, 0.65) !important;
+}
+html[data-theme="dark"] .category-pill-card[data-category="photos"] {
+  background: linear-gradient(135deg, rgba(30, 58, 138, 0.38), rgba(15, 23, 42, 0.85)) !important;
+  border: 1.5px solid rgba(96, 165, 250, 0.38) !important;
+}
+.category-pill-card[data-category="photos"]:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.25) !important;
+  border-color: #3b82f6 !important;
+}
+
+/* Videos: Radiant Rose & Sunset Orange */
+.category-pill-card[data-category="videos"] {
+  background: linear-gradient(135deg, rgba(255, 241, 242, 0.95), rgba(255, 237, 213, 0.90)) !important;
+  border: 1.5px solid rgba(253, 164, 175, 0.65) !important;
+}
+html[data-theme="dark"] .category-pill-card[data-category="videos"] {
+  background: linear-gradient(135deg, rgba(136, 19, 55, 0.38), rgba(15, 23, 42, 0.85)) !important;
+  border: 1.5px solid rgba(244, 63, 94, 0.38) !important;
+}
+.category-pill-card[data-category="videos"]:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 8px 24px rgba(244, 63, 94, 0.25) !important;
+  border-color: #f43f5e !important;
+}
+
+/* Documents / Other: Emerald Mint & Teal */
+.category-pill-card[data-category="other"] {
+  background: linear-gradient(135deg, rgba(240, 253, 250, 0.95), rgba(236, 253, 245, 0.90)) !important;
+  border: 1.5px solid rgba(110, 231, 183, 0.65) !important;
+}
+html[data-theme="dark"] .category-pill-card[data-category="other"] {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.38), rgba(15, 23, 42, 0.85)) !important;
+  border: 1.5px solid rgba(52, 211, 153, 0.38) !important;
+}
+.category-pill-card[data-category="other"]:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.25) !important;
+  border-color: #10b981 !important;
+}
+
+/* Private Vault: Electric Violet & Lavender */
+.category-pill-card[data-category="vault"],
+.category-pill-card.category-purple {
+  background: linear-gradient(135deg, rgba(250, 245, 255, 0.95), rgba(243, 232, 255, 0.90)) !important;
+  border: 1.5px solid rgba(216, 180, 254, 0.65) !important;
+}
+html[data-theme="dark"] .category-pill-card[data-category="vault"],
+html[data-theme="dark"] .category-pill-card.category-purple {
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.38), rgba(15, 23, 42, 0.85)) !important;
+  border: 1.5px solid rgba(192, 132, 252, 0.38) !important;
+}
+.category-pill-card[data-category="vault"]:hover {
+  transform: translateY(-2px) scale(1.02) !important;
+  box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25) !important;
+  border-color: #a855f7 !important;
+}
+
+/* Category Icons with Rich Glowing Gradients */
+.category-icon-box.box-blue {
+  background: linear-gradient(135deg, #3b82f6, #06b6d4) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(59, 130, 246, 0.40) !important;
+}
+.category-icon-box.box-coral {
+  background: linear-gradient(135deg, #f43f5e, #fb923c) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.40) !important;
+}
+.category-icon-box.box-teal {
+  background: linear-gradient(135deg, #10b981, #14b8a6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.40) !important;
+}
+.category-icon-box.box-purple {
+  background: linear-gradient(135deg, #a855f7, #6366f1) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(168, 85, 247, 0.40) !important;
+}
+
+/* 5. Donut Glowing Aurora & Neon Ring */
+.master-donut-aurora {
+  position: absolute !important;
+  inset: -10px !important;
+  border-radius: 50% !important;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.30) 0%, rgba(59, 130, 246, 0.22) 40%, rgba(16, 185, 129, 0.14) 70%, transparent 80%) !important;
+  filter: blur(24px) !important;
+  pointer-events: none !important;
+  opacity: 0.85 !important;
+}
+html[data-theme="dark"] .master-donut-aurora {
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.45) 0%, rgba(96, 165, 250, 0.32) 45%, rgba(52, 211, 153, 0.22) 75%, transparent 85%) !important;
+  opacity: 1 !important;
+}
+
+/* Donut text & metrics colors */
+.donut-pct {
+  color: #3b82f6 !important;
+}
+html[data-theme="dark"] .donut-pct {
+  color: #60a5fa !important;
+}
+.donut-avail-top,
+.donut-avail-bottom {
+  color: #10b981 !important;
+  font-weight: 600 !important;
+}
+html[data-theme="dark"] .donut-avail-top,
+html[data-theme="dark"] .donut-avail-bottom {
+  color: #34d399 !important;
+}
+
+/* 6. Glowing Legend Dots */
+.legend-dot.dot-cyan { background: #06b6d4 !important; box-shadow: 0 0 8px rgba(6, 182, 212, 0.6) !important; }
+.legend-dot.dot-purple { background: #a855f7 !important; box-shadow: 0 0 8px rgba(168, 85, 247, 0.6) !important; }
+.legend-dot.dot-green { background: #10b981 !important; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6) !important; }
+.legend-dot.dot-amber { background: #f59e0b !important; box-shadow: 0 0 8px rgba(245, 158, 11, 0.6) !important; }
+
+/* 7. Highlight pills & Badges */
+.dashboard-highlight-pill {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(239, 68, 68, 0.15)) !important;
+  border: 1px solid rgba(245, 158, 11, 0.45) !important;
+  color: #d97706 !important;
+  font-weight: 700 !important;
+}
+html[data-theme="dark"] .dashboard-highlight-pill {
+  color: #fbbf24 !important;
+  border-color: rgba(251, 191, 36, 0.4) !important;
+}
+
 
