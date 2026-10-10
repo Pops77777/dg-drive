@@ -1917,7 +1917,7 @@ async function sendThumbnail(res, user, file, lowQuality = false, req = null) {
   for (const size of usableSizes) {
     try {
       const candidate = await client.downloadMedia(message, { thumb: size.type });
-      const maxThumbnailBytes = lowQuality ? 512 * 1024 : 2 * 1024 * 1024;
+      const maxThumbnailBytes = lowQuality ? 64 * 1024 : 2 * 1024 * 1024;
       if (Buffer.isBuffer(candidate) && candidate.length > 0 && candidate.length <= maxThumbnailBytes) {
         thumbnail = candidate;
         break;

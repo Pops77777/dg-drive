@@ -1635,13 +1635,9 @@ function updateInspectorPane(file) {
 
   if (isVid) {
     if (inspectorImg) {
-      if (!dataSaverEnabled) {
-        inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
-        inspectorImg.style.display = "block";
-        inspectorImg.classList.remove("hidden");
-      } else {
-        inspectorImg.style.display = "none";
-      }
+      inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
+      inspectorImg.style.display = "block";
+      inspectorImg.classList.remove("hidden");
     }
     if (inspectorVideo) inspectorVideo.classList.add("hidden");
     if (inspectorPlay) {
@@ -1650,13 +1646,9 @@ function updateInspectorPane(file) {
     }
   } else if (isImg) {
     if (inspectorImg) {
-      if (!dataSaverEnabled) {
-        inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail?quality=high`);
-        inspectorImg.style.display = "block";
-        inspectorImg.classList.remove("hidden");
-      } else {
-        inspectorImg.style.display = "none";
-      }
+      inspectorImg.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : "?quality=high"}`);
+      inspectorImg.style.display = "block";
+      inspectorImg.classList.remove("hidden");
     }
     if (inspectorVideo) inspectorVideo.classList.add("hidden");
     if (inspectorPlay) inspectorPlay.classList.add("hidden");
@@ -1808,23 +1800,22 @@ function renderHomeDashboard() {
           continue;
         }
 
-        if (!dataSaverEnabled && (isImg || isVid)) {
+        if (isImg || isVid) {
           const img = document.createElement("img");
-          img.className = "recent-card-thumb-img";
+          img.className = `recent-card-thumb-img${dataSaverEnabled ? " is-data-saver" : ""}`;
           img.alt = file.name;
           img.loading = "lazy";
-          img.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
+          img.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
           img.onerror = () => { img.style.display = "none"; };
           thumbWrap.append(img);
         } else {
-          // Data Saver mode or non-media: lightweight icon placeholder, 0 KB extra bandwidth used!
           const placeholder = document.createElement("div");
           placeholder.className = "ds-thumb-placeholder";
-          placeholder.innerHTML = isVid ? "🎬" : isImg ? "📸" : isPdf ? "📄" : "📁";
+          placeholder.innerHTML = isPdf ? "📄" : "📁";
           thumbWrap.append(placeholder);
         }
 
-        if (isVid && !dataSaverEnabled) {
+        if (isVid) {
           const play = document.createElement("span");
           play.className = "recent-card-play-overlay";
           play.innerHTML = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
@@ -2269,28 +2260,20 @@ function createFileCard(file) {
   }, `Preview ${file.name}`);
   open.append(icon);
 
-  if (!file._uploading) {
-    if (!dataSaverEnabled) {
-      const thumbnail = document.createElement("img");
-      thumbnail.className = "file-thumbnail";
-      thumbnail.alt = "";
-      thumbnail.loading = "lazy";
-      thumbnail.decoding = "async";
-      thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail`);
-      thumbnail.addEventListener("error", () => {
-        thumbnail.remove();
-      }, { once: true });
-      open.append(thumbnail);
-    } else {
-      // In Data Saver mode, display an ultra-lightweight tag and do not download heavy HD thumbnails
-      const dsTag = document.createElement("span");
-      dsTag.className = "data-saver-thumb-tag";
-      dsTag.textContent = "⚡ Data Saver";
-      open.append(dsTag);
-    }
+  if (!file._uploading && (category === "photos" || category === "videos")) {
+    const thumbnail = document.createElement("img");
+    thumbnail.className = `file-thumbnail${dataSaverEnabled ? " is-data-saver" : ""}`;
+    thumbnail.alt = "";
+    thumbnail.loading = "lazy";
+    thumbnail.decoding = "async";
+    thumbnail.src = apiUrl(`/api/files/${encodeURIComponent(file.id)}/thumbnail${dataSaverEnabled ? "?quality=low" : ""}`);
+    thumbnail.addEventListener("error", () => {
+      thumbnail.remove();
+    }, { once: true });
+    open.append(thumbnail);
   }
 
-  if (category === "videos" && !file._uploading && !dataSaverEnabled) {
+  if (category === "videos" && !file._uploading) {
     const play = document.createElement("span");
     play.className = "thumbnail-play";
     play.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>`;
@@ -4952,7 +4935,7 @@ function toggleDataSaver() {
   updateDataSaverUI();
   renderLibrary();
   renderHomeDashboard();
-  showToast(dataSaverEnabled ? "⚡ Data Saver ON: HD thumbnails disabled to save internet data" : "Data Saver OFF: HD thumbnails enabled");
+  showToast(dataSaverEnabled ? "⚡ Data Saver ON: Low-quality thumbnails active (saves max data)" : "Data Saver OFF: HD thumbnails enabled");
 }
 
 document.querySelector("#data-saver-btn")?.addEventListener("click", toggleDataSaver);
