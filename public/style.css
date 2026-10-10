@@ -7134,26 +7134,27 @@ html[data-theme="dark"] .toolbar-icon-btn.is-active {
   line-height: 1 !important;
 }
 
-/* 4. Sleek Compact Mobile Bottom Dock with Auto-Hide on Scroll */
+/* 4. Sleek Modern Mobile Bottom Dock with Auto-Hide on Scroll */
 .mobile-bottom-dock {
   display: flex !important;
   position: fixed !important;
-  bottom: 14px !important;
+  bottom: 16px !important;
   left: 50% !important;
   right: auto !important;
   transform: translateX(-50%) translateY(0) !important;
-  height: 48px !important;
+  height: 60px !important;
   width: max-content !important;
-  min-width: 250px !important;
-  max-width: 280px !important;
+  min-width: 320px !important;
+  max-width: 370px !important;
   margin: 0 !important;
   border-radius: 999px !important;
-  padding: 0 10px !important;
+  padding: 0 16px !important;
   align-items: center !important;
   justify-content: space-around !important;
+  gap: 6px !important;
   background: #ffffff !important;
   border: 1.5px solid #e2e8f0 !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.18) !important;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2) !important;
   z-index: 999999 !important;
   transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease !important;
   pointer-events: auto !important;
@@ -7163,8 +7164,8 @@ html[data-theme="dark"] .toolbar-icon-btn.is-active {
 
 html[data-theme="dark"] .mobile-bottom-dock {
   background: #141b2d !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6) !important;
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 10px 38px rgba(0, 0, 0, 0.65) !important;
 }
 
 /* Auto-hide while scrolling in either direction */
@@ -7175,9 +7176,9 @@ html[data-theme="dark"] .mobile-bottom-dock {
 }
 
 .dock-btn {
-  width: 36px !important;
-  height: 36px !important;
-  min-width: 36px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
   border-radius: 50% !important;
   padding: 0 !important;
   display: flex !important;
@@ -7187,7 +7188,7 @@ html[data-theme="dark"] .mobile-bottom-dock {
   border: none !important;
   color: #64748b !important;
   cursor: pointer !important;
-  transition: color 0.12s, background-color 0.12s !important;
+  transition: color 0.12s, background-color 0.12s, transform 0.12s !important;
 }
 
 html[data-theme="dark"] .dock-btn {
@@ -7196,52 +7197,54 @@ html[data-theme="dark"] .dock-btn {
 
 .dock-btn.is-active {
   color: #2563eb !important;
-  background: rgba(37, 99, 235, 0.12) !important;
+  background: rgba(37, 99, 235, 0.14) !important;
 }
 
 html[data-theme="dark"] .dock-btn.is-active {
   color: #60a5fa !important;
-  background: rgba(96, 165, 250, 0.18) !important;
+  background: rgba(96, 165, 250, 0.2) !important;
 }
 
 .dock-btn svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 22px !important;
+  height: 22px !important;
   display: block !important;
 }
 
 .dock-btn-upload {
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
   border-radius: 50% !important;
   background: #2563eb !important;
   color: #ffffff !important;
-  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.45) !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.55) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
+  transition: transform 0.12s, background 0.12s !important;
 }
 .dock-btn-upload:hover,
 .dock-btn-upload:active {
   background: #1d4ed8 !important;
+  transform: scale(1.05) !important;
 }
 .dock-btn-upload svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 22px !important;
+  height: 22px !important;
   stroke: #ffffff !important;
 }
 
 /* Floating Upload Speed Dial (Folder & File floating pills directly above + button) */
 .upload-speed-dial {
   position: fixed !important;
-  bottom: 70px !important;
+  bottom: 86px !important;
   left: 50% !important;
   transform: translateX(-50%) !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
-  gap: 8px !important;
+  gap: 10px !important;
   z-index: 1000000 !important;
   animation: speedDialFadeUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
